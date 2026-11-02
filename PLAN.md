@@ -354,7 +354,7 @@ deviennent les versions 2.1 et suivantes.
   Révision (`onglet-revision`).
 - **Portail** : la page Fonctionnalités affiche les éléments `"depuis": "2.0.0"` dès la publication (section 6 duodecies).
 
-## 6 quattuordecies. Version 2.1.0 (en préparation) : lots 6, 7, 8, 11 et 12
+## 6 quattuordecies. Version 2.1.0 (publiée le 2026-11-02) : lots 6 à 12
 
 Lots 9 (formes, effets, WordArt) et 10 (PDF, impression) : réalisés en parallèle, voir les sections 9 et 10.
 

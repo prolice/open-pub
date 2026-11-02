@@ -19,7 +19,7 @@
     <AssemblyName>OpenPub</AssemblyName>
     <RootNamespace>OpenPub.App</RootNamespace>
     <ApplicationIcon>Assets\openpub.ico</ApplicationIcon>
-    <Version>2.0.0</Version>
+    <Version>2.1.0</Version>
     <Product>OpenPub</Product>
     <Description>Éditeur de mise en page (remplacement de Microsoft Publisher)</Description>
   </PropertyGroup>
