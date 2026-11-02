@@ -89,7 +89,7 @@ zone de texte ou une image.</p>
 {shot("onglet-accueil", "Onglet Accueil du ruban")}"""),
         ("fichier", "Le menu Fichier", f"""
 <p>Le bouton <strong>Fichier</strong> donne accès à : Ouvrir ({k('Ctrl', 'O')}), Enregistrer ({k('Ctrl', 'S')}),
-Enregistrer sous ({k('Ctrl', 'Maj', 'S')}), Imprimer / créer un PDF ({k('Ctrl', 'P')}), Exporter les pages en PNG,
+Enregistrer sous ({k('Ctrl', 'Maj', 'S')}), Imprimer ({k('Ctrl', 'P')}), Exporter en PDF, Exporter en images,
 Rechercher des mises à jour, l'aide en ligne et À propos (version, type d'installation, état des mises à jour).</p>
 <p>Sous « Ouvrir… », la section <strong>Documents récents</strong> liste les derniers documents ouverts ou
 enregistrés (nom et dossier) : un clic les rouvre, {k('Ctrl', 'Maj', '1')} à {k('Ctrl', 'Maj', '9')} aussi.
@@ -430,17 +430,82 @@ choisit vos cinq couleurs, qui apparaissent aussi en tête du sélecteur de coul
 remplace la police des titres et celle du texte, styles compris.</p>"""),
     ]),
 
-    ("impression.html", "Impression et PDF", "Imprimer, créer un PDF, exporter en images.", "🖨️", [
+    ("impression.html", "Impression et PDF", "Imprimer, créer un PDF, préparer un fichier pour l'imprimeur, exporter en images.", "🖨️", [
         ("imprimer", "Imprimer", f"""
-<p><strong>Fichier ▸ Imprimer / créer un PDF…</strong> ({k('Ctrl', 'P')}) ouvre la boîte d'impression de Windows avec
-le format de page du document.</p>"""),
-        ("pdf", "Créer un PDF", steps(
-            "<strong>Fichier ▸ Imprimer / créer un PDF…</strong>",
-            "Choisissez l'imprimante <strong>Microsoft Print to PDF</strong>.",
-            "Cliquez sur <strong>Imprimer</strong>, puis choisissez le nom et l'emplacement du fichier PDF.")),
+<p><strong>Fichier ▸ Imprimer…</strong> ({k('Ctrl', 'P')}) ouvre la boîte <strong>Imprimer</strong> d'OpenPub :</p>
+<ul>
+<li><strong>Pages</strong> : toutes, la page active, ou une liste comme <code>1-3; 5</code> (une plage ouverte
+<code>4-</code> va jusqu'à la dernière page) ;</li>
+<li><strong>Exemplaires</strong> : le document entier est imprimé, puis le suivant (exemplaires assemblés) ;</li>
+<li><strong>Disposition</strong> : une page par feuille, recto verso manuel, ou livret (voir plus bas).</li>
+</ul>
+<p>Cliquez sur <strong>Imprimer…</strong> : la boîte de Windows s'ouvre pour choisir l'imprimante et ses réglages,
+puis l'impression part.</p>"""),
+        ("apercu", "Aperçu avant impression", """
+<p>La partie droite de la boîte <strong>Imprimer</strong> montre les feuilles <strong>telles qu'elles sortiront</strong>,
+dans l'ordre d'impression, avec une légende (« Feuille 1, recto — pages 8 et 1 », « Verso 2 — page 4 »…). L'aperçu
+suit vos réglages : changez les pages, les exemplaires ou la disposition, il se met à jour.</p>"""),
+        ("livret", "Imprimer un livret", f"""
+<p>La disposition <strong>Livret</strong> imprime <strong>deux pages par face</strong> d'une feuille en paysage,
+dans l'<strong>ordre de pliage</strong> : une fois les feuilles imprimées, empilées et pliées en deux, les pages se
+suivent. Pour 8 pages : feuille 1 = 8-1 au recto et 2-7 au verso, feuille 2 = 6-3 et 4-5.</p>
+<ul>
+<li>Le nombre de pages est complété par des <strong>pages blanches</strong> jusqu'à un multiple de 4 (une feuille
+pliée porte 4 pages).</li>
+<li>Les pages sont réduites pour tenir à deux sur la feuille de l'imprimante : des pages A4 sur une feuille A4
+donnent un livret A5 ; sur une feuille A3, le livret garde le format A4.</li>
+<li><strong>Livret (imprimante recto verso)</strong> : l'imprimante imprime les deux faces, retournement sur le
+<strong>bord court</strong>.</li>
+<li><strong>Livret, recto verso manuel</strong> : pour une imprimante qui n'imprime qu'une face (voir ci-dessous).</li>
+</ul>
+{tip("Pour la newsletter de 4 pages : une seule feuille A3 pliée donne un livret A4 (4-1 au recto, 2-3 au verso).")}"""),
+        ("recto-verso", "Recto verso manuel", f"""
+<p>Si l'imprimante n'imprime qu'une face, choisissez <strong>Recto verso manuel</strong> (ou <strong>Livret, recto
+verso manuel</strong>) :</p>
+""" + steps(
+            "OpenPub imprime d'abord tous les <strong>rectos</strong> (pages 1, 3, 5…).",
+            "Un message vous demande de <strong>retourner la pile</strong> et de la remettre dans le bac.",
+            "Cliquez sur <strong>OK</strong> : les <strong>versos</strong> s'impriment (pages 2, 4, 6…). Une page blanche "
+            "est ajoutée au besoin pour que chaque feuille reçoive son verso.") + f"""
+<p>Si les versos sortent dans le mauvais ordre (imprimantes qui empilent les feuilles face dessus), cochez
+<strong>Versos dans l'ordre inverse</strong>. Faites un essai sur deux feuilles la première fois.</p>"""),
+        ("pdf", "Exporter en PDF", f"""
+<p><strong>Fichier ▸ Exporter en PDF…</strong> crée directement un fichier PDF, sans passer par une imprimante :</p>
+<ul>
+<li>le <strong>texte reste du texte</strong> (net à tous les zooms, sélectionnable, recherchable), avec les vraies
+polices <strong>incorporées</strong> : le PDF s'affiche de la même façon sur tous les ordinateurs ;</li>
+<li>les <strong>photos d'origine</strong> sont reprises telles quelles, sans perte de qualité ;</li>
+<li>ombres floues et reflets sont convertis en images haute définition (300 points par pouce).</li>
+</ul>
+<p>Choisissez les pages (toutes, page active ou liste), puis l'emplacement du fichier. La case <strong>Ouvrir le PDF
+une fois créé</strong> l'affiche dans votre lecteur de PDF.</p>
+{tip("C'est le meilleur format pour envoyer la newsletter par courriel ou la publier sur un site.")}"""),
+        ("imprimeur", "PDF pour l'imprimeur", f"""
+<p>Pour une impression professionnelle, la boîte <strong>Exporter en PDF</strong> propose, sous <strong>Pour
+l'imprimeur</strong> :</p>
+<ul>
+<li><strong>Fond perdu</strong> (3 mm par défaut) : la page du PDF est agrandie de chaque côté ; les fonds et les
+photos qui <strong>touchent le bord</strong> de la page sont prolongés dans cette marge, qui sera coupée. Ainsi,
+aucun liseré blanc n'apparaît si la coupe est un peu décalée. Les photos gardent leurs proportions (la partie
+recadrée est d'abord dévoilée, sinon la photo est très légèrement agrandie). Votre document n'est pas modifié.</li>
+<li><strong>Traits de coupe</strong> : de petits traits dans les coins indiquent où couper ; ils sont placés en
+dehors du fond perdu.</li>
+<li><strong>PDF/X-4</strong> : la norme des imprimeurs. Le profil d'impression CMJN est incorporé (FOGRA39 par
+défaut, le plus courant en Europe ; <strong>Autre profil…</strong> pour celui fourni par l'imprimeur), les couleurs
+sont étiquetées sRGB, les dimensions de coupe (TrimBox, BleedBox) sont indiquées sur chaque page.</li>
+</ul>
+{warn("OpenPub ne convertit pas lui-même les couleurs en CMJN : c'est l'imprimeur qui le fait à partir du profil incorporé. "
+       "Demandez-lui un contrôle du fichier (« BAT ») avant une grosse impression.")}"""),
         ("png", "Exporter en images", """
-<p><strong>Fichier ▸ Exporter les pages en PNG…</strong> enregistre chaque page en image haute définition
-(200 points par pouce), pratique pour un site web ou les réseaux sociaux.</p>"""),
+<p><strong>Fichier ▸ Exporter en images (PNG, JPEG)…</strong> enregistre des pages en images :</p>
+<ul>
+<li><strong>Format</strong> : PNG (sans perte, idéal pour le texte) ou JPEG (fichiers plus légers, idéal pour les
+photos et les réseaux sociaux) ;</li>
+<li><strong>Résolution</strong> : 96 ppp pour l'écran, 150 à 200 ppp pour un courriel ou un site, 300 ppp pour
+l'impression ;</li>
+<li><strong>Pages</strong> : la page active (vous choisissez le nom du fichier), toutes les pages ou une liste (vous
+choisissez un dossier ; les fichiers s'appellent <code>page-1.png</code>, <code>page-2.png</code>…).</li>
+</ul>"""),
     ]),
 
     ("mises-a-jour.html", "Mises à jour", "Recevoir les nouvelles versions automatiquement.", "🔄", [
@@ -461,7 +526,7 @@ fichier avant de l'installer, et refuse toute version modifiée.</p>"""),
         ("general", "Général", table([
             ("Nouveau / Ouvrir / Enregistrer / Enregistrer sous", f"{k('Ctrl', 'N')} · {k('Ctrl', 'O')} · {k('Ctrl', 'S')} · {k('Ctrl', 'Maj', 'S')}"),
             ("Rouvrir un document récent (n° du menu Fichier)", f"{k('Ctrl', 'Maj', '1')} … {k('Ctrl', 'Maj', '9')}"),
-            ("Imprimer / créer un PDF", k('Ctrl', 'P')),
+            ("Imprimer (aperçu, livret, recto verso)", k('Ctrl', 'P')),
             ("Annuler / Rétablir", f"{k('Ctrl', 'Z')} · {k('Ctrl', 'Y')}"),
             ("Aide sur ce que vous faites", k('F1')),
             ("Zoom", f"{k('Ctrl')} + molette"),

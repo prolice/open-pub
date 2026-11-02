@@ -143,7 +143,7 @@ public static class Templates
         ("encadre", "Encadré coloré", () => new List<Shape>
         {
             Text(0, 0, 220, 140, P(F("Arial", 10.5), "left", "Le saviez-vous ?", "Un court texte mis en valeur dans un encadré."), "#eef5ff"),
-        }.Also(l => { l[0].Geometry = ShapeGeometry.RoundRect; l[0].CornerRadius = 12; l[0].Paragraphs![0].Runs[0].Font!.Bold = true; l[0].Paragraphs[0].Runs[0].Font!.Color = "#087aff"; })),
+        }.Also(l => { l[0].Geometry = ShapeGeometry.RoundRect; l[0].CornerRadius = 12; l[0].Paragraphs![0].Runs[0].Font!.Bold = true; l[0].Paragraphs![0].Runs[0].Font!.Color = "#087aff"; })),
         ("bandeau", "Bandeau de titre", () => new List<Shape>
         {
             Box(0, 0, 523, 60, "#9935f4", ShapeGeometry.RoundRect, 10),

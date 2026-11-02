@@ -199,21 +199,8 @@ public partial class MainWindow : Window
     void Redo_CanExecute(object sender, CanExecuteRoutedEventArgs e) => e.CanExecute = _session?.History.CanRedo == true;
     void Undo_Executed(object sender, ExecutedRoutedEventArgs e) => _session?.Undo();
     void Redo_Executed(object sender, ExecutedRoutedEventArgs e) => _session?.Redo();
-    void Print_Executed(object sender, ExecutedRoutedEventArgs e)
-    {
-        if (_session is null) return;
-        _session.Select(null);
-        Exporter.Print(_session, Path.GetFileNameWithoutExtension(_session.Package.FilePath ?? _session.Doc.Source ?? "OpenPub"));
-    }
-
-    void ExportPng_Click(object sender, RoutedEventArgs e)
-    {
-        if (_session is null) return;
-        var dlg = new OpenFolderDialog { Title = "Dossier de destination des images" };
-        if (dlg.ShowDialog(this) != true) return;
-        var files = Exporter.ExportPng(_session, dlg.FolderName, 200);
-        StatusText.Text = $"{files.Count} pages exportées dans {dlg.FolderName}";
-    }
+    // impression, PDF et images : voir MainWindow.Output.cs
+    void Print_Executed(object sender, ExecutedRoutedEventArgs e) => ShowPrintWindow();
 
     // ================================================================ pages et zoom
 
@@ -539,8 +526,7 @@ public partial class MainWindow : Window
         Add("Enregistrer sous…", "Ctrl+Maj+S", () => SaveDocument(true), has, glyph: "\uE792");
         Add("Enregistrer comme modèle…", "", SaveAsTemplate_Click, has, glyph: "\uE8F4");
         menu.Items.Add(new Separator());
-        Add("Imprimer / créer un PDF…", "Ctrl+P", () => ApplicationCommands.Print.Execute(null, this), has, glyph: "\uE749");
-        Add("Exporter les pages en PNG…", "", () => ExportPng_Click(this, new RoutedEventArgs()), has, glyph: "\uEB9F");
+        AddOutputItems(menu, has);
         Add("Exporter pour le web ou un e-mail…", "", ExportHtml_Click, has, glyph: "\uE774");
         menu.Items.Add(new Separator());
         Add("Aide en ligne", "F1", () => Help.HelpService.Open(CurrentHelpTopic()), glyph: "\uE897");

@@ -8,6 +8,8 @@ namespace OpenPub.App;
 /// Point d'entree. Modes en ligne de commande (sans fenetre), utiles pour l'automatisation et les tests :
 ///   OpenPub.exe --import dossier_converti sortie.opub
 ///   OpenPub.exe --render fichier.opub|document.json dossier_png [dpi]
+///   OpenPub.exe --pdf fichier.opub|document.json sortie.pdf [--pages 1-3] [--bleed [mm]] [--marks] [--pdfx [profil.icc]] [--dpi n]
+///   OpenPub.exe --images fichier.opub|document.json dossier [--jpeg] [--dpi n] [--pages 1-3]
 /// Sinon : ouvre l'editeur (avec le fichier passe en argument, le cas echeant).
 /// </summary>
 public partial class App : Application
@@ -152,6 +154,16 @@ public partial class App : Application
                         Console.WriteLine($"   {l.Top - fl.Shape.Y,6:0.0} h={l.Height:0.00} p{l.ParagraphIndex} | {string.Join(" ", l.Pieces.Select(x => $"[{x.Text}@{x.X - fl.Shape.X:0.0}+{x.Width:0.0}]"))}");
                 }
                 Shutdown(0);
+                return;
+            }
+            if (args.Length >= 3 && args[0] == "--pdf")
+            {
+                Shutdown(Output.OutputCli.Pdf(args));
+                return;
+            }
+            if (args.Length >= 3 && args[0] == "--images")
+            {
+                Shutdown(Output.OutputCli.Images(args));
                 return;
             }
             if (args.Length >= 3 && args[0] == "--render")

@@ -34,5 +34,6 @@ L'historique des décisions de conception, les calibrations de mise en page et l
 ## Composants tiers
 
 - Polices **DM Sans** et **Plus Jakarta Sans** : SIL Open Font License 1.1 (`src/OpenPub.App/Fonts/OFL-*.txt`).
+- Export PDF : [PDFsharp](https://github.com/empira/PDFsharp) 6 (licence MIT), paquet NuGet `PDFsharp`.
 - Motifs de césure français (`src/OpenPub.Layout/Resources/hyph_fr.dic`) : dictionnaire de césure de LibreOffice (LGPL / MPL), distribué via pyphen.
 - Conversion des fichiers Publisher : [libmspub](https://git.libreoffice.org/libmspub) (MPL 2.0), utilisé comme outil externe (`pub2raw`), non inclus dans ce dépôt.

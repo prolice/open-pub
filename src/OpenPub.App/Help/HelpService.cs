@@ -67,6 +67,12 @@ public static class HelpService
     public const string Merge = "envois.html#publipostage";
     public const string Links = "envois.html#liens";
     public const string WebExport = "envois.html#web";
+    // version 2.1 : sorties (lot 10)
+    public const string PrintPreview = "impression.html#apercu";
+    public const string Booklet = "impression.html#livret";
+    public const string ManualDuplex = "impression.html#recto-verso";
+    public const string PdfForPrinter = "impression.html#imprimeur";
+    public const string ImageExport = "impression.html#png";
 
     public static IReadOnlyList<string> AllTopics => typeof(HelpService).GetFields(BindingFlags.Public | BindingFlags.Static)
         .Where(f => f.IsLiteral && f.FieldType == typeof(string)).Select(f => (string)f.GetRawConstantValue()!).ToList();

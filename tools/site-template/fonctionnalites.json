@@ -283,6 +283,36 @@
           "titre": "Page web et e-mail",
           "texte": "Export en une page web autonome, avec liens hypertextes cliquables et textes de remplacement pour l'accessibilité.",
           "depuis": "2.1.0"
+        },
+        {
+          "titre": "Export PDF direct",
+          "texte": "Fichier ▸ Exporter en PDF, sans imprimante : texte vectoriel avec les polices incorporées, photos d'origine sans perte, ombres et reflets en haute définition.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "PDF pour l'imprimeur",
+          "texte": "Fond perdu de 3 mm (fonds et photos prolongés au-delà du bord), traits de coupe, profil PDF/X-4 avec le profil CMJN de l'imprimeur (FOGRA39 par défaut).",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Aperçu avant impression",
+          "texte": "Les feuilles telles qu'elles sortiront, dans l'ordre ; choix des pages (1-3; 5) et du nombre d'exemplaires.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Impression en livret",
+          "texte": "Deux pages par face sur une feuille paysage, dans l'ordre de pliage (8-1, 2-7, 6-3, 4-5), pages blanches ajoutées jusqu'à un multiple de 4.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Recto verso manuel",
+          "texte": "Pour les imprimantes une face : les rectos, puis « retournez la pile », puis les versos.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Images JPEG ou PNG, résolution au choix",
+          "texte": "La page active ou toutes les pages, de 96 à 600 points par pouce.",
+          "depuis": "2.1.0"
         }
       ]
     },
