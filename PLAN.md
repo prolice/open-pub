@@ -354,6 +354,50 @@ deviennent les versions 2.1 et suivantes.
   Révision (`onglet-revision`).
 - **Portail** : la page Fonctionnalités affiche les éléments `"depuis": "2.0.0"` dès la publication (section 6 duodecies).
 
+## 6 quattuordecies. Version 2.1.0 (en préparation) : lots 6, 7, 8, 11 et 12
+
+Lots 9 (formes, effets, WordArt) et 10 (PDF, impression) : réalisés en parallèle, voir les sections 9 et 10.
+
+- **Lot 6, création de page** (`MainWindow.PageDesign.cs`, `MainWindow.Rulers.cs`, `PageSetupWindow`, `Controls/RulerBar`).
+  - Pages maîtres : `PubDocument.Masters` ; une page utilise `Page.Master` (sinon la première) sauf si `IgnoreMaster`.
+    Mode de modification : les vues affichent les maîtres (`PageList`) ; rendu sous la page, non sélectionnable.
+  - Champs `Run.Field` (« page », « pages », « date », « merge:… ») : segment « # » non fusionnable, valeur calculée
+    à la mise en page par page (`EditorSession.FieldsFor`, `LayoutMaster(master, page)` mis en cache) ; le champ ne
+    compte que pour un caractère source (curseur juste).
+  - Numérotation (`PageNumbering` : style, premier numéro, `Page.NumberStart`), arrière-plan (`Page.BackColor` ou image
+    `Shape.Background`), boîte Mise en page (format, orientation, marges, grille `LayoutGrid`, adaptation des objets),
+    Fichier ▸ Nouveau, double page (grille à deux colonnes), règles (cm, page active, sélection surlignée), repères de
+    règle `PubDocument.Guides` (glisser depuis la règle, déplacer, supprimer hors de la page), magnétisme sur repères
+    et grille.
+  - Format : `PubFormat.Required` écrit « openpub/2 » dès qu'une nouveauté serait perdue par une version 1 ;
+    une version plus récente que `SupportedFormat` s'ouvre mais ne s'enregistre pas.
+    - Limite connue : la 2.0.0 ne connaît pas ce garde-fou ; elle perdrait les nouveautés en enregistrant un
+      document 2.1 (d'où l'intérêt des mises à jour automatiques).
+- **Lot 7, tableaux** (`Core/Editing/TableOps.cs`, `MainWindow.Tables.cs`) : `ShapeKind.Table` + `TableData`
+  (colonnes, hauteurs minimales, cellules avec fusion `RowSpan/ColSpan/Hidden`, bordures par côté).
+  - Chaque cellule visible est mise en page comme une **zone de texte fantôme** stable (`PageLayouter.CellFrame`,
+    `CellOf`) : l'éditeur sur la page, l'orthographe, la recherche et le rendu du texte fonctionnent sans code dédié.
+  - Les lignes s'agrandissent avec le texte (`TableData.ActualRows`, hauteur de l'objet recalculée).
+  - Tab / Maj+Tab, ligne ajoutée au bout, colonnes et lignes à la souris, collage TSV, styles, calendrier.
+- **Lot 8, styles et thèmes** (`Core/Editing/StyleOps.cs`, `MainWindow.Styles.cs`, `StyleWindow`).
+  - Styles de paragraphe et de caractère (`Paragraph.Style`, `Run.Style`) : appliquer recopie les valeurs ;
+    modifier un style les réapplique partout (une mise en forme locale des mêmes propriétés est alors remplacée,
+    choix assumé pour rester simple).
+  - Jeux de couleurs : les cinq couleurs du jeu précédent sont remplacées partout par celles du nouveau jeu
+    (pas de référence symbolique dans le rendu). Jeux de polices : titres / texte, styles compris.
+- **Lot 11, modèles et blocs** (`Core/Editing/Templates.cs`, `MainWindow.Templates.cs`) : 4 modèles construits en
+  code, modèles de l'utilisateur (`%APPDATA%\OpenPub\Modèles\*.opubt`, un document créé d'après eux est « sans
+  titre »), 6 blocs fournis et blocs de l'utilisateur (`Blocs\*.json` = presse-papiers OpenPub, images comprises),
+  calendrier du mois ou du mois prochain.
+- **Lot 12, envois** (`Core/Editing/MergeOps.cs`, `MainWindow.Merge.cs`) : publipostage (CSV ou liste collée depuis
+  Excel copiée dans le document, champs «Colonne», aperçu, document fusionné), liens hypertextes (`Run.Link`,
+  `Shape.Link`, Ctrl + clic), texte de remplacement (`Shape.AltText`), page web autonome (pages en PNG incluses,
+  `<map>` des liens, texte des pages pour l'accessibilité).
+  - À faire après la fusion des lots 9 et 10 : texte le long d'un tracé libre (variante du WordArt), liens actifs et
+    textes de remplacement dans le PDF.
+- **Vérifications** : 88 tests unitaires, 160 vérifications de bout en bout (les échecs intermittents de copier/coller
+  venaient d'autres processus utilisant le presse-papiers Windows en même temps).
+
 ## 7. Prochaines étapes proposées
 1. ✅ ~~Extraction via Publisher~~ : impossible depuis la perte de licence ; acquis partiels conservés.
 2. ✅ Lecteur natif prototype sur la newsletter : texte → zones, polices, images d'origine, aperçu fidèle.
