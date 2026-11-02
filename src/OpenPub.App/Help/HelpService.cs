@@ -58,6 +58,15 @@ public static class HelpService
     public const string Masters = "pages.html#maitres";
     public const string PageNumbers = "pages.html#numeros";
     public const string Rulers = "disposition.html#regles";
+    public const string Tables = "tableaux.html#inserer";
+    public const string TableTools = "tableaux.html#modifier";
+    public const string Styles = "texte.html#styles";
+    public const string Themes = "pages.html#jeux";
+    public const string Templates = "modeles.html#nouveau";
+    public const string Blocks = "modeles.html#blocs";
+    public const string Merge = "envois.html#publipostage";
+    public const string Links = "envois.html#liens";
+    public const string WebExport = "envois.html#web";
 
     public static IReadOnlyList<string> AllTopics => typeof(HelpService).GetFields(BindingFlags.Public | BindingFlags.Static)
         .Where(f => f.IsLiteral && f.FieldType == typeof(string)).Select(f => (string)f.GetRawConstantValue()!).ToList();

@@ -70,7 +70,10 @@ son bouton <strong>?</strong>, et le panneau de droite propose un lien « En sav
 <a class="card" href="formes.html"><b>Formes et dessin</b><span>Formes, crayon, forme libre, flèches</span></a>
 <a class="card" href="disposition.html"><b>Disposition</b><span>Plusieurs objets, grouper, aligner, magnétisme</span></a>
 <a class="card" href="revision.html"><b>Révision</b><span>Orthographe, rechercher et remplacer, typographie</span></a>
-<a class="card" href="pages.html"><b>Pages</b><span>Ajouter, dupliquer, réordonner</span></a>
+<a class="card" href="tableaux.html"><b>Tableaux</b><span>Insérer, fusionner, styles, calendrier</span></a>
+<a class="card" href="modeles.html"><b>Modèles et blocs</b><span>Nouveau document, vos modèles, blocs réutilisables</span></a>
+<a class="card" href="envois.html"><b>Publipostage et web</b><span>Copies personnalisées, liens, export web</span></a>
+<a class="card" href="pages.html"><b>Pages</b><span>Mise en page, pages maîtres, numéros, couleurs</span></a>
 <a class="card" href="impression.html"><b>Impression et PDF</b><span>Imprimer, créer un PDF, exporter en images</span></a>
 <a class="card" href="mises-a-jour.html"><b>Mises à jour</b><span>Automatiques et sécurisées</span></a>
 <a class="card" href="raccourcis.html"><b>Raccourcis clavier</b><span>Tous les raccourcis</span></a>
@@ -151,6 +154,12 @@ sélectionné (ou au mot sous le curseur). {k('Ctrl', 'B')} gras, {k('Ctrl', 'I'
 <strong>surlignage</strong>. Le <strong>pinceau</strong> reproduit la mise en forme : placez le curseur dans le texte
 modèle, cliquez le pinceau, puis sélectionnez le texte à mettre en forme ({k('Échap')} pour annuler).</p>
 {tip("Sélectionnez simplement la zone (un clic, sans écrire) pour changer la police ou l'alignement de <em>tout</em> son texte en une fois. Avec plusieurs zones sélectionnées, la mise en forme s'applique à toutes.")}"""),
+        ("styles", "Styles de texte", """
+<p>La liste <strong>Styles</strong> de l'onglet Accueil applique un style au paragraphe (Normal, Titre 1, Titre 2,
+Chapeau, Citation, Légende) : police, taille, couleur et espacements d'un coup. <strong>Styles ▾</strong> applique un
+style de caractère à la sélection (« Mise en valeur »), crée un <strong>nouveau style d'après le texte</strong>
+courant, <strong>modifie</strong> un style (tous les textes qui l'utilisent suivent) ou le supprime (le texte garde
+sa mise en forme).</p>"""),
         ("paragraphe", "Paragraphes : interligne, espacements, retraits", f"""
 <p>Le bouton <strong>↕≡ ▾</strong> règle l'interligne (1 à 3) et ajoute un espace avant ou après le paragraphe ;
 <strong>⇤</strong> et <strong>⇥</strong> diminuent ou augmentent le retrait gauche. La boîte <strong>¶…</strong>
@@ -280,6 +289,12 @@ degrés). Le texte d'une zone tournée reste modifiable.</p>"""),
 (pointillés bleus) et les bords des autres objets ; des lignes magenta montrent l'alignement. Maintenez {k('Alt')}
 pour placer librement. Onglet <strong>Affichage</strong> : activer ou masquer <strong>Repères</strong> et
 <strong>Magnétisme</strong>.</p>"""),
+        ("regles", "Règles et repères de règle", f"""
+<p>Les <strong>règles</strong> graduées en centimètres (onglet <strong>Affichage ▸ Règles</strong>) suivent la page
+active et surlignent la position de l'objet sélectionné. Glissez depuis la règle du haut (ou de gauche) vers la page
+pour créer un <strong>repère</strong> horizontal (ou vertical) en vert : le magnétisme s'y accroche. Glissez un
+repère pour le déplacer ({k('Maj')} s'il passe sur un objet), hors de la page pour le supprimer.
+<strong>Affichage ▸ Double page</strong> montre les pages côte à côte, comme une planche imprimée.</p>"""),
         ("plusieurs", "Plusieurs objets à la fois", f"""
 <ul><li>{k('Ctrl')} ou {k('Maj')} + clic ajoute ou retire un objet de la sélection ; glisser dans un espace vide
 trace un <strong>rectangle de sélection</strong> (les objets entièrement dedans sont choisis) ; {k('Ctrl', 'A')}
@@ -299,6 +314,58 @@ derrière. <strong>Verrouiller</strong> empêche de déplacer ou redimensionner 
         ("plans", "Premier plan, dupliquer, supprimer", f"""
 <p>Onglet <strong>Accueil</strong> ▸ <strong>Objets</strong> : premier plan, arrière-plan, dupliquer, supprimer
 ({k('Suppr')}). Tout s'annule avec {k('Ctrl', 'Z')}.</p>"""),
+    ]),
+
+    ("tableaux.html", "Tableaux", "Insérer, remplir et mettre en forme un tableau.", "▦", [
+        ("inserer", "Insérer un tableau", f"""
+<p><strong>Insertion ▸ Tableau ▾</strong> propose des tailles courantes, un tableau personnalisé (lignes, colonnes,
+style) et un <strong>calendrier</strong> du mois. Le curseur se place dans la première cellule : écrivez, puis
+{k('Tab')} passe à la cellule suivante ({k('Maj', 'Tab')} : précédente) ; {k('Tab')} dans la dernière cellule ajoute
+une ligne. Les lignes s'agrandissent pour contenir leur texte. Un tableau copié dans Excel ou Word se
+<strong>colle</strong> directement ({k('Ctrl', 'V')}).</p>"""),
+        ("modifier", "Lignes, colonnes, fusion", """
+<p>Double-cliquez dans une cellule : l'onglet <strong>Outils de tableau</strong> s'ouvre. <strong>Insérer /
+supprimer ▾</strong> ajoute des lignes ou colonnes autour de la cellule, les supprime, égalise largeurs ou hauteurs.
+<strong>Fusionner ▾</strong> réunit une cellule avec sa voisine de droite ou du dessous (ou toute la ligne) ;
+« Fractionner » la sépare. Tirez une bordure intérieure du tableau sélectionné pour régler une largeur de colonne ou
+une hauteur de ligne ; les poignées redimensionnent tout le tableau.</p>"""),
+        ("mise-en-forme", "Mise en forme", """
+<p><strong>Styles ▾</strong> applique un style prédéfini (en-tête coloré, lignes alternées…), <strong>Bordures
+▾</strong> choisit les bordures (toutes, extérieures, intérieures, lignes horizontales, aucune), leur couleur et
+épaisseur, <strong>Remplissage</strong> colore la cellule en cours (ou toutes les cellules), Haut / Milieu / Bas
+place le texte dans les cellules.</p>"""),
+    ]),
+
+    ("modeles.html", "Modèles et blocs", "Partir d'un modèle, réutiliser vos éléments.", "🧩", [
+        ("nouveau", "Nouveau document et modèles", f"""
+<p><strong>Fichier ▸ Nouveau…</strong> ({k('Ctrl', 'N')}) propose un document vierge (format, marges, nombre de
+pages), les modèles fournis — lettre d'information, affiche, carte postale, invitation — et vos propres modèles.
+<strong>Fichier ▸ Enregistrer comme modèle…</strong> range le document actuel parmi vos modèles : un nouveau
+document créé d'après lui ne modifie jamais le modèle.</p>"""),
+        ("blocs", "Blocs de construction", """
+<p><strong>Insertion ▸ Blocs ▾</strong> insère au centre de la page un élément prêt à l'emploi : encadré, bandeau de
+titre, citation, coupon-réponse, pastille « Nouveau », bloc contact. « Enregistrer la sélection comme bloc… »
+ajoute vos propres éléments (images comprises) à ce menu, pour tous vos documents.</p>"""),
+    ]),
+
+    ("envois.html", "Publipostage, liens et web", "Personnaliser des copies, ajouter des liens, publier sur le web.", "✉️", [
+        ("publipostage", "Publipostage", """
+<p><strong>Insertion ▸ Publipostage ▾</strong> : choisissez une liste (fichier CSV enregistré par Excel, ou liste
+copiée dans Excel puis « Coller la liste ») dont la première ligne donne les noms des colonnes. Pendant l'écriture,
+« Insérer un champ » place par exemple «Prénom» dans le texte. « Aperçu » montre le document pour chaque
+destinataire ; <strong>Fusionner</strong> crée un nouveau document avec une copie par ligne de la liste, prête à
+imprimer ou à exporter.</p>"""),
+        ("liens", "Liens hypertextes", f"""
+<p>Sélectionnez un texte (ou un objet) puis <strong>Insertion ▸ Lien ▾ ▸ Ajouter un lien…</strong> : adresse web ou
+adresse e-mail. Le texte lié est souligné en bleu ; {k('Ctrl')} + clic ouvre le lien. Les liens restent actifs dans
+l'export web.</p>"""),
+        ("web", "Exporter pour le web ou un e-mail", """
+<p><strong>Fichier ▸ Exporter pour le web ou un e-mail…</strong> crée une page web autonome (un seul fichier .html,
+images comprises) : à joindre à un courriel, à ouvrir dans un navigateur ou à déposer sur un site. Les liens y sont
+cliquables et le texte des pages y figure aussi, pour les lecteurs d'écran et les moteurs de recherche.</p>"""),
+        ("accessibilite", "Texte de remplacement", """
+<p><strong>Outils image ▸ Texte de remplacement</strong> décrit une image en quelques mots ; ce texte est lu par les
+lecteurs d'écran et repris dans l'export web.</p>"""),
     ]),
 
     ("revision.html", "Révision et orthographe", "Orthographe, rechercher et remplacer, typographie.", "🔎", [
@@ -334,6 +401,33 @@ déplacent, <strong>🗑</strong> la supprime. Cliquez sur une miniature pour al
             "Remplacez les photos (double-clic ▸ Remplacer…) et réécrivez les articles directement sur la page.",
             "Dupliquez une page modèle si vous avez besoin de plus de pages.",
             "Imprimez ou créez le PDF (voir <a href=\"impression.html\">Impression et PDF</a>).")),
+        ("mise-en-page", "Mise en page : format, marges, grille", """
+<p><strong>Création de page ▸ Mise en page…</strong> règle le <strong>format</strong> (A4, A5, A3, carte postale,
+Lettre US… ou dimensions libres), l'<strong>orientation</strong>, les <strong>marges</strong> et une
+<strong>grille de disposition</strong> (colonnes et lignes en pointillés bleus, sur lesquelles le magnétisme
+s'accroche). « Adapter les objets à la nouvelle taille » met les objets à l'échelle et les centre.</p>"""),
+        ("maitres", "Pages maîtres", """
+<p>Une <strong>page maître</strong> porte les objets communs à plusieurs pages : bandeau, logo, numéro de page,
+fond. <strong>Création de page ▸ Pages maîtres</strong> passe en mode de modification des pages maîtres (bandeau violet
+en haut) : ce que vous y placez s'affiche sous toutes les pages qui l'utilisent, sans pouvoir y être déplacé par
+erreur. <strong>Nouvelle page maître</strong> en ajoute une autre (B, C…) ; <strong>Appliquer ▾</strong> choisit la
+page maître de la page active ou de toutes les pages (par exemple A pour les pages impaires, B pour les paires),
+ou aucune page maître pour une page.</p>"""),
+        ("numeros", "Numéros de page, date automatique", """
+<p><strong>Création de page ▸ Numéros de page ▾</strong> : « Ajouter les numéros en bas au centre » place en un clic
+le numéro sur la page maître, donc sur toutes les pages. Pendant l'écriture, le même menu insère le
+<strong>numéro de page</strong>, le <strong>nombre de pages</strong>, « Page X sur Y » ou la <strong>date du
+jour</strong> : ces champs se mettent à jour seuls. « Format de la numérotation » choisit le style (1, i, I, a, A),
+le premier numéro et un redémarrage de la numérotation sur une page.</p>"""),
+        ("arriere-plan", "Arrière-plan", """
+<p><strong>Création de page ▸ Arrière-plan ▾</strong> : couleur de la page active ou de toutes les pages, image de
+fond couvrant la page, ou retrait de l'arrière-plan. Une couleur posée sur la page maître sert à toutes ses
+pages.</p>"""),
+        ("jeux", "Jeux de couleurs et de polices", """
+<p><strong>Création de page ▸ Couleurs ▾</strong> change d'un coup les couleurs du document : chaque couleur du jeu
+précédent (couleur principale et quatre accents) est remplacée partout par celle du nouveau jeu. « Personnaliser »
+choisit vos cinq couleurs, qui apparaissent aussi en tête du sélecteur de couleur. <strong>Polices ▾</strong>
+remplace la police des titres et celle du texte, styles compris.</p>"""),
     ]),
 
     ("impression.html", "Impression et PDF", "Imprimer, créer un PDF, exporter en images.", "🖨️", [
@@ -365,7 +459,7 @@ fichier avant de l'installer, et refuse toute version modifiée.</p>"""),
 
     ("raccourcis.html", "Raccourcis clavier", "Tous les raccourcis d'OpenPub.", "⌨️", [
         ("general", "Général", table([
-            ("Ouvrir / Enregistrer / Enregistrer sous", f"{k('Ctrl', 'O')} · {k('Ctrl', 'S')} · {k('Ctrl', 'Maj', 'S')}"),
+            ("Nouveau / Ouvrir / Enregistrer / Enregistrer sous", f"{k('Ctrl', 'N')} · {k('Ctrl', 'O')} · {k('Ctrl', 'S')} · {k('Ctrl', 'Maj', 'S')}"),
             ("Rouvrir un document récent (n° du menu Fichier)", f"{k('Ctrl', 'Maj', '1')} … {k('Ctrl', 'Maj', '9')}"),
             ("Imprimer / créer un PDF", k('Ctrl', 'P')),
             ("Annuler / Rétablir", f"{k('Ctrl', 'Z')} · {k('Ctrl', 'Y')}"),
@@ -401,6 +495,8 @@ fichier avant de l'installer, et refuse toute version modifiée.</p>"""),
             ("Effacer le mot précédent", k('Ctrl', 'Retour arrière')),
             ("Sélectionner un mot / un paragraphe", "Double-clic · triple-clic"),
             ("Liste : niveau inférieur / supérieur (en début d'élément)", f"{k('Tab')} · {k('Maj', 'Tab')}"),
+            ("Tableau : cellule suivante / précédente", f"{k('Tab')} · {k('Maj', 'Tab')}"),
+            ("Ouvrir un lien", f"{k('Ctrl')} + clic"),
             ("Barré, exposant, majuscules…", "Onglet Accueil ▸ Police"),
         ])),
         ("dessin", "Dessin", table([

@@ -60,6 +60,16 @@
           "titre": "Colonnes et habillage réglable",
           "texte": "Plusieurs colonnes dans une même zone ; habillage aucun, carré, serré ou haut et bas, avec distances réglables.",
           "depuis": "2.0.0"
+        },
+        {
+          "titre": "Styles de texte",
+          "texte": "Titres, chapeau, citation, légende… : un style s'applique d'un clic et sa modification met à jour tout le document.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Tableaux",
+          "texte": "Tableaux qui s'agrandissent avec leur texte, fusion de cellules, bordures, styles prédéfinis, collage depuis Excel, calendrier du mois.",
+          "depuis": "2.1.0"
         }
       ]
     },
@@ -105,6 +115,16 @@
           "titre": "Aligner et répartir",
           "texte": "Aligner à gauche, au centre, à droite, en haut, au milieu ou en bas, répartir régulièrement, par rapport à la sélection ou à la page.",
           "depuis": "2.0.0"
+        },
+        {
+          "titre": "Pages maîtres et numéros de page",
+          "texte": "Bandeau, logo et numéro de page communs à toutes les pages, numérotation en chiffres ou en lettres, date automatique.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Mise en page, règles et repères",
+          "texte": "Format, orientation, marges et grille de disposition ; règles graduées, repères tirés depuis la règle, vue en double page.",
+          "depuis": "2.1.0"
         }
       ]
     },
@@ -192,6 +212,21 @@
           "titre": "Symboles, date et statistiques",
           "texte": "Insertion de caractères spéciaux et de la date du jour, nombre de mots et de caractères du document ou de la zone.",
           "depuis": "2.0.0"
+        },
+        {
+          "titre": "Jeux de couleurs et de polices",
+          "texte": "Changez toutes les couleurs ou toutes les polices du document en une fois, à partir de jeux harmonieux ou des vôtres.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Modèles et blocs réutilisables",
+          "texte": "Lettre d'information, affiche, carte postale, invitation ; vos propres modèles et blocs (encadrés, bandeaux, coupons).",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Publipostage",
+          "texte": "Une copie personnalisée par destinataire d'après une liste Excel ou CSV : prénom, adresse, classe…",
+          "depuis": "2.1.0"
         }
       ]
     },
@@ -243,6 +278,11 @@
         {
           "titre": "Export en images",
           "texte": "Chaque page en PNG haute définition (200 points par pouce) pour un site ou les réseaux sociaux."
+        },
+        {
+          "titre": "Page web et e-mail",
+          "texte": "Export en une page web autonome, avec liens hypertextes cliquables et textes de remplacement pour l'accessibilité.",
+          "depuis": "2.1.0"
         }
       ]
     },

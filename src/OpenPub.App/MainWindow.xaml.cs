@@ -36,6 +36,7 @@ public partial class MainWindow : Window
         AddHelpGroup(PanelHome, Help.HelpService.HomeTab, "Aide sur l'onglet Accueil");
         AddHelpGroup(PanelInsert, Help.HelpService.InsertTab, "Aide sur l'onglet Insertion");
         AddHelpGroup(PanelDraw, Help.HelpService.FreeDrawing, "Aide sur le dessin");
+        AddHelpGroup(PanelTable, Help.HelpService.TableTools, "Aide sur les tableaux");
         AddHelpGroup(PanelDesign, Help.HelpService.PageDesign, "Aide sur la création de page : mise en page, pages maîtres, numéros");
         AddHelpGroup(PanelReview, Help.HelpService.Review, "Aide sur la révision : orthographe, rechercher, typographie");
         AddHelpGroup(PanelView, Help.HelpService.Snapping, "Aide sur l'affichage, les repères et le magnétisme");
@@ -356,6 +357,7 @@ public partial class MainWindow : Window
             case "freehand" or "polygon" or "line" or "arrow": return Help.HelpService.FreeDrawing;
             case not null: return Help.HelpService.Shapes;
         }
+        if (Sel is { IsTable: true }) return Help.HelpService.TableTools;
         if (Sel is { } s)
             return s.IsImage ? Help.HelpService.PictureTools
                  : s.IsText ? (s.Chain is not null ? Help.HelpService.TextLinked : Help.HelpService.TextFormat)
