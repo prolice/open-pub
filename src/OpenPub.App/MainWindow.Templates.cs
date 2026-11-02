@@ -195,7 +195,7 @@ public partial class MainWindow
         var name = AskText("Enregistrer comme bloc", "Nom du bloc :", "Mon bloc");
         if (name is null) return;
         var clip = ShapeOps.Copy(page, sel);
-        foreach (var src in clip.Shapes.Where(s => s.Src is not null).Select(s => s.Src!).Distinct())
+        foreach (var src in clip.Shapes.SelectMany(s => new[] { s.Src, s.Fill?.Image }).Where(x => !string.IsNullOrEmpty(x)).Select(x => x!).Distinct())
         {
             var file = _session.Package.ResolveAsset(src);
             if (File.Exists(file)) clip.Assets[src] = Convert.ToBase64String(File.ReadAllBytes(file));

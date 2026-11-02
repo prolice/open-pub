@@ -16,7 +16,7 @@ namespace OpenPub.App;
 /// Test de bout en bout de l'interface (OpenPub.exe --selftest fichier.opub dossier_captures) :
 /// ouvre la vraie fenetre hors ecran, rejoue des actions d'edition et verifie leurs effets.
 /// </summary>
-public static class SelfTest
+public static partial class SelfTest
 {
     static int _ok, _ko;
 
@@ -898,6 +898,7 @@ public static class SelfTest
         }
         Console.WriteLine("Sorties : PDF direct, PDF imprimeur, impression, images");
         OutputChecks(w, session, pic, outDir);
+        Lot9(w, session, outDir);          // formes, effets, WordArt, images (SelfTest.Shapes.cs)
 
         Console.WriteLine("Surete des documents : copie de secours, recuperation, fichier modifie ailleurs");
         {

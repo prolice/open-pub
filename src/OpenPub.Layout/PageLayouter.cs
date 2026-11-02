@@ -204,11 +204,10 @@ public sealed class PageLayouter
     static IEnumerable<(double Top, double Bottom, double Left, double Right)> Bands(Shape im, double ix, double iy, double iw, double ih)
     {
         bool rotated = Math.Abs(im.Rotation % 360) > 0.01;
-        bool ellipse = im.Kind == ShapeKind.Ellipse || im.Geometry == ShapeGeometry.Ellipse;
-        var poly = im.Path is { Count: >= 3 } ? im.Path.Where(p => p.X is not null && p.Y is not null).Select(p => (X: p.X!.Value, Y: p.Y!.Value)).ToList()
-                 : im.Clip is { Count: >= 3 } ? im.Clip.Where(p => p.X is not null && p.Y is not null).Select(p => (X: p.X!.Value, Y: p.Y!.Value)).ToList()
-                 : null;
-        if (im.Wrap != "tight" || rotated || (!ellipse && poly is null))
+        bool ellipse = im.Geometry == ShapeGeometry.Ellipse || (im.Geometry is null && im.Kind == ShapeKind.Ellipse);
+        // polygones de l'emprise : forme automatique (contour de la bibliotheque), trace ou detourage, courbes aplaties
+        var polys = ellipse || im.Wrap != "tight" ? null : OpenPub.Core.Geometry.ShapeLibrary.Polygons(im);
+        if (im.Wrap != "tight" || rotated || (!ellipse && polys is null))
         {
             yield return (iy, iy + ih, ix, ix + iw);
             yield break;
@@ -228,8 +227,9 @@ public sealed class PageLayouter
             }
             else
             {
-                // aretes du polygone (points du trace) qui traversent la bande
-                for (int k = 0; k < poly!.Count; k++)
+                // aretes des polygones qui traversent la bande
+                foreach (var poly in polys!)
+                for (int k = 0; k < poly.Count; k++)
                 {
                     var p0 = poly[k]; var p1 = poly[(k + 1) % poly.Count];
                     double lo = Math.Max(y, Math.Min(p0.Y, p1.Y)), hi = Math.Min(y1, Math.Max(p0.Y, p1.Y));

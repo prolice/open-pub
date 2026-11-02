@@ -249,7 +249,7 @@ public partial class MainWindow
         if (sel.Count == 0) return;
         var clip = ShapeOps.Copy(page, sel);
         clip.SourceWorkDir = _session.Package.WorkDir;
-        foreach (var src in clip.Shapes.Where(s => s.Src is not null).Select(s => s.Src!).Distinct())
+        foreach (var src in clip.Shapes.SelectMany(s => new[] { s.Src, s.Fill?.Image }).Where(x => !string.IsNullOrEmpty(x)).Select(x => x!).Distinct())
         {
             var file = _session.Package.ResolveAsset(src);
             if (File.Exists(file) && new FileInfo(file).Length < 40_000_000)
@@ -321,6 +321,15 @@ public partial class MainWindow
             if (!renamed.TryGetValue(src, out var ns) && clip.Assets.TryGetValue(src, out var b64))
                 renamed[src] = ns = _session.Package.AddAsset(Convert.FromBase64String(b64), Path.GetFileName(src));
             if (ns is not null) s.Src = ns;
+        }
+        // images de remplissage (lot 9)
+        foreach (var f in clip.Shapes.Select(s => s.Fill).Where(f => !string.IsNullOrEmpty(f?.Image)))
+        {
+            var src = f!.Image!;
+            if (sameDoc && File.Exists(_session.Package.ResolveAsset(src))) continue;
+            if (!renamed.TryGetValue(src, out var ns) && clip.Assets.TryGetValue(src, out var b64))
+                renamed[src] = ns = _session.Package.AddAsset(Convert.FromBase64String(b64), Path.GetFileName(src));
+            if (ns is not null) f.Image = ns;
         }
         // decalage si les objets colles tomberaient exactement sur des objets existants (coller plusieurs fois)
         double offset = 0;

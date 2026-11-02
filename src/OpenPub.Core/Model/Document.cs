@@ -84,6 +84,8 @@ public static class PubFormat
                   || doc.Pages.Any(p => p.BackColor is not null || p.NumberStart is not null || p.Master is not null || p.IgnoreMaster)
                   || doc.AllShapes().Any(s => s.Kind == ShapeKind.Table) || doc.Styles is { Count: > 0 } || doc.Theme is not null
                   || doc.Merge is not null || doc.AllShapes().Any(s => s.Link is not null || s.AltText is not null)
+                  || doc.AllShapes().Any(s => s.Adjust is not null || s.Effects is not null || s.WordArt is not null || s.BorderArt is not null
+                                             || s.Fill?.Stops is not null || s.Fill?.Pattern is not null || s.Fill?.Image is not null)
                   || doc.AllShapes().Any(s => s.Paragraphs?.Any(p => p.Runs.Any(r => r.Field is not null)) == true);
         return v2 || doc.FormatVersion >= 2 ? $"openpub/{Math.Max(2, Math.Min(doc.FormatVersion, PubDocument.SupportedFormat))}" : "openpub/1";
     }
@@ -216,7 +218,7 @@ public sealed class Page
         Shapes.Where(s => s.Chain == chain).OrderBy(s => s.ChainIndex ?? 0).ToList();
 }
 
-public static class ShapeKind
+public static partial class ShapeKind
 {
     public const string Text = "text";
     public const string Image = "image";
@@ -226,7 +228,7 @@ public static class ShapeKind
     public const string Table = "table";
 }
 
-public sealed class Shape
+public sealed partial class Shape
 {
     public string Kind { get; set; } = ShapeKind.Rect;
     public double X { get; set; }
@@ -400,14 +402,14 @@ public sealed class ImageFx
         FormattableString.Invariant($"{CropLeft:0.####},{CropTop:0.####},{CropRight:0.####},{CropBottom:0.####},{Recolor},{Brightness:0.###},{Contrast:0.###}");
 }
 
-public sealed class Fill
+public sealed partial class Fill
 {
     public string? Color { get; set; }
     public double? Opacity { get; set; }
     public bool Gradient { get; set; }
 }
 
-public sealed class LineStyle
+public sealed partial class LineStyle
 {
     public string Color { get; set; } = "#000000";
     public double Weight { get; set; } = 1;

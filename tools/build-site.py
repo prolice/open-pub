@@ -42,6 +42,7 @@ DOC_SCENES = {
     "accueil": "TabHome", "onglet-accueil": "TabHome", "onglet-insertion": "TabInsert", "onglet-dessin": "TabDraw",
     "dessin-crayon": "draw-tool", "onglet-forme": "shape", "onglet-image": "picture",
     "texte-edition": "text-edit", "editeur-image": "image-editor", "onglet-revision": "TabReview",
+    "menu-formes": "shapes-menu",
 }
 
 SWA_CONFIG = {

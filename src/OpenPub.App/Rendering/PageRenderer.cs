@@ -46,13 +46,16 @@ public static class PageRenderer
         foreach (var s in page.Shapes)
         {
             bool rotated = PushRotation(dc, s);
-            switch (s.Kind)
-            {
-                case ShapeKind.Image: DrawImage(dc, s, session); break;
-                case ShapeKind.Text: DrawText(dc, s, layout, session, pixelsPerDip, editorMarks, page); break;
-                case ShapeKind.Table when s.Table is not null: DrawTable(dc, s, layout, session, pixelsPerDip, editorMarks, page); break;
-                default: DrawShape(dc, s); break;
-            }
+            // lot 9 : WordArt et espaces reserves (DecorRenderer), sinon rendu habituel
+            if (!DecorRenderer.DrawSpecial(dc, s, session, editorMarks))
+                switch (s.Kind)
+                {
+                    case ShapeKind.Image: DrawImage(dc, s, session); break;
+                    case ShapeKind.Text: DrawText(dc, s, layout, session, pixelsPerDip, editorMarks, page); break;
+                    case ShapeKind.Table when s.Table is not null: DrawTable(dc, s, layout, session, pixelsPerDip, editorMarks, page); break;
+                    default: DrawShape(dc, s, session); break;
+                }
+            DecorRenderer.DrawBorderArt(dc, s);
             if (rotated) dc.Pop();
         }
     }
@@ -94,14 +97,7 @@ public static class PageRenderer
             }
     }
 
-    static Pen? PenOf(LineStyle? l)
-    {
-        if (l is null) return null;
-        var pen = new Pen(Brush(l.Color), Math.Max(l.Weight, 0.25));
-        if (l.Dash) pen.DashStyle = DashStyles.Dash;
-        pen.Freeze();
-        return pen;
-    }
+    static Pen? PenOf(LineStyle? l) => DecorRenderer.PenOf(l);      // transparence du contour : lot 9
 
     /// <summary>Applique la rotation de l'objet (autour de son centre) ; renvoie vrai s'il faut un Pop.</summary>
     public static bool PushRotation(DrawingContext dc, Shape s)
@@ -114,7 +110,7 @@ public static class PageRenderer
     public static Geometry? GeometryOf(Shape s)
     {
         if (s.Geometry is { } geo)
-            return ShapeGeometries.Build(geo, new Rect(s.X, s.Y, Math.Max(s.W, 0.1), Math.Max(s.H, 0.1)), s.CornerRadius);
+            return ShapeGeometries.Build(geo, new Rect(s.X, s.Y, Math.Max(s.W, 0.1), Math.Max(s.H, 0.1)), s.CornerRadius, s.Adjust);
         if (s.Kind == ShapeKind.Ellipse)
             return new EllipseGeometry(new Rect(s.X, s.Y, s.W, s.H));
         if (s.Path is { Count: > 0 } path)
@@ -166,9 +162,9 @@ public static class PageRenderer
         return g;
     }
 
-    static void DrawShape(DrawingContext dc, Shape s)
+    static void DrawShape(DrawingContext dc, Shape s, EditorSession session)
     {
-        var fill = s.Fill?.Color is { } c ? Brush(c, s.Fill.Opacity ?? 1) : null;
+        var fill = DecorRenderer.FillBrush(s.Fill, session.Images);
         var pen = PenOf(s.Line);
         if (fill is null && pen is null) return;
         var g = GeometryOf(s);
@@ -181,7 +177,7 @@ public static class PageRenderer
             pen.LineJoin = PenLineJoin.Round;
         }
         DrawShadow(dc, s, fill is not null ? g : g.GetWidenedPathGeometry(pen!));
-        dc.DrawGeometry(fill, pen, g);
+        DecorRenderer.DrawBody(dc, s, g, fill, pen);      // lueur, bords adoucis, ombre interieure
         if (s.Line is { } l && pen is not null && s.Path is { Count: >= 2 } path && (l.ArrowStart || l.ArrowEnd))
         {
             var brush = Brush(l.Color);
@@ -229,7 +225,7 @@ public static class PageRenderer
     }
 
     /// <summary>Ombre portee d'une silhouette (dessinee avant l'objet).</summary>
-    static void DrawShadow(DrawingContext dc, Shape s, Geometry silhouette)
+    internal static void DrawShadow(DrawingContext dc, Shape s, Geometry silhouette)
     {
         if (s.Shadow is not { } fx || fx.Opacity <= 0) return;
         var bounds = silhouette.Bounds;
@@ -246,7 +242,7 @@ public static class PageRenderer
     public static Geometry ImageClip(Shape s)
     {
         var rect = new Rect(s.X, s.Y, Math.Max(s.W, 0.1), Math.Max(s.H, 0.1));
-        if (s.Geometry is { } geo) return ShapeGeometries.Build(geo, rect, s.CornerRadius);
+        if (s.Geometry is { } geo) return ShapeGeometries.Build(geo, rect, s.CornerRadius, s.Adjust);
         if (s.Clip is { Count: > 6 }) return PathGeometry(s.Clip!);
         return new RectangleGeometry(rect);
     }
@@ -258,7 +254,11 @@ public static class PageRenderer
         var bmp = session.Images.Get(s.Src, fx);
         var clip = ImageClip(s);
         DrawShadow(dc, s, clip);
+        DecorRenderer.Glow(dc, s, clip);
+        bool soft = DecorRenderer.PushSoftEdge(dc, s, clip);
         DrawImageBody(dc, s, rect, bmp, clip, fx);
+        if (soft) dc.Pop();
+        DecorRenderer.InnerShadow(dc, s, clip);
 
         // reflet : image retournee sous l'originale, en degrade vers la transparence
         if (fx is { ReflectionSize: > 0 } && bmp is not null)
@@ -364,13 +364,13 @@ public static class PageRenderer
     static void DrawText(DrawingContext dc, Shape s, PageLayoutResult layout, EditorSession session, double ppd, bool marks, Page page)
     {
         // cadre de la zone (forme automatique ou rectangle) : fond et contour
-        var frameFill = s.Fill?.Color is { } c ? Brush(c, s.Fill.Opacity ?? 1) : null;
+        var frameFill = DecorRenderer.FillBrush(s.Fill, session.Images);
         var framePen = PenOf(s.Line);
         if (frameFill is not null || framePen is not null)
         {
             var frameGeo = GeometryOf(s) ?? new RectangleGeometry(new Rect(s.X, s.Y, s.W, s.H));
             DrawShadow(dc, s, frameGeo);
-            dc.DrawGeometry(frameFill, framePen, frameGeo);
+            DecorRenderer.DrawBody(dc, s, frameGeo, frameFill, framePen);
         }
         if (marks && framePen is null)
         {
