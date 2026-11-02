@@ -192,6 +192,8 @@ public partial class MainWindow : Window
             view.CaretMoved += (v, r) => v.BringIntoView(r);
             view.ShapeDrawn += OnShapeDrawn;
             view.ShapeCreated += OnShapeCreated;
+            view.LinkTargetPicked += OnLinkTargetPicked;
+            view.OverflowClicked += OnOverflowClicked;
             view.TextSelectionFinished += () => { if (_painterFont is not null && _session?.TextEdit is { HasSelection: true }) ApplyPainter(); };
             _views.Add(view);
             PagesPanel.Children.Add(new Border
@@ -420,6 +422,7 @@ public partial class MainWindow : Window
             _lastContext = ctx;
         }
         if (s is null) return;
+        TextFrameGroup.Visibility = LinkGroup.Visibility = s.IsText ? Visibility.Visible : Visibility.Collapsed;
         _updatingFormat = true;
         FillSwatch.Background = s.Fill?.Color is { } fc ? PageRenderer.Brush(fc) : Brushes.Transparent;
         LineSwatch.Background = s.Line?.Color is { } lc ? PageRenderer.Brush(lc) : Brushes.Transparent;
@@ -1062,6 +1065,7 @@ public partial class MainWindow : Window
         }
         if (_session is null || Keyboard.FocusedElement is TextBox || Keyboard.FocusedElement is ComboBox) return;
         if (_session.TextEdit is not null) return;          // la page gere le clavier pendant l'edition du texte
+        if (e.Key == Key.Escape && _session?.LinkSource is not null) { CancelLink(); e.Handled = true; return; }
         if (e.Key == Key.Escape && _painterFont is not null) { EndPainter(); StatusText.Text = ""; e.Handled = true; return; }
         if (e.Key == Key.Escape) { SetDrawTool(null); _session.Select(null); e.Handled = true; return; }
         if (Sel is null || SelPage is not { } page) return;

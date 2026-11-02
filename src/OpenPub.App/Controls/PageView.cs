@@ -28,6 +28,10 @@ public sealed class PageView : FrameworkElement
     double K => DipPerPoint * _zoom;
 
     public event Action<Shape>? ReplaceImageRequested;
+    /// <summary>Mode « créer un lien » : clic sur la zone cible (null : clic hors d'une zone, le mode est annule).</summary>
+    public event Action<PageView, Shape?>? LinkTargetPicked;
+    /// <summary>Clic sur l'indicateur de debordement d'une zone (proposer de lier une nouvelle zone).</summary>
+    public event Action<PageView, Shape>? OverflowClicked;
     /// <summary>Fin d'une selection de texte a la souris (reproduction de la mise en forme).</summary>
     public event Action? TextSelectionFinished;
     /// <summary>Le curseur de texte a bouge (pour le faire defiler dans la vue) : rectangle en pixels de la vue.</summary>
@@ -303,6 +307,25 @@ public sealed class PageView : FrameworkElement
             return;
         }
 
+        // mode « créer un lien » : le clic designe la zone qui recevra la suite du texte
+        if (_session.LinkSource is not null)
+        {
+            LinkTargetPicked?.Invoke(this, HitTest(p));
+            e.Handled = true;
+            return;
+        }
+        // indicateur de debordement « A… » en bas a droite d'une zone : lier une zone pour la suite du texte
+        if (_session.DrawTool is null && !Editing && _session.ShowGuides)
+        {
+            var layout = _session.Layout(Page);
+            foreach (var s0 in Page.Shapes.Where(x => x.IsText && Math.Abs(x.Rotation % 360) < 0.01))
+                if (new Rect(s0.X + s0.W - 16, s0.Y + s0.H - 12, 18, 14).Contains(p) && layout.Overflows(s0))
+                {
+                    OverflowClicked?.Invoke(this, s0);
+                    e.Handled = true;
+                    return;
+                }
+        }
         // crayon : trace a main levee
         if (_session.DrawTool == "freehand")
         {
@@ -470,7 +493,8 @@ public sealed class PageView : FrameworkElement
         }
         if (_mode == DragMode.None)
         {
-            Cursor = _session.DrawTool is "freehand" ? Cursors.Pen : _session.DrawTool is not null ? Cursors.Cross : CursorAt(p);
+            Cursor = _session.LinkSource is not null ? (HitTest(p) is { IsText: true } ? Cursors.Hand : Cursors.No)
+                   : _session.DrawTool is "freehand" ? Cursors.Pen : _session.DrawTool is not null ? Cursors.Cross : CursorAt(p);
             return;
         }
         if (_mode == DragMode.Marquee)

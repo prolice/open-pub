@@ -520,6 +520,61 @@ public static class SelfTest
             Exporter.ExportPng(session, outDir, 110);
         }
 
+        Console.WriteLine("Zones de texte : liens, colonnes, ajustement, habillage");
+        {
+            var pg = session.Doc.Pages[^1];
+            var views = (List<PageView>)typeof(MainWindow).GetField("_views", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(w)!;
+            var view = views.First(v => v.Page == pg);
+            var mw = typeof(MainWindow);
+            Shape Box(double x, double y, double ww, double hh, string text) => new()
+            {
+                Kind = ShapeKind.Text, X = x, Y = y, W = ww, H = hh, Padding = new[] { 2.85, 2.85, 2.85, 2.85 }, AutoFit = "none",
+                Paragraphs = new List<Paragraph> { new() { Align = "justify", Runs = { new Run { Text = text, Font = new FontSpec { Family = "Arial", Size = 10, Color = "#000000" } } } } },
+            };
+            var a = Box(60, 60, 150, 90, string.Join(" ", Enumerable.Repeat("Le texte continue dans la zone liée.", 14)));
+            var b = Box(230, 60, 150, 200, "");
+            session.Change(pg, () => { pg.Shapes.Add(a); pg.Shapes.Add(b); });
+            Check(session.Layout(pg).Overflows(a), "zone trop petite : debordement signale");
+            mw.GetMethod("OnOverflowClicked", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { view, a });
+            Check(session.LinkSource == a, "clic sur l'indicateur : mode « créer un lien »");
+            mw.GetMethod("OnLinkTargetPicked", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object?[] { view, b });
+            Check(a.Chain is not null && b.Chain == a.Chain && b.ChainIndex == 1 && session.LinkSource is null, "zones liees");
+            var lay = session.Layout(pg);
+            Check(lay.Frames[b].Lines.Count > 0 && !lay.Overflows(a), "le texte coule dans la zone liee");
+            var c = Box(400, 60, 150, 100, "Texte déjà présent");
+            session.Change(pg, () => pg.Shapes.Add(c));
+            session.LinkSource = b;
+            w.SkipConfirm = true;
+            Check(c.Chain is null, "une zone non vide n'est pas proposee comme cible (verifie a la main : message)");
+            session.LinkSource = null;
+            session.Select(a, pg);
+            Click(w, "NextFrame_Click");
+            Check(session.Selected == b, "zone suivante");
+            session.Select(a, pg);
+            Click(w, "BreakLink_Click");
+            Check(a.Chain is null && b.Chain is null && b.Paragraphs!.Count == 0 && session.Layout(pg).Overflows(a), "rompre le lien : le texte revient dans la 1re zone");
+            session.Undo();
+            pg = session.Doc.Pages[^1];
+            Check(pg.Shapes.Count(x => x.Chain is not null) == 2, "annuler : zones a nouveau liees");
+            // colonnes et agrandissement automatique
+            var d = Box(60, 300, 300, 40, string.Join(" ", Enumerable.Repeat("Deux colonnes dans une seule zone.", 10)));
+            d.Columns = 2; d.AutoFit = "grow";
+            session.Change(pg, () => pg.Shapes.Add(d));
+            var dl = session.Layout(pg).Frames[d].Lines;
+            Check(dl.Any(l => l.Left > d.X + 150), "texte sur deux colonnes");
+            Check(d.H > 40 && !session.Layout(pg).Overflows(d), $"zone agrandie pour contenir le texte ({d.H:0} pt)");
+            // habillage serre autour d'un disque
+            var disk = new Shape { Kind = ShapeKind.Ellipse, Geometry = ShapeGeometry.Ellipse, X = 80, Y = 470, W = 90, H = 90, Fill = new Fill { Color = "#06c7c0" }, Wrap = "tight", Z = 999 };
+            var e2 = Box(60, 450, 300, 160, string.Join(" ", Enumerable.Repeat("Le texte épouse la forme du disque posé dans la zone.", 8)));
+            session.Change(pg, () => { pg.Shapes.Add(e2); pg.Shapes.Add(disk); for (int i = 0; i < pg.Shapes.Count; i++) pg.Shapes[i].Z = i + 1; });
+            var el = session.Layout(pg).Frames[e2].Lines;
+            var lefts = el.Where(l => l.Top > 455 && l.Top < 560).Select(l => l.Left).ToList();
+            Check(lefts.Count > 3 && lefts.Max() - lefts.Min() > 10, "habillage serre : le bord du texte suit le disque");
+            session.Select(null, pg);
+            Exporter.ExportPng(session, outDir, 110);
+            Capture(w, Path.Combine(outDir, "selftest-8-zones.png"));
+        }
+
         Console.WriteLine("Aide contextuelle");
         var topic = (Func<string>)(() => w.CurrentHelpTopic());
         session.Select(pic, session.Doc.Pages[0]);

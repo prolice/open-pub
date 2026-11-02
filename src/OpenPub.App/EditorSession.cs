@@ -98,11 +98,56 @@ public sealed class EditorSession : IDisposable
         if (!_layouts.TryGetValue(page, out var r))
         {
             var map = Layouter.LayoutPage(page, out var chains);
+            if (FitGrowingFrames(page, map, chains)) map = Layouter.LayoutPage(page, out chains);
             r = new PageLayoutResult(map, chains);
             _layouts[page] = r;
         }
         return r;
     }
+
+    /// <summary>
+    /// Ajustement « agrandir la zone au texte » (zone isolee, non tournee) : la hauteur suit le texte.
+    /// Renvoie vrai si une zone a change de taille (la page doit etre remise en page).
+    /// </summary>
+    bool FitGrowingFrames(Page page, Dictionary<Shape, OpenPub.Layout.FrameLayout> map, List<OpenPub.Layout.ChainLayout> chains)
+    {
+        bool changed = false;
+        foreach (var s in page.Shapes.Where(x => x.IsStoryHead && x.Chain is null && x.AutoFit == "grow" && Math.Abs(x.Rotation % 360) < 0.01))
+        {
+            if (!map.TryGetValue(s, out var fl)) continue;
+            bool overflow = chains.Any(c => c.Overflow && c.Frames.Any(f => f.Shape == s));
+            if (overflow)
+            {
+                // mise en page provisoire dans une zone tres haute pour connaitre la hauteur du texte
+                double h0 = s.H;
+                s.H = Math.Max(h0, page.Height * 4);
+                var tall = Layouter.LayoutPage(page, out _);
+                s.H = h0;
+                if (tall.TryGetValue(s, out var t)) fl = t;
+            }
+            double needed = fl.Lines.Count == 0 ? 0 : fl.Lines.Max(l => l.Top + l.Height) - (s.Y + s.PadTop);
+            needed = Math.Max(12, needed + s.PadTop + s.PadBottom + 1);
+            if (s.Columns > 1 && overflow)
+            {
+                // colonnes : le texte mesure sur une colonne haute est reparti, puis on ajuste ligne par ligne
+                double h0 = s.H;
+                s.H = Math.Max(12, (needed - s.PadTop - s.PadBottom) / s.Columns + s.PadTop + s.PadBottom);
+                for (int k = 0; k < 200; k++)
+                {
+                    Layouter.LayoutPage(page, out var cs);
+                    if (!cs.Any(c => c.Overflow && c.Frames.Any(f => f.Shape == s))) break;
+                    s.H += 4;
+                }
+                needed = s.H;
+                s.H = h0;
+            }
+            if (Math.Abs(needed - s.H) > 0.5) { s.H = needed; changed = true; }
+        }
+        return changed;
+    }
+
+    /// <summary>Mode « créer un lien » : zone de depart, en attente d'un clic sur la zone cible (null sinon).</summary>
+    public Shape? LinkSource { get; set; }
 
     public Page? PageOf(Shape s) => Doc.Pages.FirstOrDefault(p => p.Shapes.Contains(s));
 

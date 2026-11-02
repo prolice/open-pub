@@ -214,6 +214,30 @@
 
                     <!-- Format de la forme (contextuel) -->
                     <StackPanel x:Name="PanelShape" Orientation="Horizontal" Visibility="Collapsed">
+                        <HeaderedContentControl x:Name="TextFrameGroup" Style="{StaticResource RGroup}" Header="Zone de texte">
+                            <StackPanel Orientation="Horizontal">
+                                <StackPanel>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE8A9;" Content="Colonnes ▾" Click="ColumnsButton_Click" ToolTip="Colonnes dans la zone de texte"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE7A8;" Content="Marges ▾" Click="MarginsButton_Click" ToolTip="Marges intérieures de la zone"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE740;" Content="Ajustement ▾" Click="AutoFitButton_Click" ToolTip="Ajustement du texte : réduire, agrandir la zone, ou ne rien faire"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <Button Style="{StaticResource RSmall}" Click="VAlign_Click" CommandParameter="top" ToolTip="Texte en haut de la zone"><TextBlock Text="⤒ Haut" FontSize="12"/></Button>
+                                    <Button Style="{StaticResource RSmall}" Click="VAlign_Click" CommandParameter="middle" ToolTip="Texte centré verticalement"><TextBlock Text="↕ Milieu" FontSize="12"/></Button>
+                                    <Button Style="{StaticResource RSmall}" Click="VAlign_Click" CommandParameter="bottom" ToolTip="Texte en bas de la zone"><TextBlock Text="⤓ Bas" FontSize="12"/></Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl x:Name="LinkGroup" Style="{StaticResource RGroup}" Header="Liaison">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xE71B;" Content="Créer&#x0a;un lien" Click="CreateLink_Click" ToolTip="Faire couler la suite du texte dans une autre zone vide (clic sur la zone cible)"/>
+                                <StackPanel>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE8C5;" Content="Rompre le lien" Click="BreakLink_Click" ToolTip="Le texte s'arrête à cette zone ; les zones suivantes redeviennent vides"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE72B;" Content="Zone précédente" Click="PrevFrame_Click"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE72A;" Content="Zone suivante" Click="NextFrame_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Remplissage et contour">
                             <StackPanel Orientation="Horizontal">
                                 <Button Style="{StaticResource RBig}" Click="FillColor_Click" ToolTip="Couleur de remplissage">
@@ -247,6 +271,9 @@
                         </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Effets">
                             <ToggleButton x:Name="ShapeShadowToggle" Style="{StaticResource RBig}" Tag="&#xE81E;" Content="Ombre" Click="ShadowToggle_Click"/>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Habillage">
+                            <Button Style="{StaticResource RBig}" Tag="&#xE8A4;" Content="Habillage&#x0a;▾" Click="WrapButton_Click" ToolTip="Comment le texte contourne cet objet : aucun, carré, serré, haut et bas ; distance"/>
                         </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Rotation">
                             <StackPanel Orientation="Horizontal">
@@ -309,6 +336,9 @@
                                 <ToggleButton x:Name="PicReflectionToggle" Style="{StaticResource RBig}" Tag="&#xE7B3;" Content="Reflet" Click="ReflectionToggle_Click"/>
                                 <Button Style="{StaticResource RBig}" Tag="&#xE777;" Content="Réinitialiser" Click="ResetImage_Click" ToolTip="Retirer toutes les retouches de l'image"/>
                             </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Habillage">
+                            <Button Style="{StaticResource RBig}" Tag="&#xE8A4;" Content="Habillage&#x0a;▾" Click="WrapButton_Click" ToolTip="Comment le texte contourne cet objet : aucun, carré, serré, haut et bas ; distance"/>
                         </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Rotation">
                             <StackPanel Orientation="Horizontal">

@@ -90,6 +90,12 @@ public sealed class Shape
     public int Columns { get; set; } = 1;
     public double ColumnGap { get; set; }
     public string? VAlign { get; set; }             // top | middle | bottom
+    /// <summary>Ajustement du texte de la zone (tete de chaine) : null ou "shrink" (reduire en cas de debordement), "none", "grow" (agrandir la zone).</summary>
+    public string? AutoFit { get; set; }
+    /// <summary>Habillage du texte autour de cet objet : null (automatique), "none", "square", "tight", "topbottom".</summary>
+    public string? Wrap { get; set; }
+    /// <summary>Distance entre l'objet et le texte qui l'habille (points) ; null = 0,1 cm.</summary>
+    public double? WrapDistance { get; set; }
     public List<Paragraph>? Paragraphs { get; set; }
     public string? Chain { get; set; }
     public int? ChainIndex { get; set; }

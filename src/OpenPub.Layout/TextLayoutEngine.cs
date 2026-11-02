@@ -28,10 +28,11 @@ public sealed class TextLayoutEngine
         _hyph = hyphenator;
     }
 
-    public ChainLayout Layout(IReadOnlyList<FrameGeometry> frames, IReadOnlyList<Paragraph> paragraphs)
+    /// <param name="shrink">Reduire le texte en cas de debordement (null : reglage du moteur).</param>
+    public ChainLayout Layout(IReadOnlyList<FrameGeometry> frames, IReadOnlyList<Paragraph> paragraphs, bool? shrink = null)
     {
         var full = Run(frames, paragraphs, 1);
-        if (!full.Overflow || !ShrinkOnOverflow) return Finish(full, frames);
+        if (!full.Overflow || !(shrink ?? ShrinkOnOverflow)) return Finish(full, frames);
         double lo = MinScale, hi = 1;
         ChainLayout? best = null;
         for (int i = 0; i < 7; i++)
