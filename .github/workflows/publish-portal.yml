@@ -1,5 +1,6 @@
-# Publie une nouvelle version du portail web (page de telechargement + aide en ligne) sans reconstruire
-# l'application : l'installeur, l'executable et le latest.json signe sont repris de la derniere release GitHub.
+# Publie une nouvelle version du portail web (accueil/telechargement, fonctionnalites, aide en ligne) sans
+# reconstruire l'application : l'installeur, l'executable et le latest.json signe sont repris de la derniere
+# release GitHub ; la version precedente est un lien vers l'installeur de sa propre release (rien sur Azure).
 #
 # Declenchement : modification du portail sur main (modele de page, aide, charte) ou manuel (onglet Actions).
 # Secret : AZURE_STATIC_WEB_APPS_API_TOKEN.
@@ -67,8 +68,11 @@ jobs:
           Set-DisplayResolution -Width 1920 -Height 1080 -Force
           Get-CimInstance Win32_VideoController | ForEach-Object { "Écran : $($_.CurrentHorizontalResolution) x $($_.CurrentVerticalResolution)" }
 
-      - name: Portail (page de téléchargement + aide en ligne)
+      - name: Portail (accueil, fonctionnalités, aide en ligne)
         shell: pwsh
+        env:
+          # lecture des releases : la version précédente est proposée en lien vers sa release GitHub
+          GH_TOKEN: ${{ github.token }}
         run: |
           $msi = (Get-ChildItem release/OpenPub-*.msi | Select-Object -First 1).FullName
           python tools/build-site.py --out work/site --exe release/OpenPub.exe --msi $msi --manifest release/latest.json

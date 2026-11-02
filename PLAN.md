@@ -301,6 +301,17 @@ Vérifications : 29 tests unitaires et un test de bout en bout de l'interface (`
   - Jamais alimentés par les tests et captures (`MainWindow.TrackRecent`, fichiers temporaires ignorés) ; la capture `file-menu` montre des noms fictifs.
 - **Fenêtre « À propos »** (`AboutWindow.cs`) aux couleurs de la charte, à la place de la boîte de message : bandeau en dégradé avec logo et pastille de version, tableau d'informations (version, installation, mises à jour, environnement, site), crédits, boutons Aide en ligne / Mises à jour / Fermer. Scène de capture `about`.
 
+## 6 duodecies. Portail : deux versions téléchargeables, page « Fonctionnalités »
+
+- **Quota** : Azure Static Web Apps Free limite le site à 250 Mo. Le site n'héberge que l'installeur **courant** (≈ 56 Mo), à côté de `latest.json` (inchangé : signé, `url` relative = ce MSI, donc mises à jour automatiques intactes). L'exécutable autonome n'est jamais déposé sur Azure (seulement dans la release GitHub).
+- **Version précédente** : lien vers l'installeur de **sa release GitHub** (`releases/download/vX.Y.Z/OpenPub-X.Y.Z.msi`), sans aucun octet sur Azure. `build-site.py` la trouve seul : release publiée (ni brouillon ni pré-version) de plus haut numéro **strictement inférieur** à la version courante, ayant son MSI. Lecture par `gh api` (`GH_TOKEN` dans les deux pipelines ; gh Windows sous WSL) puis repli sur l'API publique ; sans réponse, la page sort sans ce lien (avertissement). `--previous X.Y.Z|none` force le choix. La carte rappelle qu'il faut désinstaller avant de revenir en arrière (le MSI refuse les retours de version).
+- **Budget mesuré** (1.5.2) : installeur 56,3 Mo + aide 2,0 Mo + images et polices 0,7 Mo = **59,1 Mo**. `build-site.py` échoue au-delà de `--max-mb` (230 Mo) ou si un autre `.msi`/`.exe` se trouve sur le site.
+- **Pages** : navigation commune Accueil · Fonctionnalités · Aide (aussi dans l'aide, `build-docs.py`).
+  - `index.html` : téléchargement (version et date, taille), nouveautés (notes de `latest.json`, découpées sur « ; »), configuration requise, carte discrète « Version précédente », raccourcis vers les domaines.
+  - `fonctionnalites.html` : 8 domaines (texte, objets, images, dessin, écriture, sûreté, impression, mises à jour), icônes au dégradé de la charte, vraies captures du document de démonstration (celles de l'aide réutilisées ; `file-menu` et `about` dans `assets/captures/`).
+- **Contenu** : `tools/site-template/fonctionnalites.json`. Un élément porte `depuis` (première version qui le livre) : il n'est affiché que si la version publiée est au moins celle-là (badge « Nouveau » pour la version courante). Les lots 1 à 5 de la section 8 y sont décrits avec `"depuis": "2.0.0"` : ils apparaîtront seuls avec la 2.0.0 ; retirer ou repousser un élément non livré. `--apercu-a-venir` les montre pour relecture (jamais pour publier).
+- Cache (`staticwebapp.config.json`) : `latest.json` jamais en cache, MSI et polices immuables, `/`, `index.html` et `fonctionnalites.html` revalidés (ils citent le MSI courant).
+
 ## 7. Prochaines étapes proposées
 1. ✅ ~~Extraction via Publisher~~ : impossible depuis la perte de licence ; acquis partiels conservés.
 2. ✅ Lecteur natif prototype sur la newsletter : texte → zones, polices, images d'origine, aperçu fidèle.

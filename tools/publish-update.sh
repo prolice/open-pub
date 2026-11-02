@@ -8,6 +8,11 @@
 # Prerequis : SDK .NET (%LOCALAPPDATA%\Microsoft\dotnet), Azure CLI Windows connecte (az login),
 # Node.js (npx) pour l'outil officiel de deploiement @azure/static-web-apps-cli,
 # cle privee de signature dans %APPDATA%\OpenPub\update-signing-key.pem (ne jamais la partager).
+#
+# Le site ne contient que l'installeur courant (quota Azure Free : 250 Mo, controle par build-site.py, limite 230 Mo).
+# La version precedente est un lien vers l'installeur de sa release GitHub, trouvee avec le gh Windows ou l'API
+# publique de GitHub (sans reseau : page produite sans ce lien). Ce script ne cree pas de release GitHub :
+# preferer la pipeline « Publier une version de l'app », sinon la version suivante ne verra pas celle-ci.
 set -euo pipefail
 VERSION="${1:?usage: publish-update.sh VERSION \"NOTES\" [--deploy]}"
 NOTES="${2:-}"
@@ -36,7 +41,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w tools/buil
 MSI="dist/OpenPub-$VERSION.msi"
 [ -f "$MSI" ] || { echo "Installeur introuvable : $MSI"; exit 1; }
 
-echo "== 3. Portail : page de telechargement, aide en ligne, latest.json signe (tools/build-site.py)"
+echo "== 3. Portail : accueil, fonctionnalites, aide en ligne, latest.json signe (tools/build-site.py)"
 python3 -I tools/build-site.py --out work/site --exe dist/OpenPub/OpenPub.exe --msi "$MSI" \
   --sign-key "$(wslpath -u "$KEY")" --version "$VERSION" --notes "$NOTES"
 ls -la work/site

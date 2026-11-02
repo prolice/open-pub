@@ -1,5 +1,5 @@
 # Publie une nouvelle version de l'application OpenPub :
-# tests -> executable autonome -> installeur MSI -> latest.json signe -> portail (page + aide)
+# tests -> executable autonome -> installeur MSI -> latest.json signe -> portail (accueil, fonctionnalites, aide)
 # -> release GitHub -> envoi sur Azure Static Web Apps (les PC recoivent la mise a jour automatique).
 #
 # Declenchement : etiquette vX.Y.Z (git tag -a v1.6.0 -m "Nouveautes" && git push origin v1.6.0)
@@ -115,8 +115,11 @@ jobs:
           Set-DisplayResolution -Width 1920 -Height 1080 -Force
           Get-CimInstance Win32_VideoController | ForEach-Object { "Écran : $($_.CurrentHorizontalResolution) x $($_.CurrentVerticalResolution)" }
 
-      - name: Portail (page de téléchargement + aide en ligne)
+      - name: Portail (accueil, fonctionnalités, aide en ligne)
         shell: pwsh
+        env:
+          # lecture des releases : la version précédente est proposée en lien vers sa release GitHub
+          GH_TOKEN: ${{ github.token }}
         run: |
           $v = '${{ steps.meta.outputs.version }}'
           $notes = Get-Content "$env:RUNNER_TEMP\notes.txt" -Raw -Encoding utf8

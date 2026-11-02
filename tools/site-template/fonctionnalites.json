@@ -1,0 +1,265 @@
+{
+  "_lisez-moi": [
+    "Contenu de la page fonctionnalites.html du portail (genere par tools/build-site.py).",
+    "Une section par domaine : id (ancre), titre, accroche, icone (cle de ICONS dans build-site.py),",
+    "capture (scene de OpenPub.exe --screenshot, facultatif), aide (lien vers la page d'aide), elements.",
+    "Chaque element : titre, texte et, facultatif, depuis = premiere version qui le livre (X.Y.Z).",
+    "Un element dont la version 'depuis' est plus recente que la version publiee n'est PAS affiche",
+    "(build-site.py --apercu-a-venir l'affiche pour relecture). Pour retirer une fonction non livree :",
+    "supprimer l'element, ou repousser son 'depuis'. Les elements de la version courante portent un badge Nouveau."
+  ],
+  "sections": [
+    {
+      "id": "texte",
+      "titre": "Texte et mise en page",
+      "accroche": "Un moteur de texte conçu pour la mise en page : le texte coule de zone en zone, contourne les images et se règle au point près.",
+      "icone": "texte",
+      "capture": {
+        "scene": "text-edit",
+        "alt": "Écriture directement sur la page, avec une sélection de texte"
+      },
+      "aide": "aide/texte.html",
+      "elements": [
+        {
+          "titre": "Écriture directement sur la page",
+          "texte": "Double-clic dans un article pour écrire à sa place exacte, sélection à la souris ou au clavier, annulation d'une frappe continue en une fois."
+        },
+        {
+          "titre": "Zones liées",
+          "texte": "Un article s'étale sur plusieurs zones et passe de l'une à l'autre quand la précédente est pleine."
+        },
+        {
+          "titre": "Césure française et justification",
+          "texte": "Coupure des mots selon les règles du français, alignements gauche, centré, droite et justifié."
+        },
+        {
+          "titre": "Réduction automatique",
+          "texte": "Le texte qui déborde est réduit juste ce qu'il faut pour tenir dans ses zones, comme dans Publisher."
+        },
+        {
+          "titre": "Interligne, espacements et retraits",
+          "texte": "Interligne simple à double ou libre, espace avant et après les paragraphes, retraits gauche, droit et de première ligne.",
+          "depuis": "2.0.0"
+        },
+        {
+          "titre": "Puces, numérotation et tabulations",
+          "texte": "Listes à puces ou numérotées sur plusieurs niveaux, taquets de tabulation gauche, centre, droite, décimal et points de suite.",
+          "depuis": "2.0.0"
+        },
+        {
+          "titre": "Styles de caractère avancés",
+          "texte": "Barré, exposant, indice, petites majuscules, surlignage, interlettrage et lettrine.",
+          "depuis": "2.0.0"
+        },
+        {
+          "titre": "Lier et délier les zones à la main",
+          "texte": "« Créer un lien » vers une zone vide, « Rompre le lien », indicateur de débordement cliquable.",
+          "depuis": "2.0.0"
+        },
+        {
+          "titre": "Colonnes et habillage réglable",
+          "texte": "Plusieurs colonnes dans une même zone ; habillage aucun, carré, serré ou haut et bas, avec distances réglables.",
+          "depuis": "2.0.0"
+        }
+      ]
+    },
+    {
+      "id": "objets",
+      "titre": "Objets et disposition",
+      "accroche": "Placez chaque élément exactement où il doit être, avec le magnétisme et les repères d'un vrai logiciel de PAO.",
+      "icone": "objets",
+      "capture": {
+        "scene": "shape",
+        "alt": "Forme sélectionnée et onglet Format de la forme"
+      },
+      "aide": "aide/disposition.html",
+      "elements": [
+        {
+          "titre": "Déplacer, redimensionner, faire pivoter",
+          "texte": "Poignées, flèches du clavier au point près, rotation libre ou par pas de 15°, texte toujours modifiable dans une zone tournée."
+        },
+        {
+          "titre": "Magnétisme et repères",
+          "texte": "Alignement automatique sur les marges, le centre de la page et les autres objets, avec lignes de repère."
+        },
+        {
+          "titre": "Position et taille précises",
+          "texte": "X, Y, largeur et hauteur en centimètres dans le panneau de droite."
+        },
+        {
+          "titre": "Sélection multiple",
+          "texte": "Ctrl ou Maj + clic, rectangle de sélection, Ctrl+A : déplacer, tourner ou supprimer plusieurs objets d'un coup.",
+          "depuis": "2.0.0"
+        },
+        {
+          "titre": "Copier et coller des objets",
+          "texte": "Entre pages et entre documents OpenPub, et collage d'images ou de textes venus d'autres applications.",
+          "depuis": "2.0.0"
+        },
+        {
+          "titre": "Grouper et dissocier",
+          "texte": "Un groupe se déplace et pivote comme un seul objet (Ctrl+Maj+G).",
+          "depuis": "2.0.0"
+        },
+        {
+          "titre": "Aligner et répartir",
+          "texte": "Aligner à gauche, au centre, à droite, en haut, au milieu ou en bas, répartir régulièrement, par rapport à la sélection ou à la page.",
+          "depuis": "2.0.0"
+        }
+      ]
+    },
+    {
+      "id": "images",
+      "titre": "Images",
+      "accroche": "Retouchez vos photos sans quitter la page : recadrage, couleurs, formes et effets, avec aperçu en direct.",
+      "icone": "images",
+      "capture": {
+        "scene": "image-editor",
+        "alt": "Éditeur d'images d'OpenPub"
+      },
+      "aide": "aide/images.html",
+      "elements": [
+        {
+          "titre": "Insérer et remplacer",
+          "texte": "JPG, PNG, GIF, BMP et TIFF ; « Remplacer » garde la place et la taille de la photo."
+        },
+        {
+          "titre": "Recadrage",
+          "texte": "Tracez le cadre à garder sur l'aperçu, ajustez au curseur ; le contenu reste en place sur la page."
+        },
+        {
+          "titre": "Couleurs et réglages",
+          "texte": "Niveaux de gris, noir et blanc, sépia, filigrane, luminosité, contraste et transparence."
+        },
+        {
+          "titre": "Formes et effets",
+          "texte": "Photo découpée en coins arrondis, ellipse, étoile ou cœur ; ombre portée et reflet."
+        }
+      ]
+    },
+    {
+      "id": "dessin",
+      "titre": "Formes et dessin",
+      "accroche": "Une galerie de formes et des outils de dessin libre pour illustrer sans logiciel supplémentaire.",
+      "icone": "dessin",
+      "capture": {
+        "scene": "draw-tool",
+        "alt": "Outil Crayon actif dans l'onglet Dessin"
+      },
+      "aide": "aide/formes.html",
+      "elements": [
+        {
+          "titre": "Galerie de formes",
+          "texte": "Rectangle, coins arrondis, ellipse, triangle, losange, hexagone, étoile, flèche, bulle, cœur."
+        },
+        {
+          "titre": "Crayon et forme libre",
+          "texte": "Dessin à main levée lissé automatiquement, polygones point par point, lignes et flèches."
+        },
+        {
+          "titre": "Remplissage, contour et ombre",
+          "texte": "Couleurs du thème et du document, code couleur, épaisseur, tirets et pointes de flèche."
+        }
+      ]
+    },
+    {
+      "id": "ecriture",
+      "titre": "Écriture et vérification",
+      "accroche": "Des outils de rédaction pour relire un numéro entier avant de l'imprimer.",
+      "icone": "ecriture",
+      "aide": "aide/texte.html#editeur",
+      "elements": [
+        {
+          "titre": "Éditeur de texte",
+          "texte": "Fenêtre de traitement de texte pour les longs articles, reportée dans la zone en un clic."
+        },
+        {
+          "titre": "Correcteur orthographique",
+          "texte": "Soulignement des fautes pendant la frappe avec le dictionnaire français de Windows, suggestions au clic droit, vérification de tout le document (F7).",
+          "depuis": "2.0.0"
+        },
+        {
+          "titre": "Rechercher et remplacer",
+          "texte": "Ctrl+F et Ctrl+H dans tous les articles du document, casse et mot entier, remplacement annulable en une étape.",
+          "depuis": "2.0.0"
+        }
+      ]
+    },
+    {
+      "id": "surete",
+      "titre": "Sûreté des documents",
+      "accroche": "Un document OpenPub contient tout ce qu'il faut pour s'ouvrir à l'identique sur un autre PC.",
+      "icone": "surete",
+      "capture": {
+        "scene": "file-menu",
+        "alt": "Menu Fichier d'OpenPub avec les documents récents"
+      },
+      "elements": [
+        {
+          "titre": "Fichier autonome",
+          "texte": "Le fichier .opub regroupe le texte, les images et les polices du document."
+        },
+        {
+          "titre": "Annulation illimitée ou presque",
+          "texte": "Ctrl+Z et Ctrl+Y sur toutes les actions, jusqu'à 200 étapes."
+        },
+        {
+          "titre": "Documents récents",
+          "texte": "Les derniers documents ouverts dans le menu Fichier, rouvrables avec Ctrl+Maj+1 à 9."
+        },
+        {
+          "titre": "Enregistrement automatique et récupération",
+          "texte": "Copie de secours régulière, jamais à la place de votre fichier, proposée au redémarrage après un incident.",
+          "depuis": "2.0.0"
+        }
+      ],
+      "aide": "aide/faq.html#sauvegarde"
+    },
+    {
+      "id": "impression",
+      "titre": "Impression et PDF",
+      "accroche": "Du document à l'imprimeur ou à la boîte aux lettres électronique.",
+      "icone": "impression",
+      "aide": "aide/impression.html",
+      "elements": [
+        {
+          "titre": "Impression",
+          "texte": "Boîte d'impression de Windows, au format de page du document."
+        },
+        {
+          "titre": "PDF",
+          "texte": "Création d'un PDF avec l'imprimante Microsoft Print to PDF."
+        },
+        {
+          "titre": "Export en images",
+          "texte": "Chaque page en PNG haute définition (200 points par pouce) pour un site ou les réseaux sociaux."
+        }
+      ]
+    },
+    {
+      "id": "mises-a-jour",
+      "titre": "Mises à jour et aide",
+      "accroche": "OpenPub se tient à jour tout seul et l'aide est toujours à portée de F1.",
+      "icone": "mises-a-jour",
+      "capture": {
+        "scene": "about",
+        "alt": "Fenêtre À propos d'OpenPub"
+      },
+      "aide": "aide/mises-a-jour.html",
+      "elements": [
+        {
+          "titre": "Mises à jour automatiques",
+          "texte": "Nouvelle version proposée au démarrage, installée sans droits administrateur, document rouvert ensuite."
+        },
+        {
+          "titre": "Versions signées",
+          "texte": "Signature numérique et empreinte vérifiées avant toute installation."
+        },
+        {
+          "titre": "Aide en ligne contextuelle",
+          "texte": "F1 ouvre la section qui correspond à ce que vous faites : écriture, image, forme, outil de dessin, onglet."
+        }
+      ]
+    }
+  ]
+}

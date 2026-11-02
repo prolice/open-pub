@@ -395,12 +395,12 @@ def layout(page_idx):
 <title>{title} — Aide OpenPub</title><meta name="description" content="{html.escape(desc)}">
 <link rel="icon" href="../assets/openpub.ico" sizes="any"><link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="aide.css"></head><body>
 <header class="site-header"><div class="container nav"><a class="brand" href="../index.html" aria-label="OpenPub, accueil"><img src="../assets/openpub-128.png" alt="">OpenPub</a>
-<nav class="nav-links" aria-label="Navigation"><a href="../index.html">Accueil</a><a href="../index.html#fonctionnalites">Fonctionnalités</a><a class="active" href="index.html">Aide</a><a href="../index.html#telecharger">Télécharger</a></nav></div></header>
+<nav class="nav-links" aria-label="Navigation principale"><a href="../index.html">Accueil</a><a href="../fonctionnalites.html">Fonctionnalités</a><a class="active" href="index.html" aria-current="page">Aide</a></nav></div></header>
 <div class="doc-hero"><div class="container"><div class="crumbs"><a href="index.html">Aide</a>{' · ' + html.escape(title) if page_idx else ''}{ver}</div></div></div>
 <main class="container docs"><aside class="side"><input id="q" class="search" type="search" placeholder="Rechercher dans l'aide…" aria-label="Rechercher dans l'aide" autocomplete="off">
 <ul id="results" class="results"></ul><ul class="toc">{''.join(toc)}</ul></aside>
 <article class="doc"><h1>{title}</h1><p class="intro">{html.escape(desc)}</p>{body}<nav class="pager">{prev_link}{next_link}</nav></article></main>
-<footer class="footer"><div class="container footer-inner"><span>© OpenPub · Aide en ligne</span><span><a href="../index.html#telecharger">Télécharger OpenPub</a></span></div></footer>
+<footer class="footer"><div class="container footer-inner"><span>© OpenPub · Aide en ligne</span><span><a href="../index.html#telecharger">Télécharger OpenPub</a> · <a href="../fonctionnalites.html">Fonctionnalités</a></span></div></footer>
 <script src="recherche.js"></script></body></html>
 """
 
