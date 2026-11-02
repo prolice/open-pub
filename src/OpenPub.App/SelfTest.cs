@@ -28,13 +28,62 @@ public static class SelfTest
 
     static void Pump() => Application.Current.Dispatcher.Invoke(() => { }, DispatcherPriority.Background);
 
-    static void Capture(Window w, string path)
+    /// <summary>
+    /// Autorise une fenetre plus grande que l'ecran (Windows la limite a la taille de l'ecran : 1024 x 768 sur les
+    /// machines de GitHub) puis dimensionne la fenetre pour que son contenu fasse exactement <paramref name="size"/>.
+    /// </summary>
+    static void ForceContentSize(Window w, Size size)
+    {
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(w).EnsureHandle();
+        if (Hooked.Add(hwnd))
+            System.Windows.Interop.HwndSource.FromHwnd(hwnd).AddHook(AllowLargeWindow);
+        var content = (FrameworkElement)w.Content;
+        for (int i = 0; i < 3; i++)
+        {
+            Pump();
+            double chromeW = w.ActualWidth - content.ActualWidth, chromeH = w.ActualHeight - content.ActualHeight;
+            w.Width = size.Width + Math.Max(0, chromeW);
+            w.Height = size.Height + Math.Max(0, chromeH);
+            w.UpdateLayout();
+        }
+        Pump();
+        // WPF plafonne la fenetre a la taille de l'ecran : on le signale (la capture garde la taille obtenue)
+        if (content.ActualWidth < size.Width - 1 || content.ActualHeight < size.Height - 1)
+            Console.Error.WriteLine($"Avertissement : capture limitee a {content.ActualWidth:0}x{content.ActualHeight:0} par la taille de l'ecran " +
+                                    $"(demande : {size.Width:0}x{size.Height:0}). Augmentez la resolution de l'ecran.");
+    }
+
+    static readonly HashSet<IntPtr> Hooked = new();
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    struct MinMaxInfo { public int rx, ry, maxSizeX, maxSizeY, maxPosX, maxPosY, minTrackX, minTrackY, maxTrackX, maxTrackY; }
+
+    static IntPtr AllowLargeWindow(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        const int WM_GETMINMAXINFO = 0x0024;
+        if (msg == WM_GETMINMAXINFO)
+        {
+            var mmi = System.Runtime.InteropServices.Marshal.PtrToStructure<MinMaxInfo>(lParam);
+            mmi.maxTrackX = mmi.maxSizeX = 6000;
+            mmi.maxTrackY = mmi.maxSizeY = 4000;
+            System.Runtime.InteropServices.Marshal.StructureToPtr(mmi, lParam, false);
+            handled = true;
+        }
+        return IntPtr.Zero;
+    }
+
+    static void Capture(Window w, string path, Size? forced = null)
     {
         Pump();
+        if (forced is { } f) ForceContentSize(w, f);
+        var content0 = (FrameworkElement)w.Content;
+        if (forced is not null) forced = new Size(Math.Min(forced.Value.Width, content0.ActualWidth), Math.Min(forced.Value.Height, content0.ActualHeight));
         // taille du contenu (sans la barre de titre), sinon une bande noire apparait en bas
         var content = (FrameworkElement)w.Content;
-        var rtb = new RenderTargetBitmap((int)content.ActualWidth, (int)content.ActualHeight, 96, 96, PixelFormats.Pbgra32);
-        rtb.Render((Visual)w.Content);
+        int cw = forced is { } fs0 ? (int)fs0.Width : (int)content.ActualWidth, ch = forced is { } fs1 ? (int)fs1.Height : (int)content.ActualHeight;
+        if (Environment.GetEnvironmentVariable("OPENPUB_DEBUG_CAPTURE") == "1") Console.WriteLine($"capture : contenu {content.ActualWidth}x{content.ActualHeight}, parent {content.Parent?.GetType().Name ?? "aucun"}, image {cw}x{ch}");
+        var rtb = new RenderTargetBitmap(cw, ch, 96, 96, PixelFormats.Pbgra32);
+        rtb.Render(content);
         var enc = new PngBitmapEncoder();
         enc.Frames.Add(BitmapFrame.Create(rtb));
         using var fs = File.Create(path);
@@ -55,8 +104,11 @@ public static class SelfTest
         w.Show();
         w.OpenFile(file);
         Pump();
+        var target = new Size(width, height);
+        ForceContentSize(w, target);
         typeof(MainWindow).GetMethod("ZoomFit_Click", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { w, new RoutedEventArgs() });
         Pump();
+        ForceContentSize(w, target);
         var session = (EditorSession)typeof(MainWindow).GetField("_session", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(w)!;
         var page = session.Doc.Pages[0];
         // scenes de la documentation : onglet ("TabDraw"...) ou situation ("shape", "picture", "text-edit", "draw-tool", "image-editor")
@@ -88,7 +140,7 @@ public static class SelfTest
                 ed.Show();
                 Pump();
                 Application.Current.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
-                Capture(ed, png);
+                Capture(ed, png, new Size(1044, 680));
                 ed.Close();
                 w.Close();
                 return 0;
@@ -117,7 +169,7 @@ public static class SelfTest
         }
         Pump();
         Application.Current.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
-        Capture(w, png);
+        Capture(w, png, target);
         w.Close();
         return 0;
     }

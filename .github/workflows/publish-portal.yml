@@ -59,6 +59,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "Aucune release de l'application : publiez d'abord une version (pipeline « Publier une version de l'app »)." }
           Get-ChildItem release | Format-Table Name, Length
 
+      - name: Résolution d'écran (captures en pleine taille)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          # l'ecran virtuel des machines GitHub est en 1024x768 : Windows y limite la taille des fenetres
+          Set-DisplayResolution -Width 1920 -Height 1080 -Force
+          Get-CimInstance Win32_VideoController | ForEach-Object { "Écran : $($_.CurrentHorizontalResolution) x $($_.CurrentVerticalResolution)" }
+
       - name: Portail (page de téléchargement + aide en ligne)
         shell: pwsh
         run: |

@@ -107,6 +107,14 @@ jobs:
             throw "Le secret UPDATE_SIGNING_KEY est requis pour publier."
           }
 
+      - name: Résolution d'écran (captures en pleine taille)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          # l'ecran virtuel des machines GitHub est en 1024x768 : Windows y limite la taille des fenetres
+          Set-DisplayResolution -Width 1920 -Height 1080 -Force
+          Get-CimInstance Win32_VideoController | ForEach-Object { "Écran : $($_.CurrentHorizontalResolution) x $($_.CurrentVerticalResolution)" }
+
       - name: Portail (page de téléchargement + aide en ligne)
         shell: pwsh
         run: |
