@@ -41,15 +41,15 @@ jobs:
       version: ${{ steps.meta.outputs.version }}
       dry_run: ${{ steps.meta.outputs.dry_run }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
@@ -131,7 +131,7 @@ jobs:
         run: Remove-Item "$env:RUNNER_TEMP\update-signing-key.pem" -ErrorAction SilentlyContinue
 
       - name: Conserver le portail et l'application
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: openpub-${{ steps.meta.outputs.version }}
           path: |
@@ -146,7 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: portail
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: openpub-${{ needs.build.outputs.version }}
           path: artefact
@@ -168,4 +168,3 @@ jobs:
           app_location: artefact/work/site
           output_location: ''
           skip_app_build: true
-          skip_api_build: true
