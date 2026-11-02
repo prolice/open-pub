@@ -465,6 +465,7 @@ public partial class MainWindow : Window
         PanelView.Visibility = TabView.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelReview.Visibility = TabReview.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelDesign.Visibility = TabDesign.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PanelTable.Visibility = TabTable.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelDraw.Visibility = TabDraw.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelShape.Visibility = TabShape.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelPicture.Visibility = TabPicture.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
@@ -483,13 +484,16 @@ public partial class MainWindow : Window
         bool shape = s is not null && !pic;
         TabShape.Visibility = shape ? Visibility.Visible : Visibility.Collapsed;
         TabPicture.Visibility = pic ? Visibility.Visible : Visibility.Collapsed;
-        var ctx = pic ? "pic" : shape ? (s!.IsText ? "text" : "shape") : "";
+        bool table = s is { IsTable: true };
+        TabTable.Visibility = table ? Visibility.Visible : Visibility.Collapsed;
+        var ctx = pic ? "pic" : table ? "table" : shape ? (s!.IsText ? "text" : "shape") : "";
         if (ctx != _lastContext)
         {
             // comme Office : l'onglet contextuel s'ouvre quand on selectionne une forme ou une image
             if (pic) TabPicture.IsChecked = true;
+            else if (table) TabTable.IsChecked = true;
             else if (ctx == "shape") TabShape.IsChecked = true;
-            else if ((TabShape.IsChecked == true && !shape) || (TabPicture.IsChecked == true && !pic)) TabHome.IsChecked = true;
+            else if ((TabShape.IsChecked == true && !shape) || (TabPicture.IsChecked == true && !pic) || (TabTable.IsChecked == true && !table)) TabHome.IsChecked = true;
             _lastContext = ctx;
         }
         if (s is null) return;
@@ -980,7 +984,7 @@ public partial class MainWindow : Window
     void UpdateUi()
     {
         bool has = _session is not null;
-        PanelInsert.IsEnabled = PanelShape.IsEnabled = PanelPicture.IsEnabled = PanelDraw.IsEnabled = PanelReview.IsEnabled = PanelDesign.IsEnabled = has;
+        PanelInsert.IsEnabled = PanelTable.IsEnabled = PanelShape.IsEnabled = PanelPicture.IsEnabled = PanelDraw.IsEnabled = PanelReview.IsEnabled = PanelDesign.IsEnabled = has;
         if (PenWidthBox.ItemsSource is null)
         {
             PenWidthBox.ItemsSource = new[] { 0.5, 1, 1.5, 2, 3, 4.5, 6, 8, 12 };

@@ -76,6 +76,7 @@ public static class PubFormat
     {
         bool v2 = doc.Masters is { Count: > 0 } || doc.Numbering is not null || doc.Guides is not null || doc.Grid is not null
                   || doc.Pages.Any(p => p.BackColor is not null || p.NumberStart is not null || p.Master is not null || p.IgnoreMaster)
+                  || doc.AllShapes().Any(s => s.Kind == ShapeKind.Table)
                   || doc.AllShapes().Any(s => s.Paragraphs?.Any(p => p.Runs.Any(r => r.Field is not null)) == true);
         return v2 || doc.FormatVersion >= 2 ? $"openpub/{Math.Max(2, Math.Min(doc.FormatVersion, PubDocument.SupportedFormat))}" : "openpub/1";
     }
@@ -176,6 +177,7 @@ public static class ShapeKind
     public const string Rect = "rect";
     public const string Ellipse = "ellipse";
     public const string Path = "path";
+    public const string Table = "table";
 }
 
 public sealed class Shape
@@ -228,9 +230,12 @@ public sealed class Shape
     public List<Paragraph>? Paragraphs { get; set; }
     public string? Chain { get; set; }
     public int? ChainIndex { get; set; }
+    /// <summary>Tableau (objet de type "table") : colonnes, lignes et cellules.</summary>
+    public TableData? Table { get; set; }
     public int? FlowFrom { get; set; }
 
     [JsonIgnore] public bool IsText => Kind == ShapeKind.Text;
+    [JsonIgnore] public bool IsTable => Kind == ShapeKind.Table && Table is not null;
     [JsonIgnore] public bool IsImage => Kind == ShapeKind.Image;
     /// <summary>Premiere zone d'une chaine (ou zone isolee) : c'est elle qui porte le texte.</summary>
     [JsonIgnore] public bool IsStoryHead => IsText && (Chain is null || (ChainIndex ?? 0) == 0);
@@ -249,6 +254,42 @@ public sealed class Shape
     public double PadRight => Padding is { Length: 4 } ? Padding[1] : 0;
     public double PadBottom => Padding is { Length: 4 } ? Padding[2] : 0;
     public double PadLeft => Padding is { Length: 4 } ? Padding[3] : 0;
+}
+
+/// <summary>Tableau : largeurs des colonnes, hauteurs minimales des lignes (points), cellules [ligne][colonne].</summary>
+public sealed class TableData
+{
+    public List<double> Cols { get; set; } = new();
+    /// <summary>Hauteurs minimales ; une ligne s'agrandit pour contenir son texte.</summary>
+    public List<double> Rows { get; set; } = new();
+    public List<List<TableCell>> Cells { get; set; } = new();
+    /// <summary>Bordure des cellules qui n'en definissent pas (null : aucune).</summary>
+    public LineStyle? Border { get; set; }
+    /// <summary>Style de tableau applique (pour memoire).</summary>
+    public string? Style { get; set; }
+    /// <summary>Hauteurs reelles des lignes, calculees par la mise en page.</summary>
+    [JsonIgnore] public double[]? ActualRows { get; set; }
+
+    public int RowCount => Cells.Count;
+    public int ColCount => Cols.Count;
+}
+
+/// <summary>Cellule d'un tableau.</summary>
+public sealed class TableCell
+{
+    public List<Paragraph>? Paragraphs { get; set; }
+    public Fill? Fill { get; set; }
+    /// <summary>top | middle | bottom.</summary>
+    public string? VAlign { get; set; }
+    public int RowSpan { get; set; } = 1;
+    public int ColSpan { get; set; } = 1;
+    /// <summary>Cellule recouverte par une cellule fusionnee (ni dessinee ni modifiable).</summary>
+    public bool Hidden { get; set; }
+    /// <summary>Bordures propres (null : bordure du tableau ; epaisseur 0 : aucune).</summary>
+    public LineStyle? Top { get; set; }
+    public LineStyle? Right { get; set; }
+    public LineStyle? Bottom { get; set; }
+    public LineStyle? Left { get; set; }
 }
 
 /// <summary>Formes automatiques disponibles (valeurs de <see cref="Shape.Geometry"/>).</summary>

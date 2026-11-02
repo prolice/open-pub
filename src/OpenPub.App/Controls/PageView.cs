@@ -39,7 +39,9 @@ public sealed class PageView : FrameworkElement
     /// <summary>Le curseur de texte a bouge (pour le faire defiler dans la vue) : rectangle en pixels de la vue.</summary>
     public event Action<PageView, Rect>? CaretMoved;
 
-    enum DragMode { None, Move, Resize, TextSelect, Rotate, Draw, Freehand, Marquee, Guide }
+    enum DragMode { None, Move, Resize, TextSelect, Rotate, Draw, Freehand, Marquee, Guide, TableCol, TableRow }
+    int _tableEdge;               // bordure de colonne ou de ligne tiree (indice de la colonne / ligne a gauche / au-dessus)
+    double _tableEdgeStart;
     bool _guideVertical;          // repere deplace : vertical (X) ou horizontal (Y)
     int _guideIndex;
     DragMode _mode;
@@ -205,6 +207,20 @@ public sealed class PageView : FrameworkElement
         if (_session.PreviewGuideY is { } py) dc.DrawLine(prev, new Point(0, py), new Point(Page.Width, py));
     }
 
+    /// <summary>Bordure interieure d'un tableau sous le point : colonne (vrai) ou ligne, indice de la colonne / ligne avant elle.</summary>
+    (bool Col, int Index)? TableEdgeAt(Shape table, Point p)
+    {
+        var t = table.Table!;
+        double tol = 3 / K;
+        if (p.Y < table.Y - tol || p.Y > table.Y + table.H + tol || p.X < table.X - tol || p.X > table.X + table.W + tol) return null;
+        double x = table.X;
+        for (int c = 0; c < t.ColCount - 1; c++) { x += t.Cols[c]; if (Math.Abs(p.X - x) <= tol) return (true, c); }
+        double y = table.Y;
+        var hs = OpenPub.Core.Editing.TableOps.RowHeights(t);
+        for (int r = 0; r < t.RowCount; r++) { y += hs[r]; if (Math.Abs(p.Y - y) <= tol && r < t.RowCount - 1) return (false, r); }
+        return null;
+    }
+
     /// <summary>Repere de regle sous le point (a 4 pixels pres) : (vertical ?, indice), ou null.</summary>
     (bool Vertical, int Index)? GuideAt(Point p)
     {
@@ -330,6 +346,16 @@ public sealed class PageView : FrameworkElement
         var p = ToPage(e);
         bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
 
+        // ecriture dans une cellule : un clic dans une autre cellule du meme tableau y place le curseur
+        if (_session.TextEdit is { Owner: { } owner } ced && ced.Page == Page && EditingFrameAt(p) is null && HitTest(p) == owner
+            && OpenPub.Core.Editing.TableOps.CellAt(owner, p.X, p.Y) is { } other)
+        {
+            _session.BeginCellEdit(Page, owner, other.Row, other.Col, p);
+            _mode = DragMode.TextSelect;
+            CaptureMouse();
+            e.Handled = true;
+            return;
+        }
         // edition de texte en cours : clic dans la chaine = curseur / selection
         if (_session.TextEdit is { } ed && ed.Page == Page && EditingFrameAt(p) is not null)
         {
@@ -418,6 +444,19 @@ public sealed class PageView : FrameworkElement
             }
             else
             {
+                // tableau selectionne : tirer une bordure interieure regle la largeur d'une colonne ou la hauteur d'une ligne
+                if (sel.IsTable && TableEdgeAt(sel, p) is { } edge)
+                {
+                    _mode = edge.Col ? DragMode.TableCol : DragMode.TableRow;
+                    _tableEdge = edge.Index;
+                    _start = p;
+                    var tb = sel.Table!;
+                    _tableEdgeStart = edge.Col ? tb.Cols[edge.Index] : OpenPub.Core.Editing.TableOps.RowHeights(tb)[edge.Index];
+                    _session.BeginChange();
+                    CaptureMouse();
+                    e.Handled = true;
+                    return;
+                }
                 var lp = Geo.ToLocal(sel, p);
                 if ((lp - RotationHandle(sel)).Length <= 7 / K) { StartDrag(DragMode.Rotate, p, sel, -1); e.Handled = true; return; }
                 int i = 0;
@@ -444,7 +483,9 @@ public sealed class PageView : FrameworkElement
         bool inGroup = target?.Group is not null && _session.Selection.Count == 1 && sel?.Group == target.Group && Page.Shapes.Contains(sel);
         if (e.ClickCount == 2 && target is not null)
         {
-            if (target.IsText) _session.BeginTextEdit(Page, target, p);
+            if (target.IsTable && OpenPub.Core.Editing.TableOps.CellAt(target, p.X, p.Y) is { } cellRc)
+                _session.BeginCellEdit(Page, target, cellRc.Row, cellRc.Col, p);
+            else if (target.IsText) _session.BeginTextEdit(Page, target, p);
             else if (target.Group is not null && !inGroup) _session.Select(target, Page);      // entrer dans le groupe
             else if (target.IsImage) ReplaceImageRequested?.Invoke(target);
             e.Handled = true;
@@ -551,6 +592,21 @@ public sealed class PageView : FrameworkElement
         {
             _marquee = new Rect(_start, p);
             InvalidateVisual();
+            return;
+        }
+        if (_mode is DragMode.TableCol or DragMode.TableRow && _session.Selected is { Table: { } tt } tsh)
+        {
+            if (_mode == DragMode.TableCol && _tableEdge + 1 < tt.ColCount)
+            {
+                // la colonne de droite cede ce que prend celle de gauche : la largeur du tableau ne change pas
+                double total = tt.Cols[_tableEdge] + tt.Cols[_tableEdge + 1];
+                double nw = Math.Clamp(_tableEdgeStart + (p.X - _start.X), 8, total - 8);
+                tt.Cols[_tableEdge] = nw; tt.Cols[_tableEdge + 1] = total - nw;
+            }
+            else if (_mode == DragMode.TableRow)
+                tt.Rows[_tableEdge] = Math.Max(8, _tableEdgeStart + (p.Y - _start.Y));
+            OpenPub.Core.Editing.TableOps.SyncSize(tsh);
+            _session.Invalidate(Page);
             return;
         }
         if (_mode == DragMode.Guide && _session.Doc.Guides is { } gd)
@@ -671,6 +727,13 @@ public sealed class PageView : FrameworkElement
         }
         Map(s.Path);
         Map(s.Clip);
+        if (s.Table is { } table && (Math.Abs(sx - 1) > 1e-9 || Math.Abs(sy - 1) > 1e-9))
+        {
+            // tableau redimensionne : colonnes et lignes a l'echelle
+            for (int i = 0; i < table.Cols.Count; i++) table.Cols[i] *= sx;
+            for (int i = 0; i < table.Rows.Count; i++) table.Rows[i] *= sy;
+            table.ActualRows = null;
+        }
         s.X = r.X; s.Y = r.Y; s.W = r.Width; s.H = r.Height;
     }
 
@@ -681,6 +744,7 @@ public sealed class PageView : FrameworkElement
         _mode = DragMode.None;
         ReleaseMouseCapture();
         if (mode == DragMode.TextSelect) { TextSelectionFinished?.Invoke(); return; }
+        if (mode is DragMode.TableCol or DragMode.TableRow) { _session.EndChange(); _session.Invalidate(Page); return; }
         if (mode == DragMode.Guide)
         {
             // repere tire hors de la page : supprime
@@ -813,6 +877,7 @@ public sealed class PageView : FrameworkElement
         }
         else if (sel is not null && Page.Shapes.Contains(sel) && !Editing && !sel.Locked)
         {
+            if (sel.IsTable && TableEdgeAt(sel, p) is { } te) return te.Col ? Cursors.SizeWE : Cursors.SizeNS;
             var lp = Geo.ToLocal(sel, p);
             if ((lp - RotationHandle(sel)).Length <= 7 / K) return Cursors.Hand;
             int i = 0;

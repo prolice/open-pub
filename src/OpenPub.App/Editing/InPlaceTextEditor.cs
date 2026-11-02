@@ -46,7 +46,12 @@ public sealed class InPlaceTextEditor
 
     public void Stop() => _blink.Stop();
 
-    public bool Contains(Shape s) => s == Head || (Head.Chain is not null && s.Chain == Head.Chain);
+    /// <summary>Tableau dont une cellule est en cours d'ecriture (null pour une zone de texte).</summary>
+    public Shape? Owner { get; init; }
+    /// <summary>Tab / Maj+Tab dans une cellule : passer a la cellule suivante / precedente (vrai si traite).</summary>
+    public Func<int, bool>? CellTab { get; init; }
+
+    public bool Contains(Shape s) => s == Head || s == Owner || (Head.Chain is not null && s.Chain == Head.Chain);
 
     void Touch(bool keepDesiredX = false)
     {
@@ -392,6 +397,9 @@ public sealed class InPlaceTextEditor
                     return true;
                 }
                 NewParagraph();
+                return true;
+            case Key.Tab when CellTab is not null && !ctrl && !(CurrentParagraph() is { List: not null } && Caret.Offset == 0):
+                CellTab(shift ? -1 : 1);
                 return true;
             case Key.Tab:
                 // dans une liste, en debut d'element (ou sur une selection) : change le niveau

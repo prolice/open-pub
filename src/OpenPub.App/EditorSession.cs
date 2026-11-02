@@ -71,6 +71,36 @@ public sealed class EditorSession : IDisposable
         TextEditChanged?.Invoke();
     }
 
+    /// <summary>Ecriture dans une cellule de tableau (Tab : cellule suivante, une ligne est ajoutee au bout du tableau).</summary>
+    public void BeginCellEdit(Page page, Shape table, int row, int col, System.Windows.Point? at = null)
+    {
+        if (table.Table is not { } t || row < 0 || col < 0 || row >= t.RowCount || col >= t.ColCount) return;
+        (row, col) = TableOps.Owner(t, row, col);
+        EndTextEdit();
+        Layout(page);                                   // zones fantomes des cellules a jour
+        var cell = t.Cells[row][col];
+        var frame = PageLayouter.CellFrame(cell);
+        var ed = new InPlaceTextEditor(this, page, frame)
+        {
+            Owner = table,
+            CellTab = dir =>
+            {
+                if (TableOps.Next(t, row, col, dir) is { } n) { BeginCellEdit(page, table, n.Row, n.Col); TextEdit?.SelectAll(); return true; }
+                if (dir < 0) return true;
+                // Tab dans la derniere cellule : nouvelle ligne
+                Change(page, () => TableOps.InsertRow(table, t.RowCount));
+                BeginCellEdit(page, table, t.RowCount - 1, 0);
+                return true;
+            },
+        };
+        ed.Changed += () => { PageChanged?.Invoke(page); TextEditChanged?.Invoke(); };
+        TextEdit = ed;
+        SelectMany(new[] { table }, table, page);
+        if (at is { } p) ed.SetCaret(ed.HitTest(p), false);
+        else ed.SetCaret(StoryEditor.End(ed.Paras), false);
+        TextEditChanged?.Invoke();
+    }
+
     public void EndTextEdit()
     {
         if (TextEdit is not { } ed) return;

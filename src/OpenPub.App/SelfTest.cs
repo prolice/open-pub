@@ -189,6 +189,9 @@ public static class SelfTest
         return 0;
     }
 
+    static OpenPub.Layout.FrameLayout? PageLayoutOf(EditorSession session, Page page, Shape table) =>
+        session.Layout(page).Frames.TryGetValue(OpenPub.Layout.PageLayouter.CellFrame(table.Table!.Cells[^1][0]), out var f) ? f : null;
+
     public static int Run(string file, string outDir)
     {
         Directory.CreateDirectory(outDir);
@@ -733,6 +736,56 @@ public static class SelfTest
             var blank = Core.Io.OpubPackage.CreateBlank(419.528, 595.276, 4);
             Check(blank.Document.Pages.Count == 4 && blank.FilePath is null && blank.Document.Pages[3].Index == 4, "nouveau document vierge (A5, 4 pages)");
             blank.Dispose();
+        }
+
+        Console.WriteLine("Tableaux : insertion, ecriture, Tab, fusion, style, collage depuis Excel, recherche");
+        {
+            var mw = typeof(MainWindow);
+            session.EndTextEdit();
+            // page vierge pour les tableaux
+            session.Select(null, session.Doc.Pages[^1]);
+            Click(w, "AddPage_Click");
+            var tp = session.Doc.Pages[^1];
+            Pump();
+            session.Select(null, tp);
+            mw.GetMethod("InsertTable", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object?[] { 3, 3, "bleu" });
+            var tbl = tp.Shapes.LastOrDefault(x => x.IsTable);
+            Check(tbl is { Table.RowCount: 3 } && session.TextEdit?.Owner == tbl, "tableau 3 × 3 insere, ecriture dans la 1re cellule");
+            var te = session.TextEdit!;
+            te.Type("Article");
+            te.HandleKey(Key.Tab, ModifierKeys.None);
+            session.TextEdit!.Type("Prix");
+            Check(tbl!.Table!.Cells[0][0].Paragraphs![0].PlainText == "Article" && tbl.Table.Cells[0][1].Paragraphs![0].PlainText == "Prix", "Tab : cellule suivante");
+            session.BeginCellEdit(tp, tbl, 2, 2);
+            session.TextEdit!.HandleKey(Key.Tab, ModifierKeys.None);
+            Check(tbl.Table.RowCount == 4 && PageLayoutOf(session, tp, tbl) is not null, "Tab dans la derniere cellule : nouvelle ligne");
+            session.BeginCellEdit(tp, tbl, 1, 0);
+            session.TextEdit!.Type(string.Join(" ", Enumerable.Repeat("Un texte long qui agrandit la ligne.", 4)));
+            session.Layout(tp);
+            var hs = Core.Editing.TableOps.RowHeights(tbl.Table);
+            Check(hs[1] > tbl.Table.Rows[1] + 5 && Math.Abs(tbl.H - hs.Sum()) < 0.01, "la ligne s'agrandit pour contenir le texte");
+            mw.GetMethod("ChangeTable", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object?[] { new Action<Shape, TableData>((_, t) => Core.Editing.TableOps.Merge(t, 3, 0, 3, 2)), null });
+            Check(tbl.Table.Cells[3][0].ColSpan == 3 && tbl.Table.Cells[3][1].Hidden, "fusionner une ligne");
+            mw.GetMethod("ChangeTable", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object?[] { new Action<Shape, TableData>((_, t) => Core.Editing.TableOps.ApplyStyle(t, "violet")), null });
+            Check(tbl.Table.Cells[0][0].Fill?.Color == "#9935f4", "style de tableau");
+            // texte copie depuis Excel
+            int nshapes = tp.Shapes.Count;
+            bool pasted = (bool)mw.GetMethod("PasteAsTable", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { tp, "Jour\tActivité\r\nLundi\tPiscine\r\nMardi\tThéâtre\r\n" })!;
+            var t2 = tp.Shapes.Last();
+            Check(pasted && tp.Shapes.Count == nshapes + 1 && t2.IsTable && t2.Table!.RowCount == 3, "texte tabule colle : tableau");
+            // la recherche trouve le texte des cellules
+            session.Select(null, session.Doc.Pages[0]);
+            bool found = (bool)mw.GetMethod("FindNext", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { "Théâtre", true, true })!;
+            Check(found && session.TextEdit?.Owner == t2, "rechercher : texte trouve dans une cellule");
+            session.EndTextEdit();
+            // colonnes a l'echelle quand on redimensionne le tableau
+            double c0 = t2.Table.Cols[0];
+            session.Change(tp, () => PageView.MoveShape(t2, new Rect(t2.X, t2.Y, t2.W * 2, t2.H)));
+            Check(Math.Abs(t2.Table.Cols[0] - 2 * c0) < 0.01, "redimensionner : colonnes a l'echelle");
+            Check(Core.Model.PubFormat.Required(session.Doc) == "openpub/2", "document avec tableau : format openpub/2");
+            session.Select(null, tp);
+            Exporter.ExportPng(session, outDir, 110);
+            Capture(w, Path.Combine(outDir, "selftest-11-tableaux.png"));
         }
 
         Console.WriteLine("Surete des documents : copie de secours, recuperation, fichier modifie ailleurs");

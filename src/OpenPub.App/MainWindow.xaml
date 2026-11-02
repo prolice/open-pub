@@ -47,6 +47,7 @@
                     <RadioButton x:Name="TabView" Style="{StaticResource RibbonTab}" Content="Affichage" Checked="Tab_Checked"/>
                     <RadioButton x:Name="TabShape" Style="{StaticResource RibbonTab}" Content="Format de la forme" Tag="#9935F4" Foreground="#7B2BC7" Visibility="Collapsed" Checked="Tab_Checked"/>
                     <RadioButton x:Name="TabPicture" Style="{StaticResource RibbonTab}" Content="Outils image" Tag="#06C7C0" Foreground="#05807C" Visibility="Collapsed" Checked="Tab_Checked"/>
+                    <RadioButton x:Name="TabTable" Style="{StaticResource RibbonTab}" Content="Outils de tableau" Tag="#087AFF" Foreground="#0661C9" Visibility="Collapsed" Checked="Tab_Checked"/>
                     <!-- acces rapide -->
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <TextBlock x:Name="DocTitle" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,12,0"/>
@@ -159,6 +160,9 @@
                                 </StackPanel>
                             </StackPanel>
                         </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Tableaux">
+                            <Button Style="{StaticResource RBig}" Tag="&#xF0E2;" Content="Tableau&#x0a;▾" Click="TableButton_Click" ToolTip="Insérer un tableau ou un calendrier"/>
+                        </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Illustrations">
                             <StackPanel Orientation="Horizontal">
                                 <Button Style="{StaticResource RBig}" Tag="&#xEB9F;" Content="Image" Click="AddImage_Click" ToolTip="Insérer une image depuis un fichier"/>
@@ -194,6 +198,30 @@
                                 <StackPanel VerticalAlignment="Center" Margin="4,0">
                                     <TextBlock Text="Épaisseur (pt)" FontSize="11" Foreground="{StaticResource Muted}"/>
                                     <ComboBox x:Name="PenWidthBox" Width="78" IsEditable="True" SelectionChanged="PenWidth_SelectionChanged" KeyDown="PenWidth_KeyDown"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                    </StackPanel>
+
+                    <!-- Outils de tableau (contextuel) -->
+                    <StackPanel x:Name="PanelTable" Orientation="Horizontal" Visibility="Collapsed">
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Lignes et colonnes">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xE710;" Content="Insérer /&#x0a;supprimer ▾" Click="TableRowsButton_Click" ToolTip="Lignes et colonnes autour de la cellule en cours"/>
+                                <Button Style="{StaticResource RBig}" Tag="&#xE8C6;" Content="Fusionner&#x0a;▾" Click="TableMergeButton_Click" ToolTip="Fusionner ou fractionner des cellules"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Mise en forme">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xE790;" Content="Styles&#x0a;▾" Click="TableStyleButton_Click" ToolTip="Styles de tableau prédéfinis"/>
+                                <StackPanel>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE80A;" Content="Bordures ▾" Click="TableBordersButton_Click"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE771;" Content="Remplissage" Click="TableFill_Click" ToolTip="Couleur de la cellule en cours (ou de toutes les cellules)"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <Button Style="{StaticResource RSmall}" Click="TableVAlign_Click" CommandParameter="top" ToolTip="Texte en haut des cellules"><TextBlock Text="⤒ Haut" FontSize="12"/></Button>
+                                    <Button Style="{StaticResource RSmall}" Click="TableVAlign_Click" CommandParameter="middle" ToolTip="Texte au milieu des cellules"><TextBlock Text="↕ Milieu" FontSize="12"/></Button>
+                                    <Button Style="{StaticResource RSmall}" Click="TableVAlign_Click" CommandParameter="bottom" ToolTip="Texte en bas des cellules"><TextBlock Text="⤓ Bas" FontSize="12"/></Button>
                                 </StackPanel>
                             </StackPanel>
                         </HeaderedContentControl>

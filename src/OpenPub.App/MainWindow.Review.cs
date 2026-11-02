@@ -15,15 +15,34 @@ namespace OpenPub.App;
 public partial class MainWindow
 {
     /// <summary>Histoires du document dans l'ordre de lecture (pages, puis ordre d'empilement).</summary>
-    List<(Page Page, Shape Head)> Stories() =>
-        _session is null ? new() :
-        _session.Doc.Pages.SelectMany(p => p.Shapes.Where(s => s.IsStoryHead && s.Paragraphs is { Count: > 0 }).Select(s => (p, s))).ToList();
+    List<(Page Page, Shape Head)> Stories()
+    {
+        var res = new List<(Page, Shape)>();
+        if (_session is null) return res;
+        foreach (var p in _session.Doc.Pages)
+        {
+            _session.Layout(p);              // zones fantomes des cellules a jour
+            foreach (var s in p.Shapes)
+            {
+                if (s.IsStoryHead && s.Paragraphs is { Count: > 0 }) res.Add((p, s));
+                // cellules des tableaux, dans l'ordre de lecture
+                if (s.IsTable)
+                    foreach (var cell in s.Table!.Cells.SelectMany(r => r).Where(c => !c.Hidden && c.Paragraphs is { Count: > 0 }))
+                        res.Add((p, Layout.PageLayouter.CellFrame(cell)));
+            }
+        }
+        return res;
+    }
 
     /// <summary>Affiche une plage de texte : ecriture dans la zone, selection, defilement jusqu'a elle.</summary>
     void ShowRange(Page page, Shape head, TextPos a, TextPos b)
     {
         if (_session is null) return;
-        if (_session.TextEdit is not { } cur || cur.Head != head) _session.BeginTextEdit(page, head);
+        if (_session.TextEdit is not { } cur || cur.Head != head)
+        {
+            if (Layout.PageLayouter.CellOf(head) is { } cell) _session.BeginCellEdit(page, cell.Table, cell.Row, cell.Col);
+            else _session.BeginTextEdit(page, head);
+        }
         _session.TextEdit?.Select(a, b);
         _views.FirstOrDefault(v => v.Page == page)?.RevealCaret();
     }

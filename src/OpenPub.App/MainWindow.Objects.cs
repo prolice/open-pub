@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -261,8 +261,16 @@ public partial class MainWindow
         var text = string.Join("\r\n\r\n", sel.Where(s => s.IsText && s.IsStoryHead && s.Paragraphs is not null)
             .Select(s => string.Join("\r\n", s.Paragraphs!.Select(p => p.PlainText))));
         if (text.Length > 0) data.SetText(text);
-        try { Clipboard.SetDataObject(data, copy: true, retryTimes: 10, retryDelay: 50); }
-        catch (Exception ex) { StatusText.Text = "Presse-papiers indisponible : " + ex.Message; return; }
+        // le presse-papiers peut etre momentanement occupe par une autre application : quelques essais
+        for (int attempt = 0; ; attempt++)
+        {
+            try { Clipboard.SetDataObject(data, copy: true); break; }
+            catch (System.Runtime.InteropServices.ExternalException ex)
+            {
+                if (attempt >= 9) { StatusText.Text = "Presse-papiers indisponible : " + ex.Message; return; }
+                System.Threading.Thread.Sleep(50);
+            }
+        }
         if (cut) Delete_Executed(this, null!);
         StatusText.Text = $"{sel.Count} objet(s) {(cut ? "coupé(s)" : "copié(s)")}.";
     }
@@ -292,7 +300,7 @@ public partial class MainWindow
                 InsertImage(page, _session.Package.AddAsset(ms.ToArray(), "image-collee.png"));
                 return;
             }
-            if (Clipboard.ContainsText() && Clipboard.GetText() is { Length: > 0 } text) PasteText(page, text);
+            if (Clipboard.ContainsText() && Clipboard.GetText() is { Length: > 0 } text && !PasteAsTable(page, text)) PasteText(page, text);
         }
         catch (System.Runtime.InteropServices.ExternalException ex)
         {

@@ -50,10 +50,48 @@ public static class PageRenderer
             {
                 case ShapeKind.Image: DrawImage(dc, s, session); break;
                 case ShapeKind.Text: DrawText(dc, s, layout, session, pixelsPerDip, editorMarks, page); break;
+                case ShapeKind.Table when s.Table is not null: DrawTable(dc, s, layout, session, pixelsPerDip, editorMarks, page); break;
                 default: DrawShape(dc, s); break;
             }
             if (rotated) dc.Pop();
         }
+    }
+
+    /// <summary>Tableau : fond des cellules, texte (zones fantomes de la mise en page), bordures.</summary>
+    static void DrawTable(DrawingContext dc, Shape s, PageLayoutResult layout, EditorSession session, double ppd, bool marks, Page page)
+    {
+        var t = s.Table!;
+        var hs = Core.Editing.TableOps.RowHeights(t);
+        DrawShadow(dc, s, new RectangleGeometry(new Rect(s.X, s.Y, s.W, s.H)));
+        for (int r = 0; r < t.RowCount; r++)
+            for (int c = 0; c < t.ColCount; c++)
+            {
+                var cell = t.Cells[r][c];
+                if (cell.Hidden) continue;
+                var (x, y, w, h) = Core.Editing.TableOps.CellRect(s, r, c, hs);
+                if (cell.Fill?.Color is { } fc) dc.DrawRectangle(Brush(fc, cell.Fill.Opacity ?? 1), null, new Rect(x, y, w, h));
+                var frame = Layout.PageLayouter.CellFrame(cell);
+                if (layout.Frames.ContainsKey(frame)) DrawText(dc, frame, layout, session, ppd, false, page);
+            }
+        // reperes des cellules sans bordure (a l'ecran)
+        var guide = marks ? new Pen(Brush("#7fa7e0", 0.6), 0.4) { DashStyle = DashStyles.Dot } : null;
+        for (int r = 0; r < t.RowCount; r++)
+            for (int c = 0; c < t.ColCount; c++)
+            {
+                var cell = t.Cells[r][c];
+                if (cell.Hidden) continue;
+                var (x, y, w, h) = Core.Editing.TableOps.CellRect(s, r, c, hs);
+                void Edge(LineStyle? own, Point a, Point b)
+                {
+                    var st = own ?? t.Border;
+                    if (st is { Weight: > 0 } && PenOf(st) is { } pen) dc.DrawLine(pen, a, b);
+                    else if (guide is not null) dc.DrawLine(guide, a, b);
+                }
+                Edge(cell.Top, new Point(x, y), new Point(x + w, y));
+                Edge(cell.Bottom, new Point(x, y + h), new Point(x + w, y + h));
+                Edge(cell.Left, new Point(x, y), new Point(x, y + h));
+                Edge(cell.Right, new Point(x + w, y), new Point(x + w, y + h));
+            }
     }
 
     static Pen? PenOf(LineStyle? l)

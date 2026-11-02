@@ -37,7 +37,84 @@ public sealed class PageLayouter
                 else map[fl.Shape] = fl;
             }
         }
+        foreach (var table in page.Shapes.Where(s => s.IsTable)) LayoutTable(table, map, fields);
         return map;
+    }
+
+    // ------------------------------------------------------------------ tableaux
+
+    /// <summary>Cellule representee par une zone de texte « fantome » (hors de la page) : tableau, ligne, colonne.</summary>
+    public sealed record CellInfo(Shape Table, TableCell Cell, int Row, int Col);
+
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TableCell, Shape> Proxies = new();
+    static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Shape, CellInfo> ProxyInfo = new();
+
+    /// <summary>Zone de texte qui porte le texte d'une cellule (la meme a chaque mise en page : l'editeur peut la garder).</summary>
+    public static Shape CellFrame(TableCell cell) =>
+        Proxies.GetValue(cell, c => new Shape { Kind = ShapeKind.Text, Paragraphs = c.Paragraphs ??= new List<Paragraph>(), AutoFit = "none" });
+
+    /// <summary>Cellule d'une zone fantome (null pour une zone de texte ordinaire).</summary>
+    public static CellInfo? CellOf(Shape frame) => ProxyInfo.TryGetValue(frame, out var i) ? i : null;
+
+    /// <summary>Marges interieures des cellules (points).</summary>
+    public const double CellPadding = 3.5;
+
+    /// <summary>
+    /// Met en page le texte des cellules ; chaque ligne s'agrandit pour contenir le plus haut de ses textes
+    /// (hauteurs reelles dans <see cref="TableData.ActualRows"/>, hauteur de l'objet mise a jour).
+    /// </summary>
+    void LayoutTable(Shape table, Dictionary<Shape, FrameLayout> map, Func<string, string?>? fields)
+    {
+        var t = table.Table!;
+        if (t.RowCount == 0 || t.ColCount == 0) return;
+        while (t.Rows.Count < t.RowCount) t.Rows.Add(20);
+        var heights = t.Rows.Take(t.RowCount).ToArray();
+        double Needed(TableCell cell, double w)
+        {
+            var frame = Prepare(table, cell, -1, -1, 0, 0, w, 100000);
+            var lay = _engine.Layout(new[] { Geometry(frame, new List<Shape>()) }, frame.Paragraphs!, false, fields);
+            var lines = lay.Frames[0].Lines;
+            return lines.Count == 0 ? 0 : lines.Max(l => l.Top + l.Height) - frame.Y - frame.PadTop + 2 * CellPadding + 0.5;
+        }
+        // 1re passe : hauteur de texte des cellules d'une seule ligne, puis des cellules fusionnees verticalement
+        for (int pass = 0; pass < 2; pass++)
+            for (int r = 0; r < t.RowCount; r++)
+                for (int c = 0; c < t.ColCount; c++)
+                {
+                    var cell = t.Cells[r][c];
+                    if (cell.Hidden || (pass == 0) != (cell.RowSpan <= 1)) continue;
+                    double w = t.Cols.Skip(c).Take(Math.Max(1, cell.ColSpan)).Sum();
+                    double need = Needed(cell, w);
+                    int span = Math.Min(Math.Max(1, cell.RowSpan), t.RowCount - r);
+                    double have = heights.Skip(r).Take(span).Sum();
+                    if (need > have + 0.01) heights[r + span - 1] += need - have;
+                }
+        t.ActualRows = heights;
+        table.W = t.Cols.Sum();
+        table.H = heights.Sum();
+        // 2e passe : texte place dans les cellules definitives
+        for (int r = 0; r < t.RowCount; r++)
+            for (int c = 0; c < t.ColCount; c++)
+            {
+                var cell = t.Cells[r][c];
+                if (cell.Hidden) continue;
+                var (x, y, w, h) = OpenPub.Core.Editing.TableOps.CellRect(table, r, c, heights);
+                var frame = Prepare(table, cell, r, c, x, y, w, h);
+                var lay = _engine.Layout(new[] { Geometry(frame, new List<Shape>()) }, frame.Paragraphs!, false, fields);
+                map[frame] = lay.Frames[0];
+            }
+    }
+
+    static Shape Prepare(Shape table, TableCell cell, int r, int c, double x, double y, double w, double h)
+    {
+        var f = CellFrame(cell);
+        f.Paragraphs = cell.Paragraphs ??= new List<Paragraph>();
+        if (f.Paragraphs.Count == 0) f.Paragraphs.Add(new Paragraph { Runs = { new Run { Text = "", Font = new FontSpec { Family = "Arial", Size = 10 } } } });
+        f.X = x; f.Y = y; f.W = w; f.H = h; f.Z = table.Z;
+        f.Padding = new[] { CellPadding, CellPadding, CellPadding, CellPadding };
+        f.VAlign = cell.VAlign;
+        if (r >= 0) ProxyInfo.AddOrUpdate(f, new CellInfo(table, cell, r, c));
+        return f;
     }
 
     /// <summary>Geometrie de chaque colonne de la zone (une seule si la zone n'a pas de colonnes).</summary>
@@ -61,6 +138,7 @@ public sealed class PageLayouter
             s.Wrap is "square" or "tight" or "topbottom" && !s.Background
             || s.Wrap is null && (
                 (s.IsImage && !s.Background)
+                || s.IsTable
                 // une zone de texte ne fait obstacle que si elle est groupee avec une image (legende)
                 || (s.IsText && s.Group is not null && imageGroups.Contains(s.Group))
                 || ((s.Kind is ShapeKind.Rect or ShapeKind.Path or ShapeKind.Ellipse) && s.Fill?.Color is not null && s.W < page.Width * 0.9)))
