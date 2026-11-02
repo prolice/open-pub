@@ -81,6 +81,14 @@ public sealed class OpubPackage : IDisposable
         return new OpubPackage(doc, work, null);
     }
 
+    /// <summary>Nouveau document (pas encore enregistre) a partir d'un modele construit en code.</summary>
+    public static OpubPackage CreateFromDocument(PubDocument doc)
+    {
+        var work = NewWorkDir();
+        DocumentJson.Save(doc, Path.Combine(work, DocumentEntry));
+        return new OpubPackage(doc, work, null);
+    }
+
     public string ResolveAsset(string relative) => Path.Combine(WorkDir, relative.Replace('/', Path.DirectorySeparatorChar));
 
     public string FontsDir => Path.Combine(WorkDir, "fonts");

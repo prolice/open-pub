@@ -29,7 +29,8 @@ public partial class MainWindow
             Item(menu, $"Tableau de {rows} lignes × {cols} colonnes", () => InsertTable(rows, cols));
         }
         menu.Items.Add(new Separator());
-        Item(menu, "Calendrier du mois…", () => InsertCalendar());
+        Item(menu, "Calendrier de ce mois", () => InsertCalendar(0));
+        Item(menu, "Calendrier du mois prochain", () => InsertCalendar(1));
         Item(menu, "Tableau personnalisé…", () => CustomTable());
         menu.IsOpen = true;
     }
@@ -73,13 +74,12 @@ public partial class MainWindow
     }
 
     /// <summary>Calendrier du mois (tableau 7 colonnes, en-tete des jours, cases numerotees).</summary>
-    void InsertCalendar()
+    void InsertCalendar(int monthOffset)
     {
         if (_session is null || ActivePage() is not { } page) return;
-        var today = DateTime.Today;
-        var first = new DateTime(today.Year, today.Month, 1);
+        var first = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(monthOffset);
         int offset = ((int)first.DayOfWeek + 6) % 7;            // lundi = 0
-        int days = DateTime.DaysInMonth(today.Year, today.Month);
+        int days = DateTime.DaysInMonth(first.Year, first.Month);
         int weeks = (offset + days + 6) / 7;
         var fr = CultureInfo.GetCultureInfo("fr-FR");
         var m = Snapper.Margins(_session.Doc);

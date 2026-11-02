@@ -312,17 +312,6 @@ public partial class MainWindow
         doc.PageWidth = w; doc.PageHeight = h;
     }
 
-    void NewDocument_Click()
-    {
-        if (!ConfirmDiscard()) return;
-        var dlg = new PageSetupWindow(true, 595.276, 841.89, null) { Owner = this };
-        if (dlg.ShowDialog() != true) return;
-        var pkg = OpubPackage.CreateBlank(dlg.PageWidth, dlg.PageHeight, dlg.PageCount, dlg.Margins);
-        if (dlg.GridColumns > 1 || dlg.GridRows > 1) pkg.Document.Grid = new LayoutGrid { Columns = dlg.GridColumns, Rows = dlg.GridRows, Gutter = dlg.GridGutter };
-        LoadPackage(pkg);
-        StatusText.Text = "Nouveau document : tracez une zone de texte (Insertion) ou insérez une image pour commencer.";
-    }
-
     // ---------------------------------------------------------------- affichage
 
     void SpreadToggle_Click(object sender, RoutedEventArgs e) => SpreadView = SpreadToggle.IsChecked == true;

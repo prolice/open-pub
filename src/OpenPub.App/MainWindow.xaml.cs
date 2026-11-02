@@ -534,6 +534,7 @@ public partial class MainWindow : Window
         AddRecent(menu);
         Add("Enregistrer", "Ctrl+S", () => SaveDocument(false), has, glyph: "\uE74E");
         Add("Enregistrer sous…", "Ctrl+Maj+S", () => SaveDocument(true), has, glyph: "\uE792");
+        Add("Enregistrer comme modèle…", "", SaveAsTemplate_Click, has, glyph: "\uE8F4");
         menu.Items.Add(new Separator());
         Add("Imprimer / créer un PDF…", "Ctrl+P", () => ApplicationCommands.Print.Execute(null, this), has, glyph: "\uE749");
         Add("Exporter les pages en PNG…", "", () => ExportPng_Click(this, new RoutedEventArgs()), has, glyph: "\uEB9F");

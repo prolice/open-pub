@@ -827,6 +827,32 @@ public static class SelfTest
             Check(session.Doc.Theme is null || session.Doc.Theme.Name != "Forêt" || session.Doc.Theme.HeadingFont is null, "annuler les jeux");
         }
 
+        Console.WriteLine("Modeles et blocs");
+        {
+            var mw = typeof(MainWindow);
+            session.EndTextEdit();
+            var bp = session.Doc.Pages[^1];
+            session.Select(null, bp);
+            int n0 = bp.Shapes.Count;
+            mw.GetMethod("InsertBlock", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { Core.Editing.Templates.BlockClip("bandeau"), "Bandeau" });
+            bp = session.Doc.Pages[^1];
+            var added = bp.Shapes.Skip(n0).ToList();
+            var bb = Core.Editing.ShapeOps.Bounds(added);
+            Check(added.Count == 2 && added.All(x => x.Group is not null && x.Group == added[0].Group), "bloc « Bandeau » insere (groupe)");
+            Check(Math.Abs(bb.X + bb.W / 2 - bp.Width / 2) < 0.5 && Math.Abs(bb.Y + bb.H / 2 - bp.Height / 2) < 0.5, "bloc centre sur la page");
+            foreach (var (id, name, _, build) in Core.Editing.Templates.BuiltIn)
+            {
+                var tdoc = build();
+                using var pkg = Core.Io.OpubPackage.CreateFromDocument(tdoc);
+                var s2 = new EditorSession(pkg);
+                foreach (var pg in tdoc.Pages) s2.Layout(pg);
+                var tmpPng = Path.Combine(outDir, $"modele-{id}");
+                Directory.CreateDirectory(tmpPng);
+                var files = Exporter.ExportPng(s2, tmpPng, 60);
+                Check(files.Count == tdoc.Pages.Count, $"modele « {name} » : rendu des {tdoc.Pages.Count} page(s)");
+            }
+        }
+
         Console.WriteLine("Surete des documents : copie de secours, recuperation, fichier modifie ailleurs");
         {
             w.SkipConfirm = true;

@@ -167,7 +167,10 @@
                             </StackPanel>
                         </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Tableaux">
-                            <Button Style="{StaticResource RBig}" Tag="&#xF0E2;" Content="Tableau&#x0a;▾" Click="TableButton_Click" ToolTip="Insérer un tableau ou un calendrier"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xF0E2;" Content="Tableau&#x0a;▾" Click="TableButton_Click" ToolTip="Insérer un tableau ou un calendrier"/>
+                                <Button Style="{StaticResource RBig}" Tag="&#xE8F1;" Content="Blocs&#x0a;▾" Click="BlocksButton_Click" ToolTip="Blocs de construction : encadré, bandeau, coupon… et vos propres blocs"/>
+                            </StackPanel>
                         </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Illustrations">
                             <StackPanel Orientation="Horizontal">
