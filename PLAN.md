@@ -307,4 +307,180 @@ Vérifications : 29 tests unitaires et un test de bout en bout de l'interface (`
 3. ✅ ~~Archive .pub~~ : un seul fichier, déjà converti.
 4. ✅ Solution .NET et éditeur WPF (phases 1–2).
 5. ✅ Pages, édition sur la page, repères et magnétisme, installeur.
-6. Suite possible : export PDF direct (sans passer par l'imprimante), lier ou délier des zones de texte à la main, texte incliné, pages maîtres, correcteur orthographique sur la page, mises à jour automatiques.
+6. ✅ Mises à jour automatiques, texte incliné, aide en ligne, pipelines de publication.
+7. Suite : **plan d'alignement sur Publisher**, section 8.
+
+---
+
+## 8. Plan d'alignement sur Publisher (hors format .pub)
+
+Établi le 2026-11-02 à partir de l'inventaire des fonctions de Publisher (Microsoft 365) comparé au code d'OpenPub 1.5.2. **Le format `.pub` est exclu** : ni lecture intégrée, ni écriture.
+
+### 8.1 Principes
+
+- **Ordre** : d'abord ce qui sert chaque mois pour la newsletter (objets, paragraphes, zones liées, orthographe), ensuite la structure du document (pages maîtres, tableaux), enfin les sorties professionnelles et les fonctions rares.
+- **Une version par lot**, publiée par la pipeline habituelle (étiquette `vX.Y.Z`) ; chaque lot reste utilisable seul.
+- **Chaque lot comprend** : tests unitaires (moteur, noyau), vérifications ajoutées à `--selftest`, sections d'aide dans `tools/build-docs.py` (avec constantes `HelpService` et captures du document de démonstration), section de ce journal.
+- **Format `.opub`** : les ajouts restent facultatifs dans `document.json` (un ancien fichier s'ouvre toujours). Dès qu'un lot ajoute une donnée qu'une version plus ancienne perdrait à l'enregistrement (pages maîtres, tableaux, styles), on passe à `"format": "openpub/2"` et l'application refuse d'**enregistrer** un fichier d'un format plus récent que le sien, en invitant à mettre à jour.
+- **Estimations** en jours de développement pour une personne, tests et aide compris.
+
+### 8.2 Lot 0 — Préalables techniques (avec la 1.6)
+
+| Tâche | Détail | Jours |
+|---|---|---|
+| Découper `MainWindow.xaml.cs` (1 300 lignes) | Classes partielles par onglet du ruban (`MainWindow.Home.cs`, `.Insert.cs`, `.Draw.cs`, `.Shape.cs`, `.Picture.cs`, `.File.cs`) | 1 |
+| Sélection multiple dans le modèle d'édition | `EditorSession.Selection` (liste) à la place de `Selected` ; `Selected` reste comme raccourci du premier objet ; propriétés affichées « mixtes » | 2 |
+| Commandes du ruban | Passer les boutons à des `RoutedCommand` avec `CanExecute`, pour activer/désactiver proprement selon la sélection | 1 |
+| Coût de l'annulation | Mesurer la photo complète du document par action (`UndoStack`, limite 200) sur un document de 12 pages ; compresser ou ne garder que les pages modifiées si nécessaire | 1 |
+
+### 8.3 Lot 1 — Objets (version 1.6)
+
+| Fonction Publisher | Mise en œuvre | Jours |
+|---|---|---|
+| Sélection multiple | Ctrl/Maj + clic, rectangle de sélection sur la page vide, Ctrl+A hors édition de texte ; déplacement, flèches, suppression et rotation de l'ensemble | 3 |
+| Copier / couper / coller des objets | Presse-papiers Windows au format privé `OpenPub.Shapes` (JSON des formes + images en base64) ; collage sur la page active, décalé si même page ; entre deux documents OpenPub ; collage d'une **image** ou d'un **texte** copié depuis une autre application | 3 |
+| Grouper / dissocier | Champ `Group` déjà présent : poignées et rotation sur le cadre du groupe, double-clic pour entrer dans le groupe, Ctrl+Maj+G | 3 |
+| Aligner et répartir | Gauche/centre/droite/haut/milieu/bas, répartir horizontalement/verticalement, par rapport à la sélection ou à la page | 1,5 |
+| Ordre d'empilement fin | « Avancer d'un plan » / « Reculer d'un plan » en plus de premier plan / arrière-plan | 0,5 |
+| Verrouiller la position | Option par objet (pratique pour les bandeaux), conservée dans le fichier | 0,5 |
+
+### 8.4 Lot 2 — Paragraphes et caractères (version 1.7)
+
+| Fonction Publisher | Mise en œuvre | Jours |
+|---|---|---|
+| Interligne, espacement avant/après | Données déjà lues par le moteur (`LineHeight`, `SpaceBefore/After`) : groupe « Paragraphe » du ruban (liste 1 / 1,15 / 1,5 / 2 + valeur libre) et boîte « Paragraphe… » | 2 |
+| Retraits (gauche, droite, première ligne) | Mêmes données (`IndentLeft/Right`, `FirstIndent`) ; boutons Augmenter/Diminuer le retrait ; boîte « Paragraphe… » | 1,5 |
+| Puces et numérotation | Modèle : `Paragraph.List` (type, symbole, niveau) ; moteur : marqueur dessiné dans le retrait négatif, numéros recalculés le long de l'histoire ; Tab / Maj+Tab change le niveau | 4 |
+| Tabulations | Taquets par paragraphe (gauche, centre, droite, décimal, points de suite) dans `TextLayoutEngine` ; aujourd'hui le caractère Tab est saisi mais non aligné | 3 |
+| Barré, exposant, indice, petites majuscules, tout en majuscules | Nouveaux champs de `Font` ; rendu et mesure (exposant/indice : taille 58 %, décalage de ligne de base) | 2 |
+| Surlignage du texte | Couleur de fond par segment, dessinée sous la ligne | 1 |
+| Interlettrage et crénage | `Font.Tracking` (espacement en 1/1000 em) ; crénage via les tables de la police (`GlyphTypeface`) | 2 |
+| Lettrine | Paragraphe avec `DropCap` (lignes, police) : obstacle rectangulaire en début de paragraphe dans le moteur | 2 |
+| Reproduire la mise en forme | Pinceau : copie la police et le paragraphe de la sélection, applique au clic suivant | 1 |
+
+### 8.5 Lot 3 — Zones de texte (version 1.8)
+
+| Fonction Publisher | Mise en œuvre | Jours |
+|---|---|---|
+| Lier / délier des zones | Bouton « Créer un lien » puis clic sur une zone vide (curseur cruche, comme Publisher) ; « Rompre le lien » ; flèches « zone suivante / précédente » sur les zones liées ; le texte reste à la tête de chaîne (`Chain`, `ChainIndex`) | 4 |
+| Indicateur de débordement | Pastille « A… » sur la dernière zone quand le texte ne tient pas et que la réduction est désactivée ; clic pour lier une nouvelle zone | 1 |
+| Ajustement automatique réglable | Par zone : « Ne pas ajuster » / « Réduire le texte en cas de débordement » (actuel, par défaut) / « Ajuster la zone au texte » | 2 |
+| Colonnes dans une zone | `Columns` et `ColumnGap` existent dans le modèle mais sont ignorés : le moteur découpe la zone en sous-zones virtuelles enchaînées (il sait déjà faire couler le texte de zone en zone) | 2,5 |
+| Marges intérieures, alignement vertical | `Padding` et `VAlign` existent : à exposer dans « Format de la zone de texte » | 1 |
+| Habillage réglable | Par obstacle : aucun / carré / serré / haut et bas, distances réglables ; « serré » suit le contour de la forme (géométrie) ou de l'image (pixels non transparents), calculé ligne par ligne dans `PageLayouter` | 4 |
+
+### 8.6 Lot 4 — Outils d'écriture (version 1.9)
+
+| Fonction Publisher | Mise en œuvre | Jours |
+|---|---|---|
+| Correcteur orthographique | API de Windows (`ISpellChecker`, français fourni par Windows, aucun dictionnaire à embarquer) ; vérification en arrière-plan par paragraphe ; soulignement ondulé rouge dans `PageRenderer` ; clic droit : suggestions, Ignorer, Ajouter au dictionnaire ; langue par segment (`Font.Lang` existe) | 5 |
+| Vérification de tout le document | Fenêtre « Orthographe » qui parcourt toutes les histoires (F7) | 1,5 |
+| Rechercher / remplacer | Ctrl+F / Ctrl+H : recherche dans toutes les histoires, respect de la casse, mot entier ; sélection du résultat sur la page ; remplacement annulable en une étape | 3 |
+| Symboles et caractères spéciaux | Insertion : espace insécable, tirets, guillemets « », symboles récents ; remplacement automatique à la frappe (guillemets français, espace insécable avant ; : ! ?) | 2 |
+| Date et heure, numéro de page | Champs dynamiques dans le texte (le numéro de page dépend du lot 6) | 1 |
+| Statistiques | Mots, caractères, paragraphes de la zone ou du document | 0,5 |
+
+### 8.7 Lot 5 — Sûreté des données (version 1.10)
+
+| Fonction Publisher | Mise en œuvre | Jours |
+|---|---|---|
+| Enregistrement automatique | Toutes les 5 minutes, si modifié : copie de secours dans `%LOCALAPPDATA%\OpenPub\Recovery` (jamais à la place du fichier de l'utilisateur) | 1,5 |
+| Récupération après plantage | Au démarrage, proposition de rouvrir la copie de secours plus récente que le fichier ; suppression à la fermeture normale | 1 |
+| Enregistrement sûr | Écriture dans un fichier temporaire puis remplacement atomique ; conservation de la version précédente en `.bak` | 1 |
+| Fichier modifié ailleurs | Avertissement si le `.opub` a changé sur le disque depuis l'ouverture (OneDrive, autre PC) | 0,5 |
+
+### 8.8 Lot 6 — Document et pages (version 2.0, format `openpub/2`)
+
+| Fonction Publisher | Mise en œuvre | Jours |
+|---|---|---|
+| Fichier ▸ Nouveau | Document vierge (A4, A5, Lettre, personnalisé ; portrait/paysage) | 1 |
+| Taille, orientation et marges de page | Onglet « Création de page » : modifier la taille (avec option de mise à l'échelle des objets), l'orientation, les marges | 2 |
+| Pages maîtres | Modèle : `PubDocument.Masters` (pages d'objets communs), `Page.Master` ; rendu sous la page, objets non sélectionnables sur les pages normales ; édition des pages maîtres dans un mode dédié ; maître différent pour pages paires/impaires ; « ignorer le maître » sur une page | 6 |
+| Numéros de page, en-têtes et pieds de page | Champ « numéro de page » (et nombre de pages), généralement posé sur la page maître | 1,5 |
+| Arrière-plan de page | Couleur, dégradé ou image par page ou par maître (`Background` existe pour les images importées) | 1,5 |
+| Vue en double page | Pages paires et impaires côte à côte, comme une planche imprimée | 2 |
+| Règles et repères de règle | Règles graduées (cm) en haut et à gauche ; repères tirés depuis les règles ; magnétisme sur ces repères (`Snapper`) | 3 |
+| Guides de disposition | Grille de colonnes et de lignes de la page, lignes de base | 2 |
+| Sections et numérotation personnalisée | Début de numérotation, format (1, i, A) | 1 |
+
+### 8.9 Lot 7 — Tableaux (version 2.1)
+
+| Fonction Publisher | Mise en œuvre | Jours |
+|---|---|---|
+| Insérer un tableau | Nouveau type `ShapeKind.Table` : lignes, colonnes (largeurs/hauteurs), cellules avec `Paragraphs` ; chaque cellule mise en page par `TextLayoutEngine` (une zone par cellule) | 5 |
+| Édition | Écriture dans les cellules (Tab : cellule suivante), sélection de cellules, insertion/suppression de lignes et colonnes, redimensionnement à la souris | 5 |
+| Mise en forme | Bordures par côté, remplissage des cellules, fusion/fractionnement, alignement vertical, styles de tableau prédéfinis | 3 |
+| Coller un tableau | Depuis Excel/Word (format HTML ou texte tabulé du presse-papiers) | 1,5 |
+
+### 8.10 Lot 8 — Styles et thèmes (version 2.2)
+
+| Fonction Publisher | Mise en œuvre | Jours |
+|---|---|---|
+| Styles de paragraphe et de caractère | `PubDocument.Styles` ; `Paragraph.Style` + mises en forme locales par-dessus ; galerie dans l'onglet Accueil ; « Nouveau style à partir de la sélection » ; modifier un style met à jour tout le document | 5 |
+| Jeu de couleurs du document | Palette nommée (principale, accent 1 à 4…) ; les objets peuvent y faire référence ; changer le jeu recolore le document ; visible dans le sélecteur de couleur | 3 |
+| Jeu de polices | Police des titres et police du corps, utilisées par les styles | 1,5 |
+
+### 8.11 Lot 9 — Formes, effets et texte décoratif (version 2.3)
+
+| Fonction Publisher | Mise en œuvre | Jours |
+|---|---|---|
+| Bibliothèque de formes étendue | De 11 à environ 50 formes : bulles et légendes à pointe déplaçable, bannières, rubans, flèches (double, courbe, bloc), étoiles (5 à 32 branches), parallélogramme, trapèze, octogone, nuage, éclair, soleil, lune, croix, cadre ; poignées jaunes de réglage (comme Office) | 5 |
+| Remplissages | Dégradé (linéaire/radial, éditeur d'arrêts), motif, texture ou image en remplissage ; transparence du remplissage et du contour | 3 |
+| Modifier les points | Édition des sommets et des courbes de Bézier d'un tracé (`Path`) : déplacer, ajouter, supprimer, lisser/angle | 4 |
+| Effets d'images et de formes | Lueur, bords adoucis, ombre intérieure | 2 |
+| WordArt | Texte décoratif : remplissage, contour, ombre ; déformations en arc, vague, cercle (glyphes placés le long d'un tracé) | 5 |
+| Bordures décoratives (BorderArt) | Motifs répétés le long du cadre d'une forme ; petite bibliothèque libre de droits | 2 |
+| Espaces réservés et permutation d'images | Cadre « image » vide avec bouton d'insertion ; échanger deux images en gardant les cadres | 1,5 |
+| Légende d'image | Groupe image + zone de texte prépositionnée | 0,5 |
+| Compression des images | Réduire la résolution des images au besoin d'impression (300 ppp) pour alléger le `.opub` | 1 |
+
+### 8.12 Lot 10 — Sorties professionnelles (version 2.4)
+
+| Fonction Publisher | Mise en œuvre | Jours |
+|---|---|---|
+| Abstraction du rendu | `PageRenderer` dessine aujourd'hui dans un `DrawingContext` WPF ; interface de dessin commune (WPF / PDF) pour garantir un PDF identique à l'écran | 4 |
+| Export PDF direct | Bibliothèque **PDFsharp 6** (licence MIT) : texte vectoriel avec polices incorporées en sous-ensemble, images d'origine, transparences, ombres en image ; Fichier ▸ Exporter en PDF | 6 |
+| PDF pour imprimeur | PDF/X-4, fond perdu (3 mm), traits de coupe ; conversion CMJN des couleurs simple (profil ISO Coated v2 / FOGRA39) | 4 |
+| Impression avancée | Choix des pages, nombre d'exemplaires, aperçu avant impression ; **livret** (imposition 2 pages par face, ordre de pliage) ; recto verso manuel guidé | 4 |
+| Export d'images | JPEG en plus du PNG, choix de la résolution, page active seulement | 1 |
+
+### 8.13 Lot 11 — Modèles et éléments réutilisables (version 2.5)
+
+| Fonction Publisher | Mise en œuvre | Jours |
+|---|---|---|
+| Modèles | « Enregistrer comme modèle » (`.opubt`) ; Fichier ▸ Nouveau propose les modèles de l'utilisateur et quelques modèles fournis (newsletter, affiche, carte, invitation) construits sur le document de démonstration | 3 |
+| Blocs de construction | Bibliothèque d'éléments enregistrés (encadré, bandeau, calendrier, coupon) à insérer en un clic ; repose sur le format de presse-papiers du lot 1 | 2 |
+| Calendriers | Générateur de calendrier mensuel (tableau du lot 7) | 1,5 |
+
+### 8.14 Lot 12 — Fonctions rares (à confirmer avant de les engager)
+
+| Fonction Publisher | Mise en œuvre | Jours |
+|---|---|---|
+| Publipostage | Source CSV ou Excel, champs dans le texte, génération d'un PDF ou d'une impression par ligne | 5 |
+| Liens hypertextes | Sur du texte ou un objet ; actifs dans le PDF exporté | 1,5 |
+| Envoi par e-mail / export HTML | Page exportée en image ou HTML pour un courriel | 2 |
+| Texte sur tracé libre | Variante du WordArt le long d'un tracé quelconque | 2 |
+| Accessibilité | Texte de remplacement des images, ordre de lecture dans le PDF balisé | 2 |
+
+### 8.15 Synthèse
+
+| Lot | Version | Contenu | Jours |
+|---|---|---|---|
+| 0 | 1.6 | Préalables techniques | 5 |
+| 1 | 1.6 | Objets : sélection multiple, copier/coller, grouper, aligner | 11,5 |
+| 2 | 1.7 | Paragraphes et caractères | 18,5 |
+| 3 | 1.8 | Zones de texte : liens, colonnes, habillage, ajustement | 14,5 |
+| 4 | 1.9 | Orthographe, rechercher/remplacer, symboles | 13 |
+| 5 | 1.10 | Enregistrement automatique, récupération | 4 |
+| 6 | 2.0 | Document et pages : nouveau, taille, pages maîtres, règles | 20 |
+| 7 | 2.1 | Tableaux | 14,5 |
+| 8 | 2.2 | Styles, jeux de couleurs et de polices | 9,5 |
+| 9 | 2.3 | Formes, effets, WordArt, BorderArt | 24 |
+| 10 | 2.4 | PDF direct, PDF imprimeur, livret | 19 |
+| 11 | 2.5 | Modèles, blocs de construction | 6,5 |
+| 12 | — | Fonctions rares (à confirmer) | 12,5 |
+| | | **Total** | **≈ 173 jours** (≈ 160 sans le lot 12) |
+
+**Jalons** : après les lots 0 à 5 (≈ 67 jours), OpenPub couvre tout l'usage mensuel de la newsletter sans manque gênant ; la version 2.0 apporte la structure de document de Publisher ; les lots 9 à 11 complètent la parité visuelle et les sorties d'imprimerie.
+
+**Risques** : habillage serré et WordArt (géométrie du texte), tableaux (nouveau type d'objet dans tout l'éditeur), PDF identique à l'écran (polices et effets) ; pour chacun, un prototype de 1 à 2 jours avant d'engager le lot.
