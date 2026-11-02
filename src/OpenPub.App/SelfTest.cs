@@ -575,6 +575,71 @@ public static class SelfTest
             Capture(w, Path.Combine(outDir, "selftest-8-zones.png"));
         }
 
+        Console.WriteLine("Revision : orthographe, rechercher, typographie");
+        {
+            var pg = session.Doc.Pages[^1];
+            var mw = typeof(MainWindow);
+            var views = (List<PageView>)mw.GetField("_views", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(w)!;
+            var view = views.First(v => v.Page == pg);
+            var t = new Shape
+            {
+                Kind = ShapeKind.Text, X = 380, Y = 300, W = 180, H = 120, Padding = new[] { 2.85, 2.85, 2.85, 2.85 },
+                Paragraphs = new List<Paragraph> { new() { Runs = { new Run { Text = "Une fote dans la phrase. Le chat dort.", Font = new FontSpec { Family = "Arial", Size = 11, Color = "#000000", Lang = "fr" } } } } },
+            };
+            session.Change(pg, () => pg.Shapes.Add(t));
+            var spell = EditorSession.SharedSpell.Value;
+            Check(spell is not null, "correcteur orthographique de Windows disponible");
+            if (spell is not null)
+            {
+                var errs = spell.Check(t.Paragraphs[0].PlainText, "fr");
+                Check(errs.Count == 1 && t.Paragraphs[0].PlainText.Substring(errs[0].Start, errs[0].Length) == "fote", "faute detectee : « fote »");
+                Check(spell.Suggest("fote", "fr").Contains("faute"), "suggestion « faute »");
+                session.Select(null, session.Doc.Pages[0]);
+                var found = mw.GetMethod("NextSpellingError", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, null);
+                Check(found is not null && session.TextEdit is { HasSelection: true }, "F7 : premiere faute du document selectionnee");
+                session.EndTextEdit();
+                session.BeginTextEdit(pg, t);
+                session.TextEdit!.Select(new TextPos(0, 4), new TextPos(0, 8));
+                mw.GetMethod("ReplaceSelection", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { "faute" });
+                Check(t.Paragraphs[0].PlainText.StartsWith("Une faute dans"), "correction appliquee");
+                Check(spell.Check(t.Paragraphs[0].PlainText, "fr").Count == 0, "plus de faute");
+                session.EndTextEdit();
+            }
+            // rechercher / remplacer
+            session.Select(null, pg);
+            bool ok = (bool)mw.GetMethod("FindNext", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { "chat dort", false, false })!;
+            Check(ok && session.TextEdit?.Head == t && StoryEditor.GetText(t.Paragraphs, session.TextEdit.SelStart, session.TextEdit.SelEnd) == "chat dort", "rechercher : texte trouve et selectionne");
+            int nrep = (int)mw.GetMethod("ReplaceAll", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { "chat", "chien", false, true })!;
+            Check(nrep >= 1 && t.Paragraphs[0].PlainText.Contains("Le chien dort"), $"remplacer tout ({nrep})");
+            session.Undo();
+            pg = session.Doc.Pages[^1];
+            var t2 = pg.Shapes.First(x => x.IsText && x.Paragraphs!.Any(p => p.PlainText.Contains("Le chat dort")));
+            Pump();
+            view = ((List<PageView>)mw.GetField("_views", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(w)!).First(v => v.Page == pg);
+            Check(t2 is not null, "annuler : remplacements annules en une fois");
+            // typographie francaise a la frappe
+            session.BeginTextEdit(pg, t2!);
+            var te = session.TextEdit!;
+            te.SetCaret(StoryEditor.End(te.Paras), false);
+            foreach (var ch in " \"Oui\" ? l'été") te.TypeInput(ch.ToString());
+            var tail = te.Paras[0].PlainText;
+            Check(tail.EndsWith(" «\u00A0Oui\u00A0»\u202F? l’été"), "guillemets francais, espace fine avant ?, apostrophe");
+            // symbole et menu contextuel
+            mw.GetMethod("SymbolButton_Click", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { view, new RoutedEventArgs() });
+            var menu = w.LastMenu!;
+            ((System.Windows.Controls.MenuItem)menu.Items[2]).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
+            menu.IsOpen = false;
+            Check(te.Paras[0].PlainText.EndsWith("—"), "inserer un symbole (tiret cadratin)");
+            mw.GetMethod("OnPageContextMenu", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { view, new Point(t2!.X + 20, t2.Y + 8) });
+            Check(w.LastMenu!.Items.Count >= 5, "menu contextuel pendant l'ecriture");
+            w.LastMenu.IsOpen = false;
+            session.EndTextEdit();
+            mw.GetMethod("OnPageContextMenu", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { view, new Point(t2.X + 20, t2.Y + 8) });
+            Check(session.Selected == t2 && w.LastMenu!.Items.Cast<object>().Any(i => i is System.Windows.Controls.MenuItem { Header: "Dupliquer" }), "menu contextuel d'un objet");
+            w.LastMenu.IsOpen = false;
+            Check(TextSearch.CountWords(t2.Paragraphs!) > 8, "statistiques : nombre de mots");
+        }
+
         Console.WriteLine("Aide contextuelle");
         var topic = (Func<string>)(() => w.CurrentHelpTopic());
         session.Select(pic, session.Doc.Pages[0]);

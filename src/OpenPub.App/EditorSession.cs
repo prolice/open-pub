@@ -42,6 +42,14 @@ public sealed class EditorSession : IDisposable
     public string PenColor { get; set; } = "#1f2a44";
     public double PenWidth { get; set; } = 2;
 
+    /// <summary>Correcteur orthographique de Windows (null s'il est indisponible) ; partage par les documents.</summary>
+    public static Lazy<SpellService?> SharedSpell { get; } = new(SpellService.TryCreate);
+    public SpellService? Spell => SpellCheck ? SharedSpell.Value : null;
+    /// <summary>Soulignement des fautes pendant la frappe.</summary>
+    public bool SpellCheck { get; set; } = true;
+    /// <summary>Correction typographique francaise a la frappe (guillemets, espaces insecables).</summary>
+    public bool AutoCorrect { get; set; } = true;
+
     /// <summary>Magnetisme (alignement automatique sur la page, les marges et les autres objets).</summary>
     public bool SnapEnabled { get; set; } = true;
     /// <summary>Afficher les reperes de marge et les contours des zones de texte.</summary>

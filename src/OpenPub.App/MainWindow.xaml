@@ -40,6 +40,7 @@
                     <RadioButton x:Name="TabHome" Style="{StaticResource RibbonTab}" Content="Accueil" IsChecked="True" Checked="Tab_Checked"/>
                     <RadioButton x:Name="TabInsert" Style="{StaticResource RibbonTab}" Content="Insertion" Checked="Tab_Checked"/>
                     <RadioButton x:Name="TabDraw" Style="{StaticResource RibbonTab}" Content="Dessin" Checked="Tab_Checked"/>
+                    <RadioButton x:Name="TabReview" Style="{StaticResource RibbonTab}" Content="Révision" Checked="Tab_Checked"/>
                     <RadioButton x:Name="TabView" Style="{StaticResource RibbonTab}" Content="Affichage" Checked="Tab_Checked"/>
                     <RadioButton x:Name="TabShape" Style="{StaticResource RibbonTab}" Content="Format de la forme" Tag="#9935F4" Foreground="#7B2BC7" Visibility="Collapsed" Checked="Tab_Checked"/>
                     <RadioButton x:Name="TabPicture" Style="{StaticResource RibbonTab}" Content="Outils image" Tag="#06C7C0" Foreground="#05807C" Visibility="Collapsed" Checked="Tab_Checked"/>
@@ -146,8 +147,14 @@
                             </StackPanel>
                         </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Texte">
-                            <ToggleButton x:Name="DrawTextTool" Style="{StaticResource RBig}" Tag="&#xE8D2;" Content="Zone de&#x0a;texte" Click="DrawTool_Click" CommandParameter="text"
-                                          ToolTip="Tracer une zone de texte sur la page"/>
+                            <StackPanel Orientation="Horizontal">
+                                <ToggleButton x:Name="DrawTextTool" Style="{StaticResource RBig}" Tag="&#xE8D2;" Content="Zone de&#x0a;texte" Click="DrawTool_Click" CommandParameter="text"
+                                              ToolTip="Tracer une zone de texte sur la page"/>
+                                <StackPanel>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE8D3;" Content="Symbole ▾" Click="SymbolButton_Click" ToolTip="Insérer un symbole ou un caractère spécial (pendant l'écriture)"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE787;" Content="Date ▾" Click="DateButton_Click" ToolTip="Insérer la date du jour (pendant l'écriture)"/>
+                                </StackPanel>
+                            </StackPanel>
                         </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Illustrations">
                             <StackPanel Orientation="Horizontal">
@@ -186,6 +193,30 @@
                                     <ComboBox x:Name="PenWidthBox" Width="78" IsEditable="True" SelectionChanged="PenWidth_SelectionChanged" KeyDown="PenWidth_KeyDown"/>
                                 </StackPanel>
                             </StackPanel>
+                        </HeaderedContentControl>
+                    </StackPanel>
+
+                    <!-- Revision -->
+                    <StackPanel x:Name="PanelReview" Orientation="Horizontal" Visibility="Collapsed">
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Vérification">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xF87B;" Content="Orthographe" Click="SpellingDialog_Click" ToolTip="Vérifier l'orthographe de tout le document (F7)"/>
+                                <StackPanel VerticalAlignment="Center">
+                                    <CheckBox x:Name="SpellToggle" Content="Souligner les fautes" IsChecked="True" Click="SpellToggle_Click" Margin="4,2"
+                                              ToolTip="Souligner en rouge les mots inconnus du dictionnaire pendant la frappe"/>
+                                    <CheckBox x:Name="AutoCorrectToggle" Content="Typographie française" IsChecked="True" Click="AutoCorrectToggle_Click" Margin="4,2"
+                                              ToolTip="Pendant la frappe : guillemets « », apostrophe ’, espace insécable avant : ; ! ?"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Rechercher">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xE721;" Content="Rechercher" Click="Find_Click" ToolTip="Rechercher dans tout le document (Ctrl+F)"/>
+                                <Button Style="{StaticResource RBig}" Tag="&#xE8AB;" Content="Remplacer" Click="Replace_Click" ToolTip="Rechercher et remplacer (Ctrl+H)"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Document">
+                            <Button Style="{StaticResource RBig}" Tag="&#xE9D2;" Content="Statistiques" Click="Statistics_Click" ToolTip="Nombre de pages, de zones, de mots et de caractères"/>
                         </HeaderedContentControl>
                     </StackPanel>
 

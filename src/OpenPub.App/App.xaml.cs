@@ -101,6 +101,20 @@ public partial class App : Application
                 Shutdown(code);
                 return;
             }
+            if (args.Length >= 2 && args[0] == "--spell")
+            {
+                // diagnostic du correcteur de Windows : OpenPub.exe --spell "texte" [langue]
+                var spell = Editing.SpellService.TryCreate();
+                if (spell is null) { Console.WriteLine("Correcteur orthographique de Windows indisponible."); Shutdown(1); return; }
+                var lang = args.Length >= 3 ? args[2] : "fr";
+                foreach (var (st, len) in spell.Check(args[1], lang))
+                {
+                    var word = args[1].Substring(st, len);
+                    Console.WriteLine($"{word} -> {string.Join(", ", spell.Suggest(word, lang))}");
+                }
+                Shutdown(0);
+                return;
+            }
             if (args.Length >= 3 && args[0] == "--selftest")
             {
                 ShutdownMode = ShutdownMode.OnExplicitShutdown;

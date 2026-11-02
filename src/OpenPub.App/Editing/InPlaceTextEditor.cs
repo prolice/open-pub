@@ -234,6 +234,29 @@ public sealed class InPlaceTextEditor
         }, typing: !HasSelection && !text.Contains('\n'));
     }
 
+    /// <summary>Saisie au clavier : avec la correction typographique francaise si elle est active.</summary>
+    public void TypeInput(string text)
+    {
+        if (_session.AutoCorrect && text.Length == 1 && !HasSelection)
+        {
+            var font = StoryEditor.FontAt(Paras, Caret);
+            var plain = Paras[Caret.Para].PlainText;
+            var before = plain[..Math.Min(Caret.Offset, plain.Length)];
+            if ((font.Lang is null || font.Lang.StartsWith("fr", StringComparison.OrdinalIgnoreCase))
+                && FrenchTypography.Correct(before, text[0]) is { } fix && fix.DeleteBefore <= Caret.Offset)
+            {
+                Modify(() =>
+                {
+                    var from = new TextPos(Caret.Para, Caret.Offset - fix.DeleteBefore);
+                    var at = fix.DeleteBefore > 0 ? StoryEditor.Delete(Paras, from, Caret) : Caret;
+                    return StoryEditor.Insert(Paras, at, fix.Insert, font);
+                }, typing: true);
+                return;
+            }
+        }
+        Type(text);
+    }
+
     public void Backspace(bool word)
     {
         if (HasSelection) { Modify(() => StoryEditor.Delete(Paras, Caret, Anchor)); return; }

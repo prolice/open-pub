@@ -38,7 +38,7 @@ public static class PageRenderer
             switch (s.Kind)
             {
                 case ShapeKind.Image: DrawImage(dc, s, session); break;
-                case ShapeKind.Text: DrawText(dc, s, layout, session, pixelsPerDip, editorMarks); break;
+                case ShapeKind.Text: DrawText(dc, s, layout, session, pixelsPerDip, editorMarks, page); break;
                 default: DrawShape(dc, s); break;
             }
             if (rotated) dc.Pop();
@@ -247,6 +247,41 @@ public static class PageRenderer
         if (outline && PenOf(s.Line) is { } pen) dc.DrawGeometry(null, pen, clip);
     }
 
+    static readonly Pen SpellPen = MakeSpellPen();
+    static Pen MakeSpellPen() { var p = new Pen(new SolidColorBrush(Color.FromRgb(0xd1, 0x34, 0x38)), 0.6); p.Freeze(); return p; }
+
+    /// <summary>Soulignement ondule rouge sous les mots inconnus du dictionnaire.</summary>
+    static void DrawSpelling(DrawingContext dc, OpenPub.Layout.FrameLayout fl, List<Paragraph> paras, OpenPub.App.Editing.SpellService spell, EditorSession session)
+    {
+        foreach (var line in fl.Lines)
+        {
+            if (line.ParagraphIndex >= paras.Count) continue;
+            var para = paras[line.ParagraphIndex];
+            var errors = spell.Check(para.PlainText, para.Runs.FirstOrDefault(r => r.Text.Length > 0)?.Font?.Lang);
+            foreach (var (st, len) in errors)
+            {
+                int a = st, b = st + len;
+                if (b <= line.StartOffset || a >= line.EndOffset) continue;
+                foreach (var p in line.Pieces)
+                {
+                    int pa = Math.Max(a, p.Start), pb = Math.Min(b, p.Start + p.Length);
+                    if (pb <= pa) continue;
+                    double x1 = p.X + p.Advance(session.Measurer, pa - p.Start), x2 = p.X + p.Advance(session.Measurer, pb - p.Start);
+                    double y = line.Baseline + p.Dy + Math.Max(1.2, p.SizePt * 0.12);
+                    var g = new StreamGeometry();
+                    using (var c = g.Open())
+                    {
+                        // vague de 2 pt de periode
+                        c.BeginFigure(new Point(x1, y), false, false);
+                        bool up = true;
+                        for (double x = x1 + 1; x <= x2 + 0.01; x += 1, up = !up) c.LineTo(new Point(Math.Min(x, x2), y + (up ? -0.7 : 0.7)), true, false);
+                    }
+                    dc.DrawGeometry(null, SpellPen, g);
+                }
+            }
+        }
+    }
+
     /// <summary>Dessine un morceau de texte : decalage (exposant, lettrine), interlettrage, souligne, barre.</summary>
     static void DrawPiece(DrawingContext dc, OpenPub.Layout.LaidPiece p, OpenPub.Layout.LaidLine line, EditorSession session, double ppd)
     {
@@ -279,7 +314,7 @@ public static class PageRenderer
         }
     }
 
-    static void DrawText(DrawingContext dc, Shape s, PageLayoutResult layout, EditorSession session, double ppd, bool marks)
+    static void DrawText(DrawingContext dc, Shape s, PageLayoutResult layout, EditorSession session, double ppd, bool marks, Page page)
     {
         // cadre de la zone (forme automatique ou rectangle) : fond et contour
         var frameFill = s.Fill?.Color is { } c ? Brush(c, s.Fill.Opacity ?? 1) : null;
@@ -310,6 +345,12 @@ public static class PageRenderer
                 }
             foreach (var p in line.Marks) DrawPiece(dc, p, line, session, ppd);
             foreach (var p in line.Pieces) DrawPiece(dc, p, line, session, ppd);
+        }
+        // fautes d'orthographe (a l'ecran seulement, jamais a l'impression ni a l'export)
+        if (marks && session.Spell is { } spell)
+        {
+            var head = s.Chain is null ? s : page.ChainFrames(s.Chain).FirstOrDefault() ?? s;
+            if (head.Paragraphs is { } paras) DrawSpelling(dc, fl, paras, spell, session);
         }
         dc.Pop();
         if (marks && layout.Overflows(s))

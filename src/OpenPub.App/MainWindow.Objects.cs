@@ -171,16 +171,16 @@ public partial class MainWindow
             it.Click += (_, _) => act();
             menu.Items.Add(it);
         }
-        Add("Aligner à gauche", "", () => AlignSel(AlignEdge.Left), has);
-        Add("Centrer horizontalement", "", () => AlignSel(AlignEdge.Center), has);
-        Add("Aligner à droite", "", () => AlignSel(AlignEdge.Right), has);
+        Add("Aligner à gauche", "\uE8E4", () => AlignSel(AlignEdge.Left), has);
+        Add("Centrer horizontalement", "\uE8E3", () => AlignSel(AlignEdge.Center), has);
+        Add("Aligner à droite", "\uE8E2", () => AlignSel(AlignEdge.Right), has);
         menu.Items.Add(new Separator());
-        Add("Aligner en haut", "", () => AlignSel(AlignEdge.Top), has);
-        Add("Centrer verticalement", "", () => AlignSel(AlignEdge.Middle), has);
-        Add("Aligner en bas", "", () => AlignSel(AlignEdge.Bottom), has);
+        Add("Aligner en haut", "\uE70E", () => AlignSel(AlignEdge.Top), has);
+        Add("Centrer verticalement", "\uE76F", () => AlignSel(AlignEdge.Middle), has);
+        Add("Aligner en bas", "\uE70D", () => AlignSel(AlignEdge.Bottom), has);
         menu.Items.Add(new Separator());
-        Add("Répartir horizontalement", "", () => DistributeSel(true), has && units >= 3);
-        Add("Répartir verticalement", "", () => DistributeSel(false), has && units >= 3);
+        Add("Répartir horizontalement", "\uE76F", () => DistributeSel(true), has && units >= 3);
+        Add("Répartir verticalement", "\uE76F", () => DistributeSel(false), has && units >= 3);
         menu.Items.Add(new Separator());
         var margins = new MenuItem { Header = "Par rapport aux marges de la page", IsCheckable = true, IsChecked = _alignToMargins || units == 1 };
         margins.IsEnabled = units > 1;

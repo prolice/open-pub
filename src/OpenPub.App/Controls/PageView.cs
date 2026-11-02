@@ -699,11 +699,24 @@ public sealed class PageView : FrameworkElement
         {
             // caracteres de controle (Ctrl+lettre, Entree, Retour arriere) traites dans OnKeyDown
             var text = new string(e.Text.Where(c => !char.IsControl(c) || c == '\t').ToArray());
-            if (text.Length > 0) { ed.Type(text); NotifyCaret(); }
+            if (text.Length > 0) { ed.TypeInput(text); NotifyCaret(); }
             e.Handled = true;
             return;
         }
         base.OnTextInput(e);
+    }
+
+    /// <summary>Fait defiler la vue jusqu'au curseur de texte (recherche, orthographe).</summary>
+    public void RevealCaret() => NotifyCaret();
+
+    /// <summary>Clic droit sur la page : menu contextuel (position en points).</summary>
+    public event Action<PageView, Point>? ContextMenuRequested;
+
+    protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
+    {
+        if (!Interactive) return;
+        ContextMenuRequested?.Invoke(this, ToPage(e));
+        e.Handled = true;
     }
 
     void NotifyCaret()

@@ -79,6 +79,11 @@ public partial class MainWindow : Window
         _session.ModifiedChanged += UpdateTitle;
         _session.TextEditChanged += RefreshFormat;
         _session.SnapEnabled = SnapToggle.IsChecked == true;
+        var prefs = AppSettings.Load();
+        _session.SpellCheck = prefs.SpellCheck;
+        _session.AutoCorrect = prefs.AutoCorrect;
+        SpellToggle.IsChecked = prefs.SpellCheck;
+        AutoCorrectToggle.IsChecked = prefs.AutoCorrect;
         _session.ShowGuides = GuidesToggle.IsChecked == true;
         FontBox.ItemsSource = _session.Fonts.AvailableFamilies.ToList();
         SizeBox.ItemsSource = new[] { 6, 7, 8, 9, 9.5, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 48, 60, 72 };
@@ -193,6 +198,7 @@ public partial class MainWindow : Window
             view.ShapeDrawn += OnShapeDrawn;
             view.ShapeCreated += OnShapeCreated;
             view.LinkTargetPicked += OnLinkTargetPicked;
+            view.ContextMenuRequested += OnPageContextMenu;
             view.OverflowClicked += OnOverflowClicked;
             view.TextSelectionFinished += () => { if (_painterFont is not null && _session?.TextEdit is { HasSelection: true }) ApplyPainter(); };
             _views.Add(view);
@@ -394,6 +400,7 @@ public partial class MainWindow : Window
         PanelHome.Visibility = TabHome.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelInsert.Visibility = TabInsert.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelView.Visibility = TabView.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PanelReview.Visibility = TabReview.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelDraw.Visibility = TabDraw.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelShape.Visibility = TabShape.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelPicture.Visibility = TabPicture.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
@@ -899,7 +906,7 @@ public partial class MainWindow : Window
     void UpdateUi()
     {
         bool has = _session is not null;
-        PanelInsert.IsEnabled = PanelShape.IsEnabled = PanelPicture.IsEnabled = PanelDraw.IsEnabled = has;
+        PanelInsert.IsEnabled = PanelShape.IsEnabled = PanelPicture.IsEnabled = PanelDraw.IsEnabled = PanelReview.IsEnabled = has;
         if (PenWidthBox.ItemsSource is null)
         {
             PenWidthBox.ItemsSource = new[] { 0.5, 1, 1.5, 2, 3, 4.5, 6, 8, 12 };
@@ -1049,6 +1056,13 @@ public partial class MainWindow : Window
 
     void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (_session is not null && e.Key == Key.F7) { SpellingDialog_Click(this, e); e.Handled = true; return; }
+        if (_session is not null && Keyboard.Modifiers == ModifierKeys.Control && e.Key is Key.F or Key.H)
+        {
+            OpenFind(replace: e.Key == Key.H);
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.F1)
         {
             Help.HelpService.Open(CurrentHelpTopic());

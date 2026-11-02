@@ -15,6 +15,10 @@ public static class AppSettings
         public string? SkippedVersion { get; set; }
         /// <summary>Documents ouverts ou enregistres recemment, le plus recent en tete.</summary>
         public List<string> RecentFiles { get; set; } = new();
+        /// <summary>Verification orthographique pendant la frappe (soulignement rouge).</summary>
+        public bool SpellCheck { get; set; } = true;
+        /// <summary>Correction typographique francaise a la frappe.</summary>
+        public bool AutoCorrect { get; set; } = true;
     }
 
     static string SettingsPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OpenPub", "settings.json");

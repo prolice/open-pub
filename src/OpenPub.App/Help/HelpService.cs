@@ -43,6 +43,16 @@ public static class HelpService
     public const string Updates = "mises-a-jour.html#automatiques";
     public const string Shortcuts = "raccourcis.html#general";
     public const string Faq = "faq.html#polices";
+    // version 2.0
+    public const string ParagraphFormat = "texte.html#paragraphe";
+    public const string Lists = "texte.html#listes";
+    public const string Tabs = "texte.html#tabulations";
+    public const string TextBoxOptions = "texte.html#zone-options";
+    public const string MultiSelect = "disposition.html#plusieurs";
+    public const string Groups = "disposition.html#grouper";
+    public const string Review = "revision.html#orthographe";
+    public const string FindReplace = "revision.html#rechercher";
+    public const string Recovery = "interface.html#recuperation";
 
     public static IReadOnlyList<string> AllTopics => typeof(HelpService).GetFields(BindingFlags.Public | BindingFlags.Static)
         .Where(f => f.IsLiteral && f.FieldType == typeof(string)).Select(f => (string)f.GetRawConstantValue()!).ToList();
