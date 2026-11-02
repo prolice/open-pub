@@ -192,7 +192,9 @@ public sealed class EditorSession : IDisposable
     public Func<string, string?>? FieldsFor(Page page)
     {
         if (!Doc.Pages.Contains(page)) return null;
-        return field => field switch
+        return field => field.StartsWith(MergeOps.Prefix)
+            ? (Doc.Merge is { } src ? MergeOps.Value(src, field, MergePreview) : "«" + field[MergeOps.Prefix.Length..] + "»")
+            : field switch
         {
             "page" => Doc.PageNumber(page),
             "pages" => Doc.Pages.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -200,6 +202,9 @@ public sealed class EditorSession : IDisposable
             _ => null,
         };
     }
+
+    /// <summary>Publipostage : ligne de la source affichee dans les champs (-1 : noms des champs).</summary>
+    public int MergePreview { get; set; } = -1;
 
     readonly Dictionary<(Page Master, Page Host), PageLayoutResult> _masterLayouts = new();
 

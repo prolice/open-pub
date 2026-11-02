@@ -30,6 +30,8 @@ public sealed class PageView : FrameworkElement
     public event Action<Shape>? ReplaceImageRequested;
     /// <summary>Mode « créer un lien » : clic sur la zone cible (null : clic hors d'une zone, le mode est annule).</summary>
     public event Action<PageView, Shape?>? LinkTargetPicked;
+    /// <summary>Ctrl + clic : ouvrir le lien sous le point (vrai si un lien a ete ouvert).</summary>
+    public Func<PageView, Point, bool>? FollowLink { get; set; }
     /// <summary>Un repere de regle a ete deplace ou supprime (toutes les pages doivent etre redessinees).</summary>
     public event Action? GuidesChanged;
     /// <summary>Clic sur l'indicateur de debordement d'une zone (proposer de lier une nouvelle zone).</summary>
@@ -345,6 +347,12 @@ public sealed class PageView : FrameworkElement
         Focus();
         var p = ToPage(e);
         bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+        // Ctrl + clic sur un lien : l'ouvrir (sinon Ctrl + clic ajoute a la selection)
+        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && _session.DrawTool is null && FollowLink?.Invoke(this, p) == true)
+        {
+            e.Handled = true;
+            return;
+        }
 
         // ecriture dans une cellule : un clic dans une autre cellule du meme tableau y place le curseur
         if (_session.TextEdit is { Owner: { } owner } ced && ced.Page == Page && EditingFrameAt(p) is null && HitTest(p) == owner

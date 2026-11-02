@@ -40,6 +40,8 @@ public sealed class PubDocument
     public List<TextStyle>? Styles { get; set; }
     /// <summary>Jeu de couleurs et jeu de polices du document.</summary>
     public DocTheme? Theme { get; set; }
+    /// <summary>Source du publipostage (colonnes et lignes, copiees dans le document).</summary>
+    public MergeSource? Merge { get; set; }
 
     /// <summary>Version de format la plus recente que cette application sait lire et ecrire.</summary>
     public const int SupportedFormat = 2;
@@ -81,6 +83,7 @@ public static class PubFormat
         bool v2 = doc.Masters is { Count: > 0 } || doc.Numbering is not null || doc.Guides is not null || doc.Grid is not null
                   || doc.Pages.Any(p => p.BackColor is not null || p.NumberStart is not null || p.Master is not null || p.IgnoreMaster)
                   || doc.AllShapes().Any(s => s.Kind == ShapeKind.Table) || doc.Styles is { Count: > 0 } || doc.Theme is not null
+                  || doc.Merge is not null || doc.AllShapes().Any(s => s.Link is not null || s.AltText is not null)
                   || doc.AllShapes().Any(s => s.Paragraphs?.Any(p => p.Runs.Any(r => r.Field is not null)) == true);
         return v2 || doc.FormatVersion >= 2 ? $"openpub/{Math.Max(2, Math.Min(doc.FormatVersion, PubDocument.SupportedFormat))}" : "openpub/1";
     }
@@ -106,6 +109,14 @@ public sealed class TextStyle
     public double? FirstIndent { get; set; }
     /// <summary>Role dans le jeu de polices : "heading" (police des titres) ou "body" (police du texte).</summary>
     public string? FontRole { get; set; }
+}
+
+/// <summary>Donnees du publipostage : une ligne par destinataire.</summary>
+public sealed class MergeSource
+{
+    public string? Name { get; set; }
+    public List<string> Columns { get; set; } = new();
+    public List<List<string>> Rows { get; set; } = new();
 }
 
 /// <summary>Jeu de couleurs (principale puis accents) et jeu de polices (titres, texte).</summary>
@@ -265,6 +276,10 @@ public sealed class Shape
     public List<Paragraph>? Paragraphs { get; set; }
     public string? Chain { get; set; }
     public int? ChainIndex { get; set; }
+    /// <summary>Lien hypertexte de l'objet (adresse web ou « mailto: »).</summary>
+    public string? Link { get; set; }
+    /// <summary>Texte de remplacement (accessibilite, export web) : ce que montre l'image.</summary>
+    public string? AltText { get; set; }
     /// <summary>Tableau (objet de type "table") : colonnes, lignes et cellules.</summary>
     public TableData? Table { get; set; }
     public int? FlowFrom { get; set; }
@@ -492,6 +507,8 @@ public sealed class Run
     public string? Field { get; set; }
     /// <summary>Style de caractere applique (identifiant).</summary>
     public string? Style { get; set; }
+    /// <summary>Lien hypertexte du texte (adresse web ou « mailto: »).</summary>
+    public string? Link { get; set; }
 }
 
 public sealed class FontSpec

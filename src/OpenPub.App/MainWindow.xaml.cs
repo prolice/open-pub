@@ -256,6 +256,7 @@ public partial class MainWindow : Window
             view.ShapeDrawn += OnShapeDrawn;
             view.ShapeCreated += OnShapeCreated;
             view.LinkTargetPicked += OnLinkTargetPicked;
+            view.FollowLink = (v, pt) => TryOpenLink(v.Page, pt);
             view.GuidesChanged += () => { foreach (var v2 in _views) v2.InvalidateVisual(); };
             view.ContextMenuRequested += OnPageContextMenu;
             view.OverflowClicked += OnOverflowClicked;
@@ -538,6 +539,7 @@ public partial class MainWindow : Window
         menu.Items.Add(new Separator());
         Add("Imprimer / créer un PDF…", "Ctrl+P", () => ApplicationCommands.Print.Execute(null, this), has, glyph: "\uE749");
         Add("Exporter les pages en PNG…", "", () => ExportPng_Click(this, new RoutedEventArgs()), has, glyph: "\uEB9F");
+        Add("Exporter pour le web ou un e-mail…", "", ExportHtml_Click, has, glyph: "\uE774");
         menu.Items.Add(new Separator());
         Add("Aide en ligne", "F1", () => Help.HelpService.Open(CurrentHelpTopic()), glyph: "\uE897");
         Add("Raccourcis clavier", "", () => Help.HelpService.Open(Help.HelpService.Shortcuts), glyph: "\uE765");

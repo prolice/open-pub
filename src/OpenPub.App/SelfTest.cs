@@ -853,6 +853,45 @@ public static class SelfTest
             }
         }
 
+        Console.WriteLine("Publipostage, liens, texte de remplacement, export web");
+        {
+            var mw = typeof(MainWindow);
+            session.EndTextEdit();
+            var mp = session.Doc.Pages[^1];
+            var letter = new Shape
+            {
+                Kind = ShapeKind.Text, X = 60, Y = 300, W = 300, H = 60, Padding = new[] { 2.85, 2.85, 2.85, 2.85 },
+                Paragraphs = new List<Paragraph> { new() { Runs = { new Run { Text = "Bonjour ", Font = new FontSpec { Family = "Arial", Size = 12, Color = "#000000" } } } } },
+            };
+            session.Change(mp, () => mp.Shapes.Add(letter));
+            mw.GetMethod("SetMergeSource", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { Core.Editing.MergeOps.Parse("Prénom;Ville\nAlice;Lyon\nBruno;Lille", "classe") });
+            session.BeginTextEdit(mp, letter);
+            session.TextEdit!.SetCaret(Core.Editing.StoryEditor.End(letter.Paragraphs), false);
+            mw.GetMethod("InsertField", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { Core.Editing.MergeOps.Prefix + "Prénom" });
+            session.EndTextEdit();
+            string Shown() => string.Concat(session.Layout(mp).Frames[letter].Lines.SelectMany(l => l.Pieces).Select(x => x.Text));
+            Check(Shown().Contains("«Prénom»"), "champ de publipostage : « «Prénom» » sans apercu");
+            mw.GetMethod("SetMergePreview", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { 1 });
+            mp = session.Doc.Pages[^1];
+            letter = mp.Shapes.First(x => x.Paragraphs?.FirstOrDefault()?.PlainText.StartsWith("Bonjour") == true);
+            Check(Shown().Contains("Bruno"), "apercu : 2e destinataire");
+            var merged = Core.Editing.MergeOps.Merged(session.Doc, new[] { 0, 1 });
+            Check(merged.Pages.Count == 2 * session.Doc.Pages.Count && merged.Pages[session.Doc.Pages.Count * 2 - 1].Shapes.Any(x => x.Paragraphs?.FirstOrDefault()?.PlainText == "Bonjour Bruno"), "document fusionne : une copie par destinataire");
+            mw.GetMethod("SetMergePreview", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { -1 });
+            // liens et texte de remplacement
+            mp = session.Doc.Pages[^1];
+            letter = mp.Shapes.First(x => x.Paragraphs?.FirstOrDefault()?.PlainText.StartsWith("Bonjour") == true);
+            session.Change(mp, () => mw.GetMethod("SetRunLinks", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, new object?[] { letter.Paragraphs!, new TextPos(0, 0), new TextPos(0, 7), "https://example.org/" }));
+            Check(letter.Paragraphs![0].Runs[0].Link == "https://example.org/" && letter.Paragraphs[0].Runs[0].Text == "Bonjour", "lien sur le mot « Bonjour »");
+            var pic3 = session.Doc.Pages[0].Shapes.First(x => x.IsImage && !x.Background);
+            pic3.AltText = "Photo de groupe";
+            pic3.Link = "mailto:contact@example.org";
+            var html = (string)mw.GetMethod("BuildHtml", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, new object[] { session, 0.6 })!;
+            Check(html.Contains("data:image/png;base64,") && html.Contains("https://example.org/") && html.Contains("mailto:contact@example.org"), "export web : images incluses et liens cliquables");
+            Check(html.Contains("Photo de groupe") && html.Contains("lang=\"fr\""), "export web : textes de remplacement");
+            pic3.AltText = null; pic3.Link = null;
+        }
+
         Console.WriteLine("Surete des documents : copie de secours, recuperation, fichier modifie ailleurs");
         {
             w.SkipConfirm = true;

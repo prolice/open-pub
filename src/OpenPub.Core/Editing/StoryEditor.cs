@@ -63,7 +63,7 @@ public static class StoryEditor
             if (offset < acc + r.Text.Length)
             {
                 int k = offset - acc;
-                var tail = new Run { Text = r.Text[k..], Font = r.Font?.Clone(), Style = r.Style };
+                var tail = new Run { Text = r.Text[k..], Font = r.Font?.Clone(), Style = r.Style, Link = r.Link };
                 r.Text = r.Text[..k];
                 p.Runs.Insert(i + 1, tail);
                 return i + 1;
@@ -79,7 +79,7 @@ public static class StoryEditor
         foreach (var r in p.Runs)
         {
             // un champ (numero de page...) reste un segment a part
-            if (merged.Count > 0 && merged[^1].Field is null && r.Field is null && merged[^1].Style == r.Style && merged[^1].Font?.SameAs(r.Font) == true) merged[^1].Text += r.Text;
+            if (merged.Count > 0 && merged[^1].Field is null && r.Field is null && merged[^1].Style == r.Style && merged[^1].Link == r.Link && merged[^1].Font?.SameAs(r.Font) == true) merged[^1].Text += r.Text;
             else merged.Add(r);
         }
         var nonEmpty = merged.Where(r => r.Text.Length > 0).ToList();
@@ -196,6 +196,23 @@ public static class StoryEditor
                 change(f);
                 p.Runs[i].Font = f;
             }
+            Normalize(p);
+        }
+    }
+
+    /// <summary>Modifie les segments du texte entre deux positions (lien, style de caractere) ; ils sont coupes aux bornes.</summary>
+    public static void ApplyRun(List<Paragraph> paras, TextPos a, TextPos b, Action<Run> change)
+    {
+        var from = Clamp(paras, TextPos.Min(a, b));
+        var to = Clamp(paras, TextPos.Max(a, b));
+        for (int pi = from.Para; pi <= to.Para; pi++)
+        {
+            var p = paras[pi];
+            int s = pi == from.Para ? from.Offset : 0;
+            int e = pi == to.Para ? to.Offset : Length(p);
+            if (s >= e) continue;
+            int i1 = SplitRunAt(p, s), i2 = SplitRunAt(p, e);
+            for (int i = i1; i < i2; i++) change(p.Runs[i]);
             Normalize(p);
         }
     }

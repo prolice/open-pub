@@ -172,6 +172,12 @@
                                 <Button Style="{StaticResource RBig}" Tag="&#xE8F1;" Content="Blocs&#x0a;▾" Click="BlocksButton_Click" ToolTip="Blocs de construction : encadré, bandeau, coupon… et vos propres blocs"/>
                             </StackPanel>
                         </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Liens et envois">
+                            <StackPanel>
+                                <Button Style="{StaticResource RSmall}" Tag="&#xE71B;" Content="Lien ▾" Click="LinkButton_Click" ToolTip="Lien hypertexte sur le texte sélectionné ou l'objet (Ctrl + clic pour l'ouvrir)"/>
+                                <Button Style="{StaticResource RSmall}" Tag="&#xE716;" Content="Publipostage ▾" Click="MergeButton_Click" ToolTip="Une copie personnalisée par destinataire, d'après une liste (CSV ou Excel)"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Illustrations">
                             <StackPanel Orientation="Horizontal">
                                 <Button Style="{StaticResource RBig}" Tag="&#xEB9F;" Content="Image" Click="AddImage_Click" ToolTip="Insérer une image depuis un fichier"/>
@@ -417,6 +423,7 @@
                                 <Button Style="{StaticResource RBig}" Tag="&#xE70F;" Content="Modifier&#x0a;l'image…" Click="EditImage_Click" ToolTip="Recadrage, couleurs, luminosité, miroir, ombre, reflet, forme"/>
                                 <Button Style="{StaticResource RBig}" Tag="&#xE7A8;" Content="Recadrer…" Click="CropImage_Click"/>
                                 <Button Style="{StaticResource RBig}" Tag="&#xEB9F;" Content="Remplacer…" Click="ReplaceImage_Click"/>
+                                <Button Style="{StaticResource RBig}" Tag="&#xE8BD;" Content="Texte de&#x0a;remplacement" Click="AltText_Click" ToolTip="Décrire l'image (accessibilité, export web)"/>
                             </StackPanel>
                         </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Couleur">

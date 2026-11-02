@@ -61,26 +61,15 @@ public static class StyleOps
         {
             var from = StoryEditor.Clamp(paras, TextPos.Min(a, b));
             var to = StoryEditor.Clamp(paras, TextPos.Max(a, b));
-            StoryEditor.ApplyFont(paras, from, to, f => ApplyFont(st, f));
-            MarkRuns(paras, from, to, st.Id);
+            StoryEditor.ApplyRun(paras, from, to, r =>
+            {
+                r.Font = (r.Font ?? TableOps.DefaultFont).Clone();
+                ApplyFont(st, r.Font);
+                r.Style = st.Id;
+            });
             return;
         }
         StoryEditor.ApplyParagraph(paras, a, b, p => ApplyParagraphStyle(p, st));
-    }
-
-    /// <summary>Memorise le style de caractere sur les segments de la plage (deja decoupes par ApplyFont).</summary>
-    static void MarkRuns(List<Paragraph> paras, TextPos from, TextPos to, string id)
-    {
-        for (int pi = from.Para; pi <= to.Para; pi++)
-        {
-            int s = pi == from.Para ? from.Offset : 0, e = pi == to.Para ? to.Offset : StoryEditor.Length(paras[pi]);
-            int acc = 0;
-            foreach (var r in paras[pi].Runs)
-            {
-                if (acc >= s && acc + r.Text.Length <= e && r.Text.Length > 0) r.Style = id;
-                acc += r.Text.Length;
-            }
-        }
     }
 
     /// <summary>Nouveau style d'apres un paragraphe et sa police.</summary>
