@@ -246,6 +246,26 @@ public partial class MainWindow
         StatusText.Text = $"Page web enregistrée : {dlg.FileName} (images incluses, liens actifs).";
     }
 
+    /// <summary>Zones cliquables d'une page (points) : morceaux de texte lies et objets lies.</summary>
+    internal static List<(Rect Area, string Url)> LinkAreas(EditorSession session, Page page)
+    {
+        var res = new List<(Rect, string)>();
+        foreach (var (shape, fl) in session.Layout(page).Frames)
+        {
+            var head = shape.Chain is null ? shape : page.ChainFrames(shape.Chain).FirstOrDefault() ?? shape;
+            if (head.Paragraphs is not { } paras) continue;
+            foreach (var line in fl.Lines)
+                foreach (var pc in line.Pieces)
+                    if (RunAt(paras, new TextPos(line.ParagraphIndex, pc.Start))?.Link is { } l) res.Add((new Rect(pc.X, line.Top, pc.Width, line.Height), l));
+        }
+        foreach (var s in page.Shapes.Where(s => s.Link is not null))
+        {
+            var bb = s.Bounds();
+            res.Add((new Rect(bb.X, bb.Y, bb.W, bb.H), s.Link!));
+        }
+        return res;
+    }
+
     /// <summary>Image PNG d'une page, sans reperes d'edition.</summary>
     static byte[] RenderPagePng(EditorSession session, Page page, double dpi)
     {
@@ -286,20 +306,7 @@ public partial class MainWindow
             sb.Append($"<map name=\"p{n}\">");
             string Area(double x, double y, double ww, double hh, string url) =>
                 $"<area shape=\"rect\" coords=\"{(int)(x * scale)},{(int)(y * scale)},{(int)((x + ww) * scale)},{(int)((y + hh) * scale)}\" href=\"{WebUtility.HtmlEncode(url)}\" alt=\"{WebUtility.HtmlEncode(url)}\">";
-            var layout = session.Layout(page);
-            foreach (var (shape, fl) in layout.Frames)
-            {
-                var head = shape.Chain is null ? shape : page.ChainFrames(shape.Chain).FirstOrDefault() ?? shape;
-                if (head.Paragraphs is not { } paras) continue;
-                foreach (var line in fl.Lines)
-                    foreach (var pc in line.Pieces)
-                        if (RunAt(paras, new TextPos(line.ParagraphIndex, pc.Start))?.Link is { } l) sb.Append(Area(pc.X, line.Top, pc.Width, line.Height, l));
-            }
-            foreach (var s in page.Shapes.Where(s => s.Link is not null))
-            {
-                var bb = s.Bounds();
-                sb.Append(Area(bb.X, bb.Y, bb.W, bb.H, s.Link!));
-            }
+            foreach (var (r, url) in LinkAreas(session, page)) sb.Append(Area(r.X, r.Y, r.Width, r.Height, url));
             sb.Append("</map>");
             // texte de la page (lecteurs d'ecran, moteurs de recherche)
             var text = string.Join("\n", page.Shapes.Where(s => s.IsStoryHead && s.Paragraphs is not null).SelectMany(s => s.Paragraphs!).Select(p => p.PlainText).Where(t => t.Trim().Length > 0));

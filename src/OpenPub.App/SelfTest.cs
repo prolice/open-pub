@@ -889,6 +889,11 @@ public static class SelfTest
             var html = (string)mw.GetMethod("BuildHtml", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, new object[] { session, 0.6 })!;
             Check(html.Contains("data:image/png;base64,") && html.Contains("https://example.org/") && html.Contains("mailto:contact@example.org"), "export web : images incluses et liens cliquables");
             Check(html.Contains("Photo de groupe") && html.Contains("lang=\"fr\""), "export web : textes de remplacement");
+            var linkPdf = Path.Combine(Path.GetTempPath(), $"openpub-liens-{Guid.NewGuid():N}.pdf");
+            Output.PdfExporter.Export(session, linkPdf, new Output.PdfExportOptions { Pages = new List<int> { 1, session.Doc.Pages.Count } });
+            var pdfText = System.Text.Encoding.Latin1.GetString(File.ReadAllBytes(linkPdf));
+            Check(pdfText.Contains("/URI") && pdfText.Contains("example.org"), "PDF : liens hypertextes actifs");
+            try { File.Delete(linkPdf); } catch { }
             pic3.AltText = null; pic3.Link = null;
         }
         Console.WriteLine("Sorties : PDF direct, PDF imprimeur, impression, images");

@@ -160,6 +160,10 @@ public static class PdfExporter
                     foreach (var (x1, y1, x2, y2) in sheet.MarkLines()) g.DrawLine(pen, x1, y1, x2, y2);
                 }
             }
+            // liens hypertextes actifs (PDF/X-4 interdit les annotations dans la zone imprimee)
+            if (!o.PdfX4)
+                foreach (var (r, url) in MainWindow.LinkAreas(session, page))
+                    pdfPage.AddWebLink(new PdfRectangle(new XRect(sheet.Margin + r.X, sheet.MediaHeight - sheet.Margin - r.Y - r.Height, r.Width, r.Height)), url);
             if (srgb is not null)
             {
                 // couleurs RVB du rendu (DeviceRGB) interpretees comme sRGB : exige par PDF/X-4 avec une sortie CMJN
