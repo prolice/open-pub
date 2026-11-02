@@ -376,6 +376,16 @@ public static class SelfTest
         Click(w, "ResetImage_Click");
         Check(pic.ImageFx is null && Math.Abs(pic.W - w0) < 0.5 && Math.Abs(pic.X - x0) < 0.5, "reinitialiser : image d'origine, recadrage annule");
 
+        {
+            // cout de l'annulation : instantane complet du document a chaque action
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            for (int i = 0; i < 20; i++) { session.BeginChange(); session.EndChange(); }
+            sw.Stop();
+            var size = Core.Io.DocumentJson.Serialize(session.Doc, indented: false).Length;
+            Console.WriteLine($"  (mesure) annulation : {sw.Elapsed.TotalMilliseconds / 20:0.0} ms par action, instantane de {size / 1024} Ko");
+            Check(sw.Elapsed.TotalMilliseconds / 20 < 100, "cout de l'annulation acceptable (< 100 ms par action)");
+        }
+
         Console.WriteLine("Objets : selection multiple, groupes, alignement, presse-papiers");
         {
             var pg = session.Doc.Pages[1];
