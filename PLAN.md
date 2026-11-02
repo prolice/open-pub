@@ -282,6 +282,17 @@ Vérifications : 29 tests unitaires et un test de bout en bout de l'interface (`
 - **Infobulles** sombres et arrondies ; éléments des listes déroulantes arrondis et surlignés aux couleurs de la charte.
 - Bouton **Fichier**, bouton **Mettre à jour maintenant** et **onglets** du ruban : rectangle aux coins arrondis, couleurs inchangées.
 
+## 6 decies. Pipelines de publication (GitHub Actions)
+
+- **« Publier une version de l'app »** (`.github/workflows/release-app.yml`).
+  - Déclenchement : étiquette `vX.Y.Z` (`git tag -a v1.6.0 -m "Nouveautés" && git push origin v1.6.0`) ou lancement manuel avec un mode « essai ».
+  - Construction sous Windows : tests, exécutable autonome, MSI (version passée par `-p:ProductVersion`), `latest.json` signé (secret `UPDATE_SIGNING_KEY`), portail.
+  - Publication sous Linux : release GitHub (MSI, exécutable, `latest.json`) et envoi sur Azure (secret `AZURE_STATIC_WEB_APPS_API_TOKEN`).
+- **« Publier le portail »** (`.github/workflows/publish-portal.yml`).
+  - Déclenchement : modification de la page, de l'aide ou de la charte sur `main`, ou lancement manuel.
+  - Régénère la page et l'aide à partir des fichiers de la **dernière release** (installeur, exécutable pour les captures, `latest.json` déjà signé), sans reconstruire l'application, puis envoie sur Azure.
+- Logique commune : `tools/build-site.py` (également utilisée par `tools/publish-update.sh`, qui reste disponible en local). Un verrou commun empêche deux envois simultanés vers le portail.
+
 ## 7. Prochaines étapes proposées
 1. ✅ ~~Extraction via Publisher~~ : impossible depuis la perte de licence ; acquis partiels conservés.
 2. ✅ Lecteur natif prototype sur la newsletter : texte → zones, polices, images d'origine, aperçu fidèle.

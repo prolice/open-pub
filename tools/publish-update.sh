@@ -27,8 +27,8 @@ if [ "$DEPLOY" = "--deploy-only" ]; then
 else
 echo "== 1. Numero de version $VERSION"
 sed -i -E "s#<Version>[0-9.]+</Version>#<Version>$VERSION</Version>#" src/OpenPub.App/OpenPub.App.csproj
-sed -i -E "s/Version=\"[0-9]+\.[0-9]+\.[0-9]+\.0\"/Version=\"$VERSION.0\"/" installer/Package.wxs
-sed -i -E "s#<OutputName>OpenPub-[0-9.]+</OutputName>#<OutputName>OpenPub-$VERSION</OutputName>#" installer/OpenPub.Installer.wixproj
+python3 -I -c "import re,sys;p='installer/OpenPub.Installer.wixproj';s=open(p).read();s,n=re.subn(r'(<ProductVersion Condition=[^>]*>)[0-9.]+(</ProductVersion>)',r'\g<1>'+sys.argv[1]+r'\g<2>',s);open(p,'w').write(s);sys.exit(n!=1)" "$VERSION"
+grep -q "\">$VERSION</ProductVersion>" installer/OpenPub.Installer.wixproj || { echo "version de l'installeur non mise a jour"; exit 1; }
 
 echo "== 2. Tests, executable autonome et installeur"
 rm -f dist/OpenPub-*.msi
@@ -36,50 +36,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w tools/buil
 MSI="dist/OpenPub-$VERSION.msi"
 [ -f "$MSI" ] || { echo "Installeur introuvable : $MSI"; exit 1; }
 
-echo "== 3. Site : page de telechargement (charte OpenPub), installeur, latest.json signe"
-rm -rf work/site && mkdir -p work/site
-# modele de la page (tools/site-template), sans le document de demonstration
-cp -r tools/site-template/assets tools/site-template/fonts tools/site-template/styles.css work/site/
-cp "$MSI" work/site/
-dist/OpenPub/OpenPub.exe --sign-update "$(wslpath -w work/site/OpenPub-$VERSION.msi)" "$VERSION" "$NOTES" "$KEY" "$(wslpath -w work/site/latest.json)" | tr -d '\r'
-# vraie capture de l'application (document de demonstration neutre, aucune donnee personnelle)
-dist/OpenPub/OpenPub.exe --screenshot "$(wslpath -w tools/site-template/demo/document.json)" "$(wslpath -w work/site/assets/apercu-openpub.png)" 1402 948 TabDraw | tr -d '\r'
-[ -f work/site/assets/apercu-openpub.png ] || { echo "Capture d'ecran manquante"; exit 1; }
-python3 - "$VERSION" "$NOTES" "OpenPub-$VERSION.msi" "$MSI" <<'PY'
-import html, os, sys
-version, notes, msi_name, msi_path = sys.argv[1:5]
-size = f"{os.path.getsize(msi_path) / 1048576:.1f}".replace(".", ",") + " Mo"
-notes_block = f'<p class="notes"><strong>Nouveautés :</strong> {html.escape(notes)}</p>' if notes.strip() else ""
-page = open("tools/site-template/index.html", encoding="utf-8").read()
-for k, v in {"{{VERSION}}": html.escape(version), "{{MSI}}": html.escape(msi_name), "{{SIZE}}": size, "{{NOTES_BLOCK}}": notes_block}.items():
-    page = page.replace(k, v)
-assert "{{" not in page, "champ non rempli"
-open("work/site/index.html", "w", encoding="utf-8").write(page)
-print(f"page : version {version}, {size}")
-PY
-# documentation en ligne (aide/) : pages, captures de chaque situation, verification des liens de l'application
-python3 -I tools/build-docs.py work/site "$VERSION"
-DEMO="$(wslpath -w tools/site-template/demo/document.json)"
-for spec in accueil:TabHome onglet-accueil:TabHome onglet-insertion:TabInsert onglet-dessin:TabDraw dessin-crayon:draw-tool \
-            onglet-forme:shape onglet-image:picture texte-edition:text-edit editeur-image:image-editor; do
-  dist/OpenPub/OpenPub.exe --screenshot "$DEMO" "$(wslpath -w work/site/aide/img/${spec%%:*}.png)" 1402 900 "${spec#*:}" > /dev/null
-  [ -f "work/site/aide/img/${spec%%:*}.png" ] || { echo "Capture manquante : ${spec%%:*}"; exit 1; }
-done
-MISSING=$(comm -23 <(dist/OpenPub/OpenPub.exe --help-topics | tr -d '\r' | sort) <(sort work/site/aide/ancres.txt))
-[ -z "$MISSING" ] || { echo "Liens d'aide sans section correspondante :"; echo "$MISSING"; exit 1; }
-rm -f work/site/aide/ancres.txt
-echo "aide : $(ls work/site/aide/*.html | wc -l) pages, captures et liens contextuels verifies"
-cat > work/site/staticwebapp.config.json <<'JSON'
-{
-  "mimeTypes": { ".msi": "application/x-msi", ".json": "application/json", ".woff2": "font/woff2" },
-  "routes": [
-    { "route": "/latest.json", "headers": { "Cache-Control": "no-cache, no-store, must-revalidate" } },
-    { "route": "/*.msi", "headers": { "Cache-Control": "public, max-age=31536000, immutable" } },
-    { "route": "/fonts/*", "headers": { "Cache-Control": "public, max-age=31536000, immutable" } },
-    { "route": "/index.html", "headers": { "Cache-Control": "no-cache" } }
-  ]
-}
-JSON
+echo "== 3. Portail : page de telechargement, aide en ligne, latest.json signe (tools/build-site.py)"
+python3 -I tools/build-site.py --out work/site --exe dist/OpenPub/OpenPub.exe --msi "$MSI" \
+  --sign-key "$(wslpath -u "$KEY")" --version "$VERSION" --notes "$NOTES"
 ls -la work/site
 fi
 

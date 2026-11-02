@@ -1,12 +1,14 @@
 <Project Sdk="WixToolset.Sdk/5.0.2">
   <!-- Installeur MSI par utilisateur (sans droits administrateur).
-       Construire d'abord l'executable autonome : voir tools/build-installer.ps1 -->
+       Construire d'abord l'executable autonome : voir tools/build-installer.ps1.
+       La version se fixe a la construction : dotnet build ... -p:ProductVersion=X.Y.Z -->
   <PropertyGroup>
-    <OutputName>OpenPub-1.5.1</OutputName>
+    <ProductVersion Condition="'$(ProductVersion)' == ''">1.5.1</ProductVersion>
+    <OutputName>OpenPub-$(ProductVersion)</OutputName>
     <OutputType>Package</OutputType>
     <Platform>x64</Platform>
     <InstallerPlatform>x64</InstallerPlatform>
-    <DefineConstants>PublishDir=$(MSBuildProjectDirectory)\..\dist\OpenPub;AssetsDir=$(MSBuildProjectDirectory)\..\src\OpenPub.App\Assets</DefineConstants>
+    <DefineConstants>PublishDir=$(MSBuildProjectDirectory)\..\dist\OpenPub;AssetsDir=$(MSBuildProjectDirectory)\..\src\OpenPub.App\Assets;ProductVersion=$(ProductVersion)</DefineConstants>
     <SuppressIces>ICE38;ICE64;ICE91</SuppressIces>
   </PropertyGroup>
 </Project>

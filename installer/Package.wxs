@@ -4,7 +4,7 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="OpenPub"
            Manufacturer="OpenPub"
-           Version="1.5.1.0"
+           Version="$(var.ProductVersion)"
            UpgradeCode="6B7E3C1A-5D2F-4E8B-9A41-0C3F7D2E8B15"
            Scope="perUser"
            Language="1036"
