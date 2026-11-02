@@ -1314,6 +1314,7 @@ public partial class MainWindow : Window
 
     void RefreshFormat()
     {
+        RefreshStyleBox();
         bool text = Sel is { IsText: true };
         FormatHint.Text = "";
         if (!text) return;
@@ -1372,8 +1373,8 @@ public partial class MainWindow : Window
 
     IEnumerable<string> DocumentColors() =>
         _session is null ? Array.Empty<string>() :
-        _session.Doc.AllShapes().SelectMany(sh => (sh.Paragraphs ?? new List<Paragraph>()).SelectMany(p => p.Runs).Select(r => r.Font?.Color)
-            .Append(sh.Fill?.Color).Append(sh.Line?.Color)).Where(c => c is not null).Select(c => c!);
+        (_session.Doc.Theme?.Colors ?? new List<string>()).Concat(_session.Doc.AllShapes().SelectMany(sh => (sh.Paragraphs ?? new List<Paragraph>()).SelectMany(p => p.Runs).Select(r => r.Font?.Color)
+            .Append(sh.Fill?.Color).Append(sh.Line?.Color))).Where(c => c is not null).Select(c => c!);
 
     /// <summary>Ouvre le selecteur de couleur ; renvoie (choisi, couleur ou null pour "aucune").</summary>
     (bool Picked, string? Color) PickColor(string? current, bool allowNone, string title)

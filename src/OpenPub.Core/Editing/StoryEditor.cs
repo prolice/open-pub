@@ -63,7 +63,7 @@ public static class StoryEditor
             if (offset < acc + r.Text.Length)
             {
                 int k = offset - acc;
-                var tail = new Run { Text = r.Text[k..], Font = r.Font?.Clone() };
+                var tail = new Run { Text = r.Text[k..], Font = r.Font?.Clone(), Style = r.Style };
                 r.Text = r.Text[..k];
                 p.Runs.Insert(i + 1, tail);
                 return i + 1;
@@ -79,7 +79,7 @@ public static class StoryEditor
         foreach (var r in p.Runs)
         {
             // un champ (numero de page...) reste un segment a part
-            if (merged.Count > 0 && merged[^1].Field is null && r.Field is null && merged[^1].Font?.SameAs(r.Font) == true) merged[^1].Text += r.Text;
+            if (merged.Count > 0 && merged[^1].Field is null && r.Field is null && merged[^1].Style == r.Style && merged[^1].Font?.SameAs(r.Font) == true) merged[^1].Text += r.Text;
             else merged.Add(r);
         }
         var nonEmpty = merged.Where(r => r.Text.Length > 0).ToList();
@@ -91,7 +91,7 @@ public static class StoryEditor
     {
         Align = p.Align, LineHeight = p.LineHeight, SpaceBefore = p.SpaceBefore, SpaceAfter = p.SpaceAfter,
         IndentLeft = p.IndentLeft, IndentRight = p.IndentRight, FirstIndent = p.FirstIndent,
-        List = p.List?.Clone(), Tabs = p.Tabs?.Select(t => t.Clone()).ToList(),
+        List = p.List?.Clone(), Tabs = p.Tabs?.Select(t => t.Clone()).ToList(), Style = p.Style,
         // la lettrine reste au premier paragraphe
     };
 

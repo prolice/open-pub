@@ -788,6 +788,45 @@ public static class SelfTest
             Capture(w, Path.Combine(outDir, "selftest-11-tableaux.png"));
         }
 
+        Console.WriteLine("Styles et jeux de couleurs et de polices");
+        {
+            var mw = typeof(MainWindow);
+            session.EndTextEdit();
+            var sp = session.Doc.Pages[^1];
+            var st = new Shape
+            {
+                Kind = ShapeKind.Text, X = 60, Y = 60, W = 300, H = 120, Padding = new[] { 2.85, 2.85, 2.85, 2.85 },
+                Paragraphs = new[] { "Grand titre", "Un paragraphe de texte.", "Sous-titre" }
+                    .Select(x => new Paragraph { Runs = { new Run { Text = x, Font = new FontSpec { Family = "Arial", Size = 11, Color = "#111c43" } } } }).ToList(),
+            };
+            session.Change(sp, () => sp.Shapes.Add(st));
+            session.BeginTextEdit(sp, st);
+            session.TextEdit!.SetCaret(new TextPos(0, 2), false);
+            var styles = Core.Editing.StyleOps.Ensure(session.Doc);
+            mw.GetMethod("ApplyTextStyle", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { styles.First(x => x.Id == "titre1") });
+            session.TextEdit!.SetCaret(new TextPos(2, 1), false);
+            mw.GetMethod("ApplyTextStyle", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { styles.First(x => x.Id == "titre2") });
+            Check(st.Paragraphs[0].Style == "titre1" && st.Paragraphs[0].Runs[0].Font!.Size == 24 && st.Paragraphs[1].Style is null, "style « Titre 1 » applique au paragraphe du curseur");
+            var box = (System.Windows.Controls.ComboBox)w.FindName("StyleBox");
+            session.TextEdit!.SetCaret(new TextPos(0, 1), false);
+            mw.GetMethod("RefreshFormat", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, null);
+            Check(box.SelectedItem is System.Windows.Controls.ComboBoxItem { Tag: "titre1" }, "la liste des styles montre le style du paragraphe");
+            session.EndTextEdit();
+            var t1 = styles.First(x => x.Id == "titre1");
+            session.BeginChange(); t1.Font!.Color = "#9935f4"; Core.Editing.StyleOps.Reapply(session.Doc, t1); session.EndChange();
+            Check(st.Paragraphs[0].Runs[0].Font!.Color == "#9935f4", "modifier le style : le texte suit");
+            mw.GetMethod("ApplyColorScheme", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { "Forêt", Core.Editing.StyleOps.ColorSchemes.First(c => c.Name == "Forêt").Colors });
+            sp = session.Doc.Pages[^1];
+            var st2 = sp.Shapes.First(x => x.Paragraphs?.FirstOrDefault()?.PlainText == "Grand titre");
+            Check(session.Doc.Theme?.Name == "Forêt" && st2.Paragraphs![1].Runs[0].Font!.Color == "#1b3a2b", "jeu de couleurs « Forêt » : couleur principale remplacee");
+            session.BeginChange(); Core.Editing.StyleOps.ApplyFontScheme(session.Doc, "Cambria", "Calibri"); session.EndChange(); session.StructureChanged();
+            sp = session.Doc.Pages[^1];
+            st2 = sp.Shapes.First(x => x.Paragraphs?.FirstOrDefault()?.PlainText == "Grand titre");
+            Check(st2.Paragraphs![0].Runs[0].Font!.Family == "Cambria", "jeu de polices : police des titres");
+            session.Undo(); session.Undo();
+            Check(session.Doc.Theme is null || session.Doc.Theme.Name != "Forêt" || session.Doc.Theme.HeadingFont is null, "annuler les jeux");
+        }
+
         Console.WriteLine("Surete des documents : copie de secours, recuperation, fichier modifie ailleurs");
         {
             w.SkipConfirm = true;

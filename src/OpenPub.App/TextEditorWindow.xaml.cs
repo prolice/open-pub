@@ -128,6 +128,7 @@ public partial class TextEditorWindow : Window
                 IndentRight = model?.IndentRight,
                 FirstIndent = model?.FirstIndent,
                 List = model?.List?.Clone(),
+                Style = model?.Style,
                 Tabs = model?.Tabs?.Select(t => t.Clone()).ToList(),
                 DropCap = i < _original.Count ? model?.DropCap : null,
             };

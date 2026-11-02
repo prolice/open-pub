@@ -120,6 +120,12 @@
                                 </StackPanel>
                             </StackPanel>
                         </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Styles">
+                            <StackPanel VerticalAlignment="Center">
+                                <ComboBox x:Name="StyleBox" Width="150" ToolTip="Style du paragraphe" SelectionChanged="StyleBox_SelectionChanged" Margin="0,0,0,4"/>
+                                <Button Style="{StaticResource RSmall}" Tag="&#xE8D2;" Content="Styles ▾" Click="StylesButton_Click" ToolTip="Styles de caractère, nouveau style d'après le texte, modifier ou supprimer un style"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Objets">
                             <StackPanel Orientation="Horizontal">
                                 <Button Style="{StaticResource RBig}" Tag="&#xE8C8;" Content="Dupliquer" Click="Duplicate_Click" ToolTip="Dupliquer l'objet sélectionné"/>
@@ -240,6 +246,12 @@
                                     <Button Style="{StaticResource RSmall}" Tag="&#xE710;" Content="Nouvelle page maître" Click="NewMaster_Click"/>
                                     <Button Style="{StaticResource RSmall}" Tag="&#xE8B3;" Content="Appliquer ▾" Click="ApplyMaster_Click" ToolTip="Page maître utilisée par la page active ou par toutes les pages"/>
                                 </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Jeux">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xE2B1;" Content="Couleurs&#x0a;▾" Click="ColorSchemeButton_Click" ToolTip="Jeu de couleurs du document : change les couleurs partout en une fois"/>
+                                <Button Style="{StaticResource RBig}" Tag="&#xE8D2;" Content="Polices&#x0a;▾" Click="FontSchemeButton_Click" ToolTip="Jeu de polices : police des titres et police du texte"/>
                             </StackPanel>
                         </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Page">

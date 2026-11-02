@@ -36,6 +36,10 @@ public sealed class PubDocument
     public RulerGuides? Guides { get; set; }
     /// <summary>Grille de disposition (colonnes et lignes a l'interieur des marges).</summary>
     public LayoutGrid? Grid { get; set; }
+    /// <summary>Styles de paragraphe et de caractere du document.</summary>
+    public List<TextStyle>? Styles { get; set; }
+    /// <summary>Jeu de couleurs et jeu de polices du document.</summary>
+    public DocTheme? Theme { get; set; }
 
     /// <summary>Version de format la plus recente que cette application sait lire et ecrire.</summary>
     public const int SupportedFormat = 2;
@@ -76,10 +80,41 @@ public static class PubFormat
     {
         bool v2 = doc.Masters is { Count: > 0 } || doc.Numbering is not null || doc.Guides is not null || doc.Grid is not null
                   || doc.Pages.Any(p => p.BackColor is not null || p.NumberStart is not null || p.Master is not null || p.IgnoreMaster)
-                  || doc.AllShapes().Any(s => s.Kind == ShapeKind.Table)
+                  || doc.AllShapes().Any(s => s.Kind == ShapeKind.Table) || doc.Styles is { Count: > 0 } || doc.Theme is not null
                   || doc.AllShapes().Any(s => s.Paragraphs?.Any(p => p.Runs.Any(r => r.Field is not null)) == true);
         return v2 || doc.FormatVersion >= 2 ? $"openpub/{Math.Max(2, Math.Min(doc.FormatVersion, PubDocument.SupportedFormat))}" : "openpub/1";
     }
+}
+
+/// <summary>
+/// Style de texte nomme. Un style de paragraphe porte police et reglages de paragraphe ; un style de caractere
+/// seulement la police. Appliquer un style recopie ses valeurs dans le texte ; modifier un style met a jour tout
+/// le texte qui l'utilise.
+/// </summary>
+public sealed class TextStyle
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    /// <summary>"paragraph" ou "character".</summary>
+    public string Kind { get; set; } = "paragraph";
+    public FontSpec? Font { get; set; }
+    public string? Align { get; set; }
+    public string? LineHeight { get; set; }
+    public double? SpaceBefore { get; set; }
+    public double? SpaceAfter { get; set; }
+    public double? IndentLeft { get; set; }
+    public double? FirstIndent { get; set; }
+    /// <summary>Role dans le jeu de polices : "heading" (police des titres) ou "body" (police du texte).</summary>
+    public string? FontRole { get; set; }
+}
+
+/// <summary>Jeu de couleurs (principale puis accents) et jeu de polices (titres, texte).</summary>
+public sealed class DocTheme
+{
+    public string? Name { get; set; }
+    public List<string> Colors { get; set; } = new();
+    public string? HeadingFont { get; set; }
+    public string? BodyFont { get; set; }
 }
 
 /// <summary>Numerotation des pages.</summary>
@@ -397,6 +432,8 @@ public sealed class Paragraph
     public ListStyle? List { get; set; }
     /// <summary>Taquets de tabulation (positions depuis le bord gauche du texte, en points) ; sinon tous les 1,27 cm.</summary>
     public List<TabStop>? Tabs { get; set; }
+    /// <summary>Style de paragraphe applique (identifiant).</summary>
+    public string? Style { get; set; }
     /// <summary>Lettrine : la premiere lettre occupe ce nombre de lignes (null ou 0 = aucune).</summary>
     public int? DropCap { get; set; }
     public List<Run> Runs { get; set; } = new();
@@ -453,6 +490,8 @@ public sealed class Run
     /// "date" (date du jour). Le texte du segment ("#") sert de position et de repli.
     /// </summary>
     public string? Field { get; set; }
+    /// <summary>Style de caractere applique (identifiant).</summary>
+    public string? Style { get; set; }
 }
 
 public sealed class FontSpec
