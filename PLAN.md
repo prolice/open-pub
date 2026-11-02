@@ -393,8 +393,9 @@ Lots 9 (formes, effets, WordArt) et 10 (PDF, impression) : réalisés en parall�
   Excel copiée dans le document, champs «Colonne», aperçu, document fusionné), liens hypertextes (`Run.Link`,
   `Shape.Link`, Ctrl + clic), texte de remplacement (`Shape.AltText`), page web autonome (pages en PNG incluses,
   `<map>` des liens, texte des pages pour l'accessibilité).
-  - À faire après la fusion des lots 9 et 10 : texte le long d'un tracé libre (variante du WordArt), liens actifs et
-    textes de remplacement dans le PDF.
+  - Après la fusion des lots 9 et 10 : texte le long d'un tracé libre (`WordArtWarps.Path`, Dessin ▸ Texte sur le
+    tracé) et liens actifs dans le PDF (`MainWindow.LinkAreas`, sauf PDF/X-4) sont faits. Reste : PDF balisé
+    (textes de remplacement, ordre de lecture).
 - **Vérifications** : 88 tests unitaires, 160 vérifications de bout en bout (les échecs intermittents de copier/coller
   venaient d'autres processus utilisant le presse-papiers Windows en même temps).
 
