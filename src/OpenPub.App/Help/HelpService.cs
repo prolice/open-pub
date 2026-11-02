@@ -53,6 +53,12 @@ public static class HelpService
     public const string Review = "revision.html#orthographe";
     public const string FindReplace = "revision.html#rechercher";
     public const string Recovery = "interface.html#recuperation";
+    // version 2.1 : sorties (lot 10)
+    public const string PrintPreview = "impression.html#apercu";
+    public const string Booklet = "impression.html#livret";
+    public const string ManualDuplex = "impression.html#recto-verso";
+    public const string PdfForPrinter = "impression.html#imprimeur";
+    public const string ImageExport = "impression.html#png";
 
     public static IReadOnlyList<string> AllTopics => typeof(HelpService).GetFields(BindingFlags.Public | BindingFlags.Static)
         .Where(f => f.IsLiteral && f.FieldType == typeof(string)).Select(f => (string)f.GetRawConstantValue()!).ToList();

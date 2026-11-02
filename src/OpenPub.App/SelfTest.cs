@@ -665,6 +665,9 @@ public static class SelfTest
         setTool.Invoke(w, new object?[] { null });
         Check(Help.HelpService.UrlOf(Help.HelpService.TextWrite) == "https://calm-pebble-0080d6003.5.azurestaticapps.net/aide/texte.html#ecrire", "adresse des pages d'aide");
 
+        Console.WriteLine("Sorties : PDF direct, PDF imprimeur, impression, images");
+        OutputChecks(w, session, pic, outDir);
+
         Console.WriteLine("Surete des documents : copie de secours, recuperation, fichier modifie ailleurs");
         {
             w.SkipConfirm = true;
@@ -706,5 +709,112 @@ public static class SelfTest
         if (tmp != file) try { File.Delete(tmp); } catch { }
         Console.WriteLine($"\n{_ok} verifications reussies, {_ko} echec(s)");
         return _ko == 0 ? 0 : 1;
+    }
+
+    /// <summary>Lot 10 : export PDF (relu par PDFsharp), fond perdu, PDF/X-4, livret, recto verso, apercu, images.</summary>
+    static void OutputChecks(MainWindow w, EditorSession session, Shape pic, string outDir)
+    {
+        var tmp = Path.Combine(Path.GetTempPath(), "openpub-selftest-output-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(tmp);
+        try
+        {
+            session.EndTextEdit();
+            session.Select(null);
+            var doc = session.Doc;
+            int n = doc.Pages.Count;
+            var p1 = doc.Pages[0];
+            string Fingerprint() => string.Join(";", doc.AllShapes().Select(s => FormattableString.Invariant(
+                $"{s.X:0.###},{s.Y:0.###},{s.W:0.###},{s.H:0.###},{s.ImageFx?.CropLeft:0.####},{s.ImageFx?.CropTop:0.####},{s.ImageFx?.CropRight:0.####},{s.ImageFx?.CropBottom:0.####}")));
+            var before = Fingerprint();
+
+            // PDF direct : toutes les pages, taille exacte, polices incorporees, images
+            var pdf = Path.Combine(tmp, "document.pdf");
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var stats = Output.PdfExporter.Export(session, pdf, new Output.PdfExportOptions());
+            sw.Stop();
+            var sum = Output.PdfExporter.Inspect(pdf);
+            Console.WriteLine($"       ({n} pages en {sw.ElapsedMilliseconds} ms, {new FileInfo(pdf).Length / 1024} Ko ; {stats})");
+            Check(sum.Pages == n, $"PDF relu par PDFsharp : {sum.Pages} page(s)");
+            Check(Math.Abs(sum.Sizes[0].W - p1.Width) < 0.05 && Math.Abs(sum.Sizes[0].H - p1.Height) < 0.05, "taille de page du PDF = taille du document");
+            Check(sum.EmbeddedFonts.Count > 0 && sum.MissingFonts.Count == 0, $"polices incorporees ({sum.EmbeddedFonts.Count}), aucune manquante");
+            Check(stats.TextRuns > 50 && stats.TextAsOutlines == 0, "texte vectoriel avec la vraie police (pas de contours)");
+            Check(sum.Images > 0 && stats.Images > 0, $"images incorporees ({sum.Images})");
+            var used = doc.AllShapes().Where(s => s.IsText).SelectMany(s => s.Paragraphs ?? new()).SelectMany(p => p.Runs).Where(r => !string.IsNullOrWhiteSpace(r.Text)).Select(r => r.Font?.Family).OfType<string>().Distinct();
+            Check(used.Where(f => !session.Fonts.Substituted.Contains(f)).All(f => sum.EmbeddedFonts.Any(e => e.Contains(f.Split(' ')[0], StringComparison.OrdinalIgnoreCase))),
+                "chaque police du document est incorporee");
+
+            // pour l'imprimeur : fond perdu de 3 mm, traits de coupe, PDF/X-4
+            var bleedPdf = Path.Combine(tmp, "imprimeur.pdf");
+            var profiles = Output.PdfExporter.CmykProfiles();
+            var o = new Output.PdfExportOptions { Pages = new[] { 1 }, Bleed = Core.Output.PrintSheet.DefaultBleed, CropMarks = true, PdfX4 = profiles.Count > 0 };
+            Output.PdfExporter.Export(session, bleedPdf, o);
+            var bs = Output.PdfExporter.Inspect(bleedPdf);
+            var sheet = new Core.Output.PrintSheet(p1.Width, p1.Height, o.Bleed, true);
+            Check(bs.Pages == 1 && Math.Abs(bs.Sizes[0].W - sheet.MediaWidth) < 0.05 && Math.Abs(bs.Sizes[0].H - sheet.MediaHeight) < 0.05,
+                $"fond perdu et traits de coupe : feuille {bs.Sizes[0].W:0.#} x {bs.Sizes[0].H:0.#} pt");
+            Check(bs.TrimSizes[0] is { } trim && Math.Abs(trim.W - p1.Width) < 0.05 && Math.Abs(trim.H - p1.Height) < 0.05, "format fini (TrimBox) = taille de la page");
+            Check(Fingerprint() == before, "le fond perdu ne modifie pas le document");
+            if (profiles.Count > 0)
+                Check(bs.PdfXVersion == "PDF/X-4" && bs.OutputIntent, "PDF/X-4 : version et intention de sortie CMJN");
+            else Console.WriteLine("       (aucun profil CMJN installe : PDF/X-4 non verifie)");
+
+            // effets en image : le reflet (masque d'opacite) est rasterise
+            var picPage = doc.Pages.FirstOrDefault(pg => pg.Shapes.Contains(pic));
+            if (picPage is null)
+            {
+                picPage = doc.Pages.First(pg => pg.Shapes.Any(x => x.IsImage && !x.Background && x.W > 80));
+                pic = picPage.Shapes.First(x => x.IsImage && !x.Background && x.W > 80);
+            }
+            var fx0 = pic.ImageFx;
+            var fxr = fx0?.Clone() ?? new ImageFx();
+            fxr.ReflectionSize = 0.3;
+            pic.ImageFx = fxr;
+            var rs = Output.PdfExporter.Export(session, Path.Combine(tmp, "reflet.pdf"), new Output.PdfExportOptions { Pages = new[] { doc.Pages.IndexOf(picPage) + 1 } });
+            pic.ImageFx = fx0;
+            Check(rs.Rasterized > 0, "reflet d'image rasterise localement (300 ppp)");
+
+            // impression : livret dans l'ordre de pliage, recto verso manuel
+            var all = Enumerable.Range(1, n).ToList();
+            var booklet = Output.PrintService.Passes(new Output.PrintOptions { Pages = all, Mode = Output.PrintMode.Booklet });
+            var expected = Core.Output.Booklet.Sides(n).Select(s => new Output.PrintFace(s.Left, s.Right)).ToList();
+            Check(booklet.Count == 1 && booklet[0].SequenceEqual(expected), $"livret de {n} pages : {string.Join(" / ", booklet[0])}");
+            var fixedDoc = Output.PrintService.BuildDocument(session, booklet[0], Output.PrintMode.Booklet);
+            var first = fixedDoc.Pages[0].Child;
+            var tags = first.Children.OfType<PageView>().Select(v => (int)v.Tag).ToList();
+            Check(fixedDoc.Pages.Count == expected.Count && first.Width > first.Height &&
+                  tags.SequenceEqual(new[] { expected[0].Left, expected[0].Right }.Where(x => x > 0)), "livret : feuilles paysage, 2 pages par face");
+            var duplex = Output.PrintService.Passes(new Output.PrintOptions { Pages = all, Mode = Output.PrintMode.ManualDuplex, Copies = 2 });
+            Check(duplex.Count == 2 && duplex[0].Count == duplex[1].Count && duplex[0][0].Left == 1 && (n < 2 || duplex[1][0].Left == 2),
+                "recto verso manuel : deux passages de meme longueur, rectos puis versos");
+            Check(Output.PrintService.Passes(new Output.PrintOptions { Pages = new[] { 1 }, Copies = 3 })[0].Count == 3, "exemplaires assembles");
+
+            // apercu avant impression
+            var pw = new Output.PrintWindow(session, 1) { Owner = w, Left = -4000, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual };
+            pw.Show();
+            Pump();
+            pw.SetMode(Output.PrintMode.Booklet);
+            Check(pw.PreviewDocument is { } pd && pd.Pages.Count == expected.Count && pw.PreviewSheets == expected.Count, "apercu avant impression du livret");
+            Capture(pw, Path.Combine(outDir, "impression-livret.png"));
+            pw.Close();
+            var ew = new Output.PdfExportWindow(n, 1) { Owner = w, Left = -4000, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual };
+            ew.Show();
+            Capture(ew, Path.Combine(outDir, "export-pdf.png"));
+            ew.Close();
+
+            // menu Fichier et export d'images
+            Click(w, "FileButton_Click");
+            var headers = w.LastMenu!.Items.OfType<System.Windows.Controls.MenuItem>().Select(i => i.Header as string).ToList();
+            w.LastMenu.IsOpen = false;
+            Check(headers.Contains("Exporter en PDF…") && headers.Contains("Imprimer…") && headers.Contains("Exporter en images (PNG, JPEG)…"), "menu Fichier : imprimer, PDF, images");
+            var jpg = Exporter.ExportImages(session, tmp, ImageFormat.Jpeg, 72, new[] { 1 });
+            var dec = BitmapDecoder.Create(new Uri(jpg[0]), BitmapCreateOptions.None, BitmapCacheOption.OnLoad).Frames[0];
+            Check(jpg[0].EndsWith(".jpg") && dec.PixelWidth == (int)Math.Ceiling(p1.Width) && dec.Decoder is JpegBitmapDecoder, $"export JPEG a 72 ppp : {dec.PixelWidth} x {dec.PixelHeight}");
+            var png = Exporter.ExportImages(session, tmp, ImageFormat.Png, 144, null, Path.Combine(tmp, "x.png"));
+            Check(png.Count == n, "export PNG de toutes les pages");
+        }
+        finally
+        {
+            try { Directory.Delete(tmp, true); } catch { }
+        }
     }
 }

@@ -537,3 +537,93 @@ deviennent les versions 2.1 et suivantes.
 **Jalons** : après les lots 0 à 5 (≈ 67 jours), OpenPub couvre tout l'usage mensuel de la newsletter sans manque gênant ; la version 2.0 apporte la structure de document de Publisher ; les lots 9 à 11 complètent la parité visuelle et les sorties d'imprimerie.
 
 **Risques** : habillage serré et WordArt (géométrie du texte), tableaux (nouveau type d'objet dans tout l'éditeur), PDF identique à l'écran (polices et effets) ; pour chacun, un prototype de 1 à 2 jours avant d'engager le lot.
+
+---
+
+## 9. Lot 10 livré : PDF direct et impression
+
+Réalisé le 2026-11-02 sur la base de la 2.0.0 (les nouveautés sont annoncées `"depuis": "2.1.0"` sur le portail ;
+numéros de version inchangés).
+
+### Fait
+
+- **Export PDF direct** (Fichier ▸ Exporter en PDF…, `Output/PdfExporter.cs`) avec **PDFsharp 6.2.4** (MIT, paquet
+  `PDFsharp`, version « Core » sans GDI ni WPF, cible `net10.0` incluse). Pas d'abstraction du rendu : chaque page est
+  dessinée par `PageRenderer.DrawPage` (`editorMarks: false`, **inchangé**) dans un `DrawingGroup`, puis
+  `Output/DrawingToPdf.cs` parcourt l'arbre :
+  - `GeometryDrawing` → tracés PDFsharp (arcs convertis en Bézier, transformation de la géométrie appliquée aux
+    points, règle de remplissage, tirets, extrémités, jointures, transparence par `ExtGState`) ;
+  - `GlyphRunDrawing` → texte réel : segments de glyphes placés à la position exacte du `GlyphRun` (un nouveau segment
+    dès que l'avance WPF — crénage, interlettrage — diffère de l'avance de la police) ; les **indices de glyphes de WPF**
+    sont imposés à PDFsharp par son événement `RenderTextEvent` (mêmes formes qu'à l'écran) ; texte Unicode
+    sélectionnable et recherchable ; polices incorporées en **sous-ensemble** ;
+  - `ImageDrawing` → **fichier d'origine** recopié (JPEG sans recompression, PNG sans perte) ; images retouchées,
+    recadrées ou issues d'un WMF → PNG sans perte ; une image utilisée plusieurs fois n'est incorporée qu'une fois ;
+    transparence d'image appliquée dans les pixels (pas de rééchantillonnage) ;
+  - `DrawingGroup` → `Transform`, `ClipGeometry`, `Opacity` ; `OpacityMask` (reflet), effets, pinceaux non unis
+    → **rasterisés localement à 300 ppp**. Les ombres floues sont déjà des images dans le rendu (`ImageCache.Shadow`).
+  - Polices (`Output/PdfFonts.cs`, `IFontResolver`) : chaque `GlyphTypeface` rencontré (police système ou du dossier
+    `fonts/` du paquet, comme Cavolini) est relu depuis le vrai fichier ; **collections .ttc** découpées en .ttf
+    autonome (`Core/Output/SfntFont.cs`, PDFsharp ne les gère pas) ; italique simulé reproduit par PDFsharp ;
+    **gras simulé, contours CFF, licence « restricted »** (OS/2 fsType) → texte en contours vectoriels.
+- **PDF pour l'imprimeur** (options de la boîte d'export) :
+  - **fond perdu** (3 mm par défaut) : feuille agrandie, découpe de la page élargie au fond perdu, et
+    `Core/Output/PrintLayout.cs` `BleedExtender` **prolonge** temporairement les rectangles pleins et les images qui
+    touchent un bord (tolérance 1 pt ; pas les formes non rectangulaires, objets tournés, zones de texte, images
+    détourées ou à reflet). Les images gardent leurs proportions : on dévoile la partie recadrée, sinon agrandissement
+    minimal autour du bord opposé. La mise en page du texte est calculée avant (inchangée) ; le document est restauré
+    exactement (vérifié par l'auto-test) ;
+  - **traits de coupe** (8 traits de 5 mm, à 3 mm du format fini, hors fond perdu) ; `TrimBox` et `BleedBox` ;
+  - **PDF/X-4** : PDF 1.6, `GTS_PDFXVersion`, `Trapped`, intention de sortie `GTS_PDFX` avec le **profil CMJN
+    incorporé** (cherché dans `C:\Windows\System32\spool\drivers\color`, FOGRA39 en premier ; « Autre profil… »),
+    couleurs du rendu étiquetées sRGB (`DefaultRGB` = profil sRGB de Windows sur chaque page), métadonnées XMP
+    (`pdfxid:GTS_PDFXVersion`, dates et producteur cohérents avec Info). PDFsharp réécrit à l'enregistrement ses
+    propres XMP et un groupe de transparence `DeviceRGB` : `Core/Output/PdfIncrementalUpdate.cs` les remplace par une
+    **mise à jour incrémentale** standard (catalogue, pages, nouvelle table de références chaînée par `/Prev`).
+- **Impression avancée** (`Output/PrintService.cs`, `Output/PrintWindow.cs`) : choix des pages (`1-3; 5`, `4-`),
+  exemplaires assemblés (le document est répété), **aperçu avant impression** (vignettes des feuilles dans l'ordre,
+  légendées « Feuille 1, recto — pages 8 et 1 »), **livret** (`Booklet.Sides` : 8-1, 2-7, 6-3, 4-5 ; complété à un
+  multiple de 4 ; feuille paysage du papier choisi, pages réduites et centrées ; recto verso bord court demandé au
+  pilote), **recto verso manuel guidé** (rectos, message « retournez la pile », versos complétés par une face blanche,
+  option « versos dans l'ordre inverse ») et livret en recto verso manuel.
+- **Export d'images** (`Output/ImageExportWindow.cs`, `Exporter.ExportImages`) : PNG ou JPEG (qualité 92), 24 à
+  1200 ppp, page active (nom de fichier au choix), toutes ou liste.
+- **Ligne de commande** : `--pdf <fichier> <sortie.pdf> [--pages 1-3] [--bleed [mm]] [--marks] [--pdfx [profil.icc]]
+  [--dpi n]` (affiche le résumé du PDF relu : pages, feuille, format fini, polices incorporées, images, PDF/X) et
+  `--images <fichier> <dossier> [--jpeg] [--dpi n] [--pages …]`.
+- **Interface** : menu Fichier « Imprimer… » (Ctrl+P), « Exporter en PDF… », « Exporter en images (PNG, JPEG)… »
+  (gestionnaires dans `MainWindow.Output.cs`) ; F1 dans chaque boîte ouvre la section d'aide.
+- **Aide** : `impression.html` réécrite (`#imprimer`, `#apercu`, `#livret`, `#recto-verso`, `#pdf`, `#imprimeur`,
+  `#png`), constantes `HelpService.PrintPreview/Booklet/ManualDuplex/PdfForPrinter/ImageExport` (47 sujets, tous
+  trouvés dans l'aide générée) ; raccourcis et menu Fichier mis à jour ; 6 éléments « Impression et PDF » sur le portail.
+
+### Mesuré
+
+- Fidélité : pages rendues depuis le PDF (MuPDF) comparées au rendu PNG d'OpenPub à 72 ppp : écart moyen 0,5 à
+  2/255 sur la démo, 4,7 à 6,9/255 sur la newsletter (lissage différent du texte et des images rééchantillonnées ;
+  positions des lignes et des mots identiques au point près à 200 ppp).
+- Newsletter (4 pages, 10 polices, 16 images) : 2,6 s en ligne de commande (démarrage des polices compris), 5,7 Mo
+  (images d'origine : 5,8 Mo) ; avec fond perdu, traits de coupe et PDF/X-4 : 2,9 s, 6,6 Mo. Dans l'auto-test
+  (5 pages) : 1,3 s. Démo : 0,5 s, 96 Ko.
+- Tests : **78 tests unitaires** (10 nouveaux : livret, recto verso, choix des pages, fond perdu et traits de coupe,
+  extension des rectangles et des images, collections .ttc, licence de police, mise à jour incrémentale) et
+  **134 vérifications** de bout en bout (19 nouvelles : PDF relu par PDFsharp, nombre et taille des pages, polices
+  incorporées, texte non converti en contours, images, fond perdu, format fini, document intact, PDF/X-4, reflet
+  rasterisé, livret, recto verso, exemplaires, aperçu, menu, JPEG, PNG). Captures `impression-livret.png` et
+  `export-pdf.png` dans le dossier de l'auto-test.
+
+### Non fait, limites
+
+- **Conformité PDF/X-4 non validée** par un outil de contrôle (pas d'Acrobat Preflight ni de callas sur la machine) :
+  la structure suit la norme, mais un contrôle par l'imprimeur reste conseillé.
+- **Conversion CMJN non faite** : `PdfDocumentOptions.ColorMode = Cmyk` de PDFsharp est une formule naïve, sans profil,
+  qui ne touche pas les images ; la conversion est laissée au RIP de l'imprimeur (profil de sortie incorporé). Une
+  vraie conversion demanderait le moteur de couleurs de Windows (WCS) pour les couleurs et `ColorConvertedBitmap`
+  pour les images, plus la gestion de la transparence en CMJN.
+- Opacité de groupe appliquée enfant par enfant (exact pour le rendu actuel, où un groupe opaque ne contient qu'une
+  image) ; un futur groupe semi-transparent de plusieurs objets qui se chevauchent serait légèrement différent.
+- Ligatures (« fi ») : dessinées en lettres séparées à la position exacte de la ligature (le texte extrait reste
+  juste) ; gras simulé en contours (pas de texte sélectionnable pour ces mots).
+- Pas d'aperçu à l'échelle de l'imprimante choisie avant la boîte Windows : l'aperçu du livret utilise le papier de
+  l'imprimante par défaut (A4 sinon) ; l'impression réelle prend le papier choisi.
+- Pas encore de PDF en livret (imposition) ni de PDF balisé (accessibilité, lot 12).
