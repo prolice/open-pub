@@ -119,8 +119,15 @@ public sealed class WordArtFx
     public bool Italic { get; set; }
     /// <summary>Deformation : voir <see cref="WordArtWarps"/>.</summary>
     public string Warp { get; set; } = WordArtWarps.None;
+    /// <summary>Deformation « le long d'un trace » : points de la ligne de base, en parts du cadre (0 a 1).</summary>
+    public List<double[]>? PathPoints { get; set; }
 
-    public WordArtFx Clone() => (WordArtFx)MemberwiseClone();
+    public WordArtFx Clone()
+    {
+        var c = (WordArtFx)MemberwiseClone();
+        c.PathPoints = PathPoints?.Select(p => (double[])p.Clone()).ToList();
+        return c;
+    }
 }
 
 public static class WordArtWarps
@@ -130,6 +137,8 @@ public static class WordArtWarps
     public const string ArcDown = "arcDown";
     public const string Circle = "circle";
     public const string Wave = "wave";
+    /// <summary>Le long d'un trace libre (Dessin ▸ Texte sur le tracé) ; ne figure pas dans la liste des deformations.</summary>
+    public const string Path = "path";
 
     public static readonly (string Id, string Label)[] All =
     {

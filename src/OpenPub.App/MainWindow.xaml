@@ -207,6 +207,10 @@
                                 <ToggleButton Style="{StaticResource RBig}" Tag="&#xEBE7;" Content="Flèche" Click="DrawTool_Click" CommandParameter="arrow" ToolTip="Tracer une flèche (Maj : 45°)"/>
                             </StackPanel>
                         </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Texte">
+                            <Button Style="{StaticResource RBig}" Tag="&#xE8D2;" Content="Texte sur&#x0a;le tracé" Click="TextOnPath_Click"
+                                    ToolTip="Écrire un texte qui suit la ligne ou le tracé sélectionné (dessinez-le d'abord au crayon)"/>
+                        </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Formes">
                             <WrapPanel x:Name="ShapeGallery" Orientation="Horizontal" Width="190" VerticalAlignment="Center"/>
                         </HeaderedContentControl>

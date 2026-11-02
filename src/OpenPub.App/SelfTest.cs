@@ -900,6 +900,20 @@ public static partial class SelfTest
         OutputChecks(w, session, pic, outDir);
         Lot9(w, session, outDir);          // formes, effets, WordArt, images (SelfTest.Shapes.cs)
 
+        Console.WriteLine("Texte sur un trace");
+        {
+            session.EndTextEdit();
+            var tpg = session.Doc.Pages[^1];
+            var wave = Enumerable.Range(0, 200).Select(i => new Point(80 + i * 2, 700 + Math.Sin(i / 30.0) * 40)).ToList();
+            var stroke2 = OpenPub.App.Editing.DrawingFactory.Freehand(wave, "#9935f4", 2, 0.5)!;
+            session.Change(tpg, () => tpg.Shapes.Add(stroke2));
+            session.Select(stroke2, tpg);
+            var wa2 = MainWindow.TextAlongPath(stroke2, "Le texte suit la vague du crayon");
+            Check(wa2 is { Kind: ShapeKind.WordArt, WordArt.Warp: WordArtWarps.Path } && wa2.WordArt.PathPoints!.Count > 5, "texte sur le trace : WordArt le long du trace");
+            session.Change(tpg, () => { tpg.Shapes[tpg.Shapes.IndexOf(stroke2)] = wa2!; });
+            Exporter.ExportPng(session, outDir, 110);
+        }
+
         Console.WriteLine("Surete des documents : copie de secours, recuperation, fichier modifie ailleurs");
         {
             w.SkipConfirm = true;

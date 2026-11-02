@@ -268,7 +268,8 @@ public static class DecorRenderer
         if (glyphs.Count == 0 || top >= 0) return null;
         // hauteur de l'encre (et non de l'interligne) : le texte remplit exactement le cadre
         double ascent = -top / em, descent = Math.Max(0.02, bottom / em);
-        var layout = TextOnPath.Layout(glyphs.Select(g => g.Adv).ToList(), ascent, descent, wa.Warp, Math.Max(s.W, 1), Math.Max(s.H, 1));
+        var baseline = wa.PathPoints?.Where(p => p.Length >= 2).Select(p => (p[0] * Math.Max(s.W, 1), p[1] * Math.Max(s.H, 1))).ToList();
+        var layout = TextOnPath.Layout(glyphs.Select(g => g.Adv).ToList(), ascent, descent, wa.Warp, Math.Max(s.W, 1), Math.Max(s.H, 1), baseline);
         var group = new GeometryGroup { FillRule = FillRule.Nonzero };
         double k = layout.Size / em;
         for (int i = 0; i < glyphs.Count && i < layout.Glyphs.Count; i++)

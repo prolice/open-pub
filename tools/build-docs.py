@@ -334,6 +334,9 @@ courbe</strong> (ronds) et glissez-les pour arrondir le tracé.</li>
 {steps("<strong>Insertion ▸ WordArt ▾</strong> : choisissez un style (dégradé, contour, arc-en-ciel, ombre, lueur…).",
        "Tapez le texte, choisissez la police, le gras ou l'italique et la <strong>déformation</strong> : texte droit, arc vers le haut, arc vers le bas, cercle ou vague.",
        "Le texte remplit son cadre : redimensionnez-le pour l'étirer ; double-clic pour modifier le texte.")}
+<p><strong>Texte sur un tracé</strong> : dessinez une ligne au <strong>Crayon</strong> (ou avec la forme libre),
+sélectionnez-la puis <strong>Dessin ▸ Texte sur le tracé</strong> ; les lettres suivent le tracé, qui devient un
+WordArt (le redimensionner étire le tracé avec le texte).</p>
 <p>Le WordArt se met en forme comme une forme : <strong>Remplissage ▾</strong> (dégradé, motif, image),
 <strong>Contour</strong>, <strong>Ombre</strong>, <strong>Effets ▾</strong>, rotation. <strong>Déformation ▾</strong>
 change la courbe du texte. Il ne contient qu'une ligne : pour un titre sur plusieurs lignes, utilisez plusieurs

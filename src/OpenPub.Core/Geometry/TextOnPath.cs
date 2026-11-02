@@ -19,7 +19,9 @@ public static class TextOnPath
     /// <param name="advances">Chasse de chaque glyphe pour une taille de 1.</param>
     /// <param name="ascent">Hauteur au-dessus de la ligne de base pour une taille de 1.</param>
     /// <param name="descent">Profondeur sous la ligne de base pour une taille de 1.</param>
-    public static WordArtLayout Layout(IReadOnlyList<double> advances, double ascent, double descent, string? warp, double w, double h)
+    /// <param name="path">Ligne de base d'un texte « le long d'un trace » (repere du cadre), pour la deformation « path ».</param>
+    public static WordArtLayout Layout(IReadOnlyList<double> advances, double ascent, double descent, string? warp, double w, double h,
+        IReadOnlyList<(double X, double Y)>? path = null)
     {
         var glyphs = new List<GlyphPlacement>();
         double total = advances.Sum();
@@ -32,6 +34,14 @@ public static class TextOnPath
                 return Arc(advances, total, ascent, descent, em, w, h, up: warp == WordArtWarps.ArcUp);
             case WordArtWarps.Circle:
                 return Circle(advances, total, ascent, em, w, h);
+            case WordArtWarps.Path when path is { Count: >= 2 }:
+            {
+                // le long du trace : la plus grande taille qui laisse tenir le texte sur la ligne (et pas plus de 40 % du cadre)
+                var line = new Polyline(path);
+                if (line.Length < 1) return new WordArtLayout(0, glyphs);
+                double size = Math.Min(line.Length * 0.96 / total, Math.Max(w, h) * 0.4 / em);
+                return new WordArtLayout(size, Along(advances, total, size, line));
+            }
             case WordArtWarps.Wave:
             {
                 // vague : le texte occupe toute la largeur, la ligne de base ondule (une periode)
