@@ -1,4 +1,4 @@
-using OpenPub.Core.Model;
+﻿using OpenPub.Core.Model;
 
 namespace OpenPub.Layout;
 
@@ -17,7 +17,8 @@ public sealed class PageLayouter
     public const double DefaultColumnGap = 14.17;
 
     /// <summary>Resultat par zone de texte de la page (cle : la zone).</summary>
-    public Dictionary<Shape, FrameLayout> LayoutPage(Page page, out List<ChainLayout> chains)
+    /// <param name="fields">Valeur des champs pour cette page (numero de page...).</param>
+    public Dictionary<Shape, FrameLayout> LayoutPage(Page page, out List<ChainLayout> chains, Func<string, string?>? fields = null)
     {
         var map = new Dictionary<Shape, FrameLayout>();
         chains = new List<ChainLayout>();
@@ -28,7 +29,7 @@ public sealed class PageLayouter
             // une zone a plusieurs colonnes devient autant de sous-zones enchainees
             var geoms = frames.SelectMany(f => Columns(f, obstacles)).ToList();
             bool shrink = head.AutoFit is null or "shrink";
-            var layout = _engine.Layout(geoms, head.Paragraphs ?? new List<Paragraph>(), shrink);
+            var layout = _engine.Layout(geoms, head.Paragraphs ?? new List<Paragraph>(), shrink, fields);
             chains.Add(layout);
             foreach (var fl in layout.Frames)
             {

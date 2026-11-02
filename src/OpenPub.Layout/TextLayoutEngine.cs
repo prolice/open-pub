@@ -11,6 +11,7 @@ public sealed class TextLayoutEngine
 {
     readonly ITextMeasurer _m;
     readonly Hyphenator? _hyph;
+    Func<string, string?>? _fields;
 
     public bool ShrinkOnOverflow { get; set; } = true;
     public double MinScale { get; set; } = 0.5;
@@ -29,8 +30,11 @@ public sealed class TextLayoutEngine
     }
 
     /// <param name="shrink">Reduire le texte en cas de debordement (null : reglage du moteur).</param>
-    public ChainLayout Layout(IReadOnlyList<FrameGeometry> frames, IReadOnlyList<Paragraph> paragraphs, bool? shrink = null)
+    /// <param name="fields">Valeur des champs (« page », « pages », « date ») ; null ou valeur nulle : le texte du champ.</param>
+    public ChainLayout Layout(IReadOnlyList<FrameGeometry> frames, IReadOnlyList<Paragraph> paragraphs, bool? shrink = null,
+        Func<string, string?>? fields = null)
     {
+        _fields = fields;
         var full = Run(frames, paragraphs, 1);
         if (!full.Overflow || !(shrink ?? ShrinkOnOverflow)) return Finish(full, frames);
         double lo = MinScale, hi = 1;
@@ -55,6 +59,8 @@ public sealed class TextLayoutEngine
         public bool BreakAfter;
         /// <summary>Jeton de tabulation (le caractere \t a la position Start).</summary>
         public bool IsTab;
+        /// <summary>Champs du mot : debut du morceau -> nombre de caracteres source (le texte affiche est la valeur).</summary>
+        public Dictionary<int, int>? FieldLen;
         /// <summary>Position source du debut du mot (ou de ses espaces s'il n'a pas de lettres).</summary>
         public int Start;
         public string Text => string.Concat(Parts.Select(p => p.Text));
@@ -62,7 +68,7 @@ public sealed class TextLayoutEngine
 
     static readonly FontSpec DefaultFont = new() { Family = "Arial", Size = 10, Color = "#000000" };
 
-    static List<Word> Tokenize(Paragraph p, int skip = 0)
+    static List<Word> Tokenize(Paragraph p, int skip = 0, Func<string, string?>? fields = null)
     {
         var words = new List<Word>();
         int pos = 0;                         // position dans le texte du paragraphe
@@ -77,6 +83,17 @@ public sealed class TextLayoutEngine
         {
             var font = run.Font ?? DefaultFont;
             var text = run.Text;
+            if (run.Field is not null && text.Length > 0 && pos >= skip)
+            {
+                // champ : sa valeur s'affiche d'un bloc, colle au mot qui l'entoure
+                var value = fields?.Invoke(run.Field) ?? text;
+                if (cur.Space.Length > 0) Flush();
+                if (cur.Parts.Count == 0) cur.Start = pos;
+                cur.Parts.Add((value, font, pos, false));
+                (cur.FieldLen ??= new Dictionary<int, int>())[pos] = text.Length;
+                pos += text.Length;
+                continue;
+            }
             int i = 0;
             while (i < text.Length)
             {
@@ -234,7 +251,7 @@ public sealed class TextLayoutEngine
             else dropLines = 0;
             int lineNo = 0;
 
-            var words = Tokenize(para, cap is null ? 0 : 1);
+            var words = Tokenize(para, cap is null ? 0 : 1, _fields);
             int paraLen = para.Runs.Sum(r => r.Text.Length);
             bool first = true;
             int idx = 0;
@@ -384,7 +401,8 @@ public sealed class TextLayoutEngine
     static (Word Head, Word Tail) SplitAt(Word w, int pos, bool addHyphen)
     {
         var head = new Word { Start = w.Start };
-        var tail = new Word { Space = w.Space, SpaceFont = w.SpaceFont, BreakAfter = w.BreakAfter };
+        var tail = new Word { Space = w.Space, SpaceFont = w.SpaceFont, BreakAfter = w.BreakAfter, FieldLen = w.FieldLen };
+        head.FieldLen = w.FieldLen;
         int count = 0;
         foreach (var (t, f, st0, hy) in w.Parts)
         {
@@ -413,6 +431,15 @@ public sealed class TextLayoutEngine
         {
             var size = Size(f, scale);
             double tr = TrackingPt(f, size);
+            if (w.FieldLen is { } fl && fl.TryGetValue(start, out var srcLen))
+            {
+                // champ : un seul morceau, qui couvre les caracteres source du champ
+                var shown = f.Caps == "all" ? Upper(t) : t;
+                double fw = _m.Width(shown, f, size) + tr * shown.Length;
+                pieces.Add(new LaidPiece { Text = shown, Font = f, SizePt = size, X = x, Width = fw, Start = start, Length = srcLen, Tracking = tr });
+                x += fw;
+                continue;
+            }
             foreach (var (seg, sz, dy, off) in Segments(t, f, size))
             {
                 var width = _m.Width(seg, f, sz) + tr * seg.Length;

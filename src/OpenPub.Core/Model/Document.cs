@@ -25,7 +25,122 @@ public sealed class PubDocument
     /// <summary>Part de l'interligne simple situee au-dessus de la ligne de base, calibree par police.</summary>
     public Dictionary<string, double>? FontAscents { get; set; }
 
-    public IEnumerable<Shape> AllShapes() => Pages.SelectMany(p => p.Shapes);
+    /// <summary>
+    /// Pages maitres (objets communs : bandeau, numero de page...) dessinees sous les pages qui les utilisent.
+    /// Null : aucune page maitre.
+    /// </summary>
+    public List<Page>? Masters { get; set; }
+    /// <summary>Numerotation des pages (premier numero, style).</summary>
+    public PageNumbering? Numbering { get; set; }
+    /// <summary>Reperes de regle (positions en points depuis le bord de la page), communs a toutes les pages.</summary>
+    public RulerGuides? Guides { get; set; }
+    /// <summary>Grille de disposition (colonnes et lignes a l'interieur des marges).</summary>
+    public LayoutGrid? Grid { get; set; }
+
+    /// <summary>Version de format la plus recente que cette application sait lire et ecrire.</summary>
+    public const int SupportedFormat = 2;
+
+    /// <summary>Numero de version du format ("openpub/2" -> 2).</summary>
+    [JsonIgnore]
+    public int FormatVersion => Format.StartsWith("openpub/") && int.TryParse(Format["openpub/".Length..], out var v) ? v : 1;
+
+    /// <summary>Tous les objets du document, pages maitres comprises.</summary>
+    public IEnumerable<Shape> AllShapes() => Pages.Concat(Masters ?? new List<Page>()).SelectMany(p => p.Shapes);
+
+    /// <summary>Page maitre utilisee par une page (null : aucune).</summary>
+    public Page? MasterOf(Page page)
+    {
+        if (Masters is not { Count: > 0 } ms || page.IgnoreMaster || ms.Contains(page)) return null;
+        return page.Master is { } id ? ms.FirstOrDefault(m => m.Id == id) ?? ms[0] : ms[0];
+    }
+
+    /// <summary>Numero affiche d'une page (numerotation du document, redemarrages par page).</summary>
+    public string PageNumber(Page page)
+    {
+        int n = Numbering?.Start ?? 1;
+        foreach (var p in Pages)
+        {
+            if (p.NumberStart is { } restart) n = restart;
+            if (p == page) return PageNumbering.Format(n, Numbering?.Style);
+            n++;
+        }
+        return "#";
+    }
+}
+
+/// <summary>Version de format necessaire pour enregistrer un document sans perte.</summary>
+public static class PubFormat
+{
+    /// <summary>« openpub/2 » si le document utilise des elements de la version 2 (pages maitres, numerotation, reperes...).</summary>
+    public static string Required(PubDocument doc)
+    {
+        bool v2 = doc.Masters is { Count: > 0 } || doc.Numbering is not null || doc.Guides is not null || doc.Grid is not null
+                  || doc.Pages.Any(p => p.BackColor is not null || p.NumberStart is not null || p.Master is not null || p.IgnoreMaster)
+                  || doc.AllShapes().Any(s => s.Paragraphs?.Any(p => p.Runs.Any(r => r.Field is not null)) == true);
+        return v2 || doc.FormatVersion >= 2 ? $"openpub/{Math.Max(2, Math.Min(doc.FormatVersion, PubDocument.SupportedFormat))}" : "openpub/1";
+    }
+}
+
+/// <summary>Numerotation des pages.</summary>
+public sealed class PageNumbering
+{
+    public int Start { get; set; } = 1;
+    /// <summary>"1" (1, 2, 3), "i", "I", "a" ou "A".</summary>
+    public string? Style { get; set; }
+
+    public static string Format(int n, string? style)
+    {
+        string s = style ?? "1";
+        if (n <= 0) return n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return s switch
+        {
+            "a" or "A" => Alpha(n, s == "A"),
+            "i" or "I" => s == "I" ? Roman(n) : Roman(n).ToLowerInvariant(),
+            _ => n.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        };
+    }
+
+    static string Alpha(int n, bool upper)
+    {
+        var sb = new System.Text.StringBuilder();
+        for (; n > 0; n = (n - 1) / 26) sb.Insert(0, (char)((upper ? 'A' : 'a') + (n - 1) % 26));
+        return sb.ToString();
+    }
+
+    static string Roman(int n)
+    {
+        var map = new[] { (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I") };
+        var sb = new System.Text.StringBuilder();
+        foreach (var (v, r) in map) while (n >= v) { sb.Append(r); n -= v; }
+        return sb.ToString();
+    }
+}
+
+/// <summary>Reperes de regle : lignes verticales (X) et horizontales (Y), en points.</summary>
+public sealed class RulerGuides
+{
+    public List<double> X { get; set; } = new();
+    public List<double> Y { get; set; } = new();
+}
+
+/// <summary>Grille de disposition a l'interieur des marges.</summary>
+public sealed class LayoutGrid
+{
+    public int Columns { get; set; } = 1;
+    public int Rows { get; set; } = 1;
+    /// <summary>Espace entre colonnes et entre lignes (points).</summary>
+    public double Gutter { get; set; } = 14.17;
+
+    /// <summary>Bords des colonnes et des lignes dans le rectangle de contenu (x0, y0, largeur, hauteur).</summary>
+    public (List<double> Xs, List<double> Ys) Lines(double x0, double y0, double w, double h)
+    {
+        var xs = new List<double>(); var ys = new List<double>();
+        int c = Math.Max(1, Columns), r = Math.Max(1, Rows);
+        double cw = (w - Gutter * (c - 1)) / c, rh = (h - Gutter * (r - 1)) / r;
+        for (int i = 1; i < c; i++) { xs.Add(x0 + i * cw + (i - 1) * Gutter); xs.Add(x0 + i * (cw + Gutter)); }
+        for (int i = 1; i < r; i++) { ys.Add(y0 + i * rh + (i - 1) * Gutter); ys.Add(y0 + i * (rh + Gutter)); }
+        return (xs, ys);
+    }
 }
 
 public sealed class Page
@@ -34,6 +149,20 @@ public sealed class Page
     public double Width { get; set; }
     public double Height { get; set; }
     public List<Shape> Shapes { get; set; } = new();
+
+    // pages maitres
+    /// <summary>Identifiant d'une page maitre ("A", "B"...).</summary>
+    public string? Id { get; set; }
+    /// <summary>Nom d'une page maitre.</summary>
+    public string? Name { get; set; }
+    /// <summary>Page maitre utilisee (identifiant) ; null : la premiere.</summary>
+    public string? Master { get; set; }
+    /// <summary>Ne pas afficher la page maitre sur cette page.</summary>
+    public bool IgnoreMaster { get; set; }
+    /// <summary>Couleur d'arriere-plan de la page (null : blanc ; sinon celle de la page maitre).</summary>
+    public string? BackColor { get; set; }
+    /// <summary>La numerotation recommence a ce numero sur cette page.</summary>
+    public int? NumberStart { get; set; }
 
     /// <summary>Zones d'une chaine, dans l'ordre de lecture.</summary>
     public List<Shape> ChainFrames(string chain) =>
@@ -278,6 +407,11 @@ public sealed class Run
 {
     public string Text { get; set; } = "";
     public FontSpec? Font { get; set; }
+    /// <summary>
+    /// Champ dont la valeur est calculee a l'affichage : "page" (numero de page), "pages" (nombre de pages),
+    /// "date" (date du jour). Le texte du segment ("#") sert de position et de repli.
+    /// </summary>
+    public string? Field { get; set; }
 }
 
 public sealed class FontSpec

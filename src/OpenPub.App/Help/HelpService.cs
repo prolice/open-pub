@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Reflection;
 
 namespace OpenPub.App.Help;
@@ -53,6 +53,11 @@ public static class HelpService
     public const string Review = "revision.html#orthographe";
     public const string FindReplace = "revision.html#rechercher";
     public const string Recovery = "interface.html#recuperation";
+    // version 2.1
+    public const string PageDesign = "pages.html#mise-en-page";
+    public const string Masters = "pages.html#maitres";
+    public const string PageNumbers = "pages.html#numeros";
+    public const string Rulers = "disposition.html#regles";
 
     public static IReadOnlyList<string> AllTopics => typeof(HelpService).GetFields(BindingFlags.Public | BindingFlags.Static)
         .Where(f => f.IsLiteral && f.FieldType == typeof(string)).Select(f => (string)f.GetRawConstantValue()!).ToList();

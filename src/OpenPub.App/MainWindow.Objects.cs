@@ -261,7 +261,7 @@ public partial class MainWindow
         var text = string.Join("\r\n\r\n", sel.Where(s => s.IsText && s.IsStoryHead && s.Paragraphs is not null)
             .Select(s => string.Join("\r\n", s.Paragraphs!.Select(p => p.PlainText))));
         if (text.Length > 0) data.SetText(text);
-        try { Clipboard.SetDataObject(data, copy: true); }
+        try { Clipboard.SetDataObject(data, copy: true, retryTimes: 10, retryDelay: 50); }
         catch (Exception ex) { StatusText.Text = "Presse-papiers indisponible : " + ex.Message; return; }
         if (cut) Delete_Executed(this, null!);
         StatusText.Text = $"{sel.Count} objet(s) {(cut ? "coupé(s)" : "copié(s)")}.";

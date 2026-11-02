@@ -665,6 +665,76 @@ public static class SelfTest
         setTool.Invoke(w, new object?[] { null });
         Check(Help.HelpService.UrlOf(Help.HelpService.TextWrite) == "https://calm-pebble-0080d6003.5.azurestaticapps.net/aide/texte.html#ecrire", "adresse des pages d'aide");
 
+        Console.WriteLine("Creation de page : pages maitres, numeros, arriere-plan, double page, reperes, mise en page");
+        {
+            var mw = typeof(MainWindow);
+            session.EndTextEdit();
+            session.Select(null, session.Doc.Pages[0]);
+            mw.GetMethod("AddPageNumbers", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { "bottom-center" });
+            var master = session.Doc.Masters?.FirstOrDefault();
+            Check(master is { Id: "A" } && master.Shapes.Any(x => x.Paragraphs?.Any(p => p.Runs.Any(sr => sr.Field == "page")) == true), "numeros de page sur la page maitre A");
+            var pg2 = session.Doc.Pages[1];
+            var ml = session.LayoutMaster(master!, pg2).Frames.Values.SelectMany(f => f.Lines).SelectMany(l => l.Pieces).ToList();
+            Check(ml.Any(x => x.Text == "2"), "sous la page 2, le champ affiche « 2 »");
+            Check(session.Doc.MasterOf(pg2) == master, "toutes les pages utilisent la page maitre");
+            session.Doc.Pages[0].IgnoreMaster = true;
+            Check(session.Doc.MasterOf(session.Doc.Pages[0]) is null, "ignorer la page maitre sur une page");
+            session.Doc.Pages[0].IgnoreMaster = false;
+            // mode pages maitres : les vues montrent la page maitre
+            mw.GetMethod("SetMasterMode", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { true });
+            var views = (List<PageView>)mw.GetField("_views", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(w)!;
+            Check(w.EditingMasters && views.Count == 1 && views[0].Page == master, "mode pages maitres : une vue par page maitre");
+            Check(session.Layout(master!).Frames.Values.SelectMany(f => f.Lines).SelectMany(l => l.Pieces).Any(x => x.Text == "#"), "sur la page maitre, le champ s'affiche « # »");
+            mw.GetMethod("SetMasterMode", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { false });
+            views = (List<PageView>)mw.GetField("_views", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(w)!;
+            Check(!w.EditingMasters && views.Count == session.Doc.Pages.Count, "retour aux pages du document");
+            // numerotation : style romain, redemarrage
+            session.Doc.Numbering = new PageNumbering { Start = 1, Style = "I" };
+            session.Doc.Pages[2].NumberStart = 1;
+            session.StructureChanged();
+            Check(session.Doc.PageNumber(session.Doc.Pages[1]) == "II" && session.Doc.PageNumber(session.Doc.Pages[2]) == "I", "numerotation en chiffres romains, redemarrage a la page 3");
+            session.Doc.Numbering = null; session.Doc.Pages[2].NumberStart = null;
+            // arriere-plan
+            master!.BackColor = "#fff6e0";
+            session.Doc.Pages[3].BackColor = "#e6f4ff";
+            session.StructureChanged();
+            Check(session.Doc.Pages[1].BackColor is null && session.Doc.MasterOf(session.Doc.Pages[1])?.BackColor == "#fff6e0", "couleur d'arriere-plan de la page maitre");
+            // double page
+            w.SpreadView = true;
+            Pump();
+            var panel = (System.Windows.Controls.StackPanel)w.FindName("PagesPanel");
+            Check(panel.Children.Count == 1 && panel.Children[0] is System.Windows.Controls.Primitives.UniformGrid { Columns: 2 } ug && ug.Children.Count == session.Doc.Pages.Count + 1, "double page : planches de deux pages, la premiere seule");
+            Capture(w, Path.Combine(outDir, "selftest-9-double-page.png"));
+            w.SpreadView = false;
+            // reperes de regle et grille : le magnetisme s'y accroche
+            session.Doc.Guides = new RulerGuides { X = { 200 }, Y = { 300 } };
+            session.Doc.Grid = new LayoutGrid { Columns = 2, Rows = 1, Gutter = 20 };
+            var pgx = session.Doc.Pages[1];
+            var sgx = new List<double>(); var sgy = new List<double>();
+            var obj = pgx.Shapes.First(x => !x.Background);
+            Check(Snapper.TargetsX(pgx, session.Doc, obj).Contains(200) && Snapper.TargetsY(pgx, session.Doc, obj).Contains(300), "magnetisme sur les reperes de regle");
+            var m = Snapper.Margins(session.Doc);
+            double mid = m[3] + (pgx.Width - m[1] - m[3] - 20) / 2;
+            Check(Snapper.TargetsX(pgx, session.Doc, obj).Any(x => Math.Abs(x - mid) < 0.01), "magnetisme sur la grille de disposition");
+            var sr = Snapper.SnapMove(new Rect(-500 + 203, -500, 40, 40), pgx, session.Doc, obj, 6, sgx, sgy);
+            Capture(w, Path.Combine(outDir, "selftest-10-maitres-reperes.png"));
+            session.Doc.Guides = null; session.Doc.Grid = null;
+            // mise en page : A5 paysage, objets adaptes
+            int count = pgx.Shapes.Count;
+            var keep = Core.Io.DocumentJson.Serialize(session.Doc, indented: false);
+            session.BeginChange();
+            MainWindow.ApplyPageSize(session.Doc, 595.276, 419.528, true);
+            session.EndChange();
+            Check(session.Doc.Pages.All(x => Math.Abs(x.Width - 595.276) < 0.01 && Math.Abs(x.Height - 419.528) < 0.01) && master.Width > 595, "nouvelle taille de page (et page maitre)");
+            Check(pgx.Shapes.Where(x => !x.Background).All(x => x.Bounds().Y >= -1 && x.Bounds().Y + x.Bounds().H <= 420.5), "objets ramenes dans la nouvelle page");
+            session.Undo();
+            Check(Math.Abs(session.Doc.Pages[0].Height - 841.89) < 1 || session.Doc.Pages[0].Height > 700, "annuler la mise en page");
+            Check(Core.Model.PubFormat.Required(session.Doc) == "openpub/2", "document a pages maitres : format openpub/2");
+            var blank = Core.Io.OpubPackage.CreateBlank(419.528, 595.276, 4);
+            Check(blank.Document.Pages.Count == 4 && blank.FilePath is null && blank.Document.Pages[3].Index == 4, "nouveau document vierge (A5, 4 pages)");
+            blank.Dispose();
+        }
+
         Console.WriteLine("Surete des documents : copie de secours, recuperation, fichier modifie ailleurs");
         {
             w.SkipConfirm = true;

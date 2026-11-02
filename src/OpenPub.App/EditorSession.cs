@@ -105,8 +105,9 @@ public sealed class EditorSession : IDisposable
     {
         if (!_layouts.TryGetValue(page, out var r))
         {
-            var map = Layouter.LayoutPage(page, out var chains);
-            if (FitGrowingFrames(page, map, chains)) map = Layouter.LayoutPage(page, out chains);
+            var fields = FieldsFor(page);
+            var map = Layouter.LayoutPage(page, out var chains, fields);
+            if (FitGrowingFrames(page, map, chains)) map = Layouter.LayoutPage(page, out chains, fields);
             r = new PageLayoutResult(map, chains);
             _layouts[page] = r;
         }
@@ -129,7 +130,7 @@ public sealed class EditorSession : IDisposable
                 // mise en page provisoire dans une zone tres haute pour connaitre la hauteur du texte
                 double h0 = s.H;
                 s.H = Math.Max(h0, page.Height * 4);
-                var tall = Layouter.LayoutPage(page, out _);
+                var tall = Layouter.LayoutPage(page, out _, FieldsFor(page));
                 s.H = h0;
                 if (tall.TryGetValue(s, out var t)) fl = t;
             }
@@ -142,7 +143,7 @@ public sealed class EditorSession : IDisposable
                 s.H = Math.Max(12, (needed - s.PadTop - s.PadBottom) / s.Columns + s.PadTop + s.PadBottom);
                 for (int k = 0; k < 200; k++)
                 {
-                    Layouter.LayoutPage(page, out var cs);
+                    Layouter.LayoutPage(page, out var cs, FieldsFor(page));
                     if (!cs.Any(c => c.Overflow && c.Frames.Any(f => f.Shape == s))) break;
                     s.H += 4;
                 }
@@ -153,6 +154,40 @@ public sealed class EditorSession : IDisposable
         }
         return changed;
     }
+
+    /// <summary>
+    /// Valeur des champs pour une page du document : numero de page, nombre de pages, date. Sur une page maitre
+    /// (en cours de modification), les champs restent affiches « # ».
+    /// </summary>
+    public Func<string, string?>? FieldsFor(Page page)
+    {
+        if (!Doc.Pages.Contains(page)) return null;
+        return field => field switch
+        {
+            "page" => Doc.PageNumber(page),
+            "pages" => Doc.Pages.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            "date" => DateTime.Now.ToString("d MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")),
+            _ => null,
+        };
+    }
+
+    readonly Dictionary<(Page Master, Page Host), PageLayoutResult> _masterLayouts = new();
+
+    /// <summary>Mise en page du texte d'une page maitre telle qu'elle s'affiche sous une page (numero de cette page).</summary>
+    public PageLayoutResult LayoutMaster(Page master, Page host)
+    {
+        if (!_masterLayouts.TryGetValue((master, host), out var r))
+        {
+            var map = Layouter.LayoutPage(master, out var chains, FieldsFor(host));
+            r = new PageLayoutResult(map, chains);
+            _masterLayouts[(master, host)] = r;
+        }
+        return r;
+    }
+
+    /// <summary>Repere en cours de creation depuis une regle (apercu), en points.</summary>
+    public double? PreviewGuideX { get; set; }
+    public double? PreviewGuideY { get; set; }
 
     /// <summary>Mode « créer un lien » : zone de depart, en attente d'un clic sur la zone cible (null sinon).</summary>
     public Shape? LinkSource { get; set; }
@@ -208,6 +243,7 @@ public sealed class EditorSession : IDisposable
     public void Invalidate(Page page)
     {
         _layouts.Remove(page);
+        _masterLayouts.Clear();
         PageChanged?.Invoke(page);
     }
 
@@ -222,6 +258,7 @@ public sealed class EditorSession : IDisposable
     public void StructureChanged()
     {
         _layouts.Clear();
+        _masterLayouts.Clear();
         MarkModified();
         DocumentReplaced?.Invoke();
     }
@@ -246,6 +283,7 @@ public sealed class EditorSession : IDisposable
         Measurer.LineFactorOverrides = doc.FontLineFactors;
         Measurer.AscentOverrides = doc.FontAscents;
         _layouts.Clear();
+        _masterLayouts.Clear();
         Selected = null;
         _selection.Clear();
         SelectedPage = pageIdx >= 0 && pageIdx < doc.Pages.Count ? doc.Pages[pageIdx] : null;

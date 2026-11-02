@@ -30,6 +30,8 @@ public sealed class PageView : FrameworkElement
     public event Action<Shape>? ReplaceImageRequested;
     /// <summary>Mode « créer un lien » : clic sur la zone cible (null : clic hors d'une zone, le mode est annule).</summary>
     public event Action<PageView, Shape?>? LinkTargetPicked;
+    /// <summary>Un repere de regle a ete deplace ou supprime (toutes les pages doivent etre redessinees).</summary>
+    public event Action? GuidesChanged;
     /// <summary>Clic sur l'indicateur de debordement d'une zone (proposer de lier une nouvelle zone).</summary>
     public event Action<PageView, Shape>? OverflowClicked;
     /// <summary>Fin d'une selection de texte a la souris (reproduction de la mise en forme).</summary>
@@ -37,7 +39,9 @@ public sealed class PageView : FrameworkElement
     /// <summary>Le curseur de texte a bouge (pour le faire defiler dans la vue) : rectangle en pixels de la vue.</summary>
     public event Action<PageView, Rect>? CaretMoved;
 
-    enum DragMode { None, Move, Resize, TextSelect, Rotate, Draw, Freehand, Marquee }
+    enum DragMode { None, Move, Resize, TextSelect, Rotate, Draw, Freehand, Marquee, Guide }
+    bool _guideVertical;          // repere deplace : vertical (X) ou horizontal (Y)
+    int _guideIndex;
     DragMode _mode;
     int _handle;                 // 0..7 : NO, N, NE, E, SE, S, SO, O
     Point _start;
@@ -125,7 +129,7 @@ public sealed class PageView : FrameworkElement
         }
         else PageRenderer.DrawPage(dc, Page, _session, ppd, marks);
 
-        if (marks) DrawMargins(dc);
+        if (marks) { DrawMargins(dc); DrawGuides(dc); }
         if (Interactive && _session.Selected is { } sel && Page.Shapes.Contains(sel))
         {
             if (_session.MultiSelection) DrawMultiSelection(dc);
@@ -174,6 +178,42 @@ public sealed class PageView : FrameworkElement
     }
 
     double HandleSize => 7 / K;
+
+    static readonly Brush RulerGuideBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x00, 0xA8, 0x8F)));
+    static readonly Brush GridBrush = Freeze(new SolidColorBrush(Color.FromArgb(0x90, 0x5B, 0x9B, 0xD5)));
+
+    /// <summary>Reperes de regle (verts), grille de disposition (bleue), apercu du repere en cours de creation.</summary>
+    void DrawGuides(DrawingContext dc)
+    {
+        var doc = _session.Doc;
+        if (doc.Grid is { } grid)
+        {
+            var m = Snapper.Margins(doc);
+            var (xs, ys) = grid.Lines(m[3], m[0], Page.Width - m[1] - m[3], Page.Height - m[0] - m[2]);
+            var gp = new Pen(GridBrush, 0.7 / K) { DashStyle = DashStyles.Dot };
+            foreach (var x in xs) dc.DrawLine(gp, new Point(x, m[0]), new Point(x, Page.Height - m[2]));
+            foreach (var y in ys) dc.DrawLine(gp, new Point(m[3], y), new Point(Page.Width - m[1], y));
+        }
+        var pen = new Pen(RulerGuideBrush, 1 / K);
+        if (doc.Guides is { } g)
+        {
+            foreach (var x in g.X) dc.DrawLine(pen, new Point(x, 0), new Point(x, Page.Height));
+            foreach (var y in g.Y) dc.DrawLine(pen, new Point(0, y), new Point(Page.Width, y));
+        }
+        var prev = new Pen(RulerGuideBrush, 1 / K) { DashStyle = DashStyles.Dash };
+        if (_session.PreviewGuideX is { } px) dc.DrawLine(prev, new Point(px, 0), new Point(px, Page.Height));
+        if (_session.PreviewGuideY is { } py) dc.DrawLine(prev, new Point(0, py), new Point(Page.Width, py));
+    }
+
+    /// <summary>Repere de regle sous le point (a 4 pixels pres) : (vertical ?, indice), ou null.</summary>
+    (bool Vertical, int Index)? GuideAt(Point p)
+    {
+        if (_session.Doc.Guides is not { } g || !_session.ShowGuides) return null;
+        double tol = 4 / K;
+        for (int i = 0; i < g.X.Count; i++) if (Math.Abs(g.X[i] - p.X) <= tol) return (true, i);
+        for (int i = 0; i < g.Y.Count; i++) if (Math.Abs(g.Y[i] - p.Y) <= tol) return (false, i);
+        return null;
+    }
 
     static readonly Brush SelBlue = Freeze(new SolidColorBrush(Color.FromRgb(0x1f, 0x6f, 0xd1)));
     static readonly Brush LockedGray = Freeze(new SolidColorBrush(Color.FromRgb(0x9a, 0xa3, 0xb5)));
@@ -390,6 +430,16 @@ public sealed class PageView : FrameworkElement
             }
         }
         var target = HitTest(p);
+        // repere de regle : glisser pour le deplacer (sur un objet : Maj + glisser)
+        if (!Editing && GuideAt(p) is { } guide && (target is null || shift))
+        {
+            _mode = DragMode.Guide;
+            (_guideVertical, _guideIndex) = guide;
+            _session.BeginChange();
+            CaptureMouse();
+            e.Handled = true;
+            return;
+        }
         // dans un groupe deja « ouvert » (un seul de ses membres selectionne), le clic choisit un membre
         bool inGroup = target?.Group is not null && _session.Selection.Count == 1 && sel?.Group == target.Group && Page.Shapes.Contains(sel);
         if (e.ClickCount == 2 && target is not null)
@@ -500,6 +550,13 @@ public sealed class PageView : FrameworkElement
         if (_mode == DragMode.Marquee)
         {
             _marquee = new Rect(_start, p);
+            InvalidateVisual();
+            return;
+        }
+        if (_mode == DragMode.Guide && _session.Doc.Guides is { } gd)
+        {
+            var list = _guideVertical ? gd.X : gd.Y;
+            if (_guideIndex < list.Count) list[_guideIndex] = Math.Round(_guideVertical ? p.X : p.Y, 2);
             InvalidateVisual();
             return;
         }
@@ -624,6 +681,20 @@ public sealed class PageView : FrameworkElement
         _mode = DragMode.None;
         ReleaseMouseCapture();
         if (mode == DragMode.TextSelect) { TextSelectionFinished?.Invoke(); return; }
+        if (mode == DragMode.Guide)
+        {
+            // repere tire hors de la page : supprime
+            var q = ToPage(e);
+            if (_session.Doc.Guides is { } gd && (q.X < 0 || q.Y < 0 || q.X > Page.Width || q.Y > Page.Height))
+            {
+                var list = _guideVertical ? gd.X : gd.Y;
+                if (_guideIndex < list.Count) list.RemoveAt(_guideIndex);
+                if (gd.X.Count == 0 && gd.Y.Count == 0) _session.Doc.Guides = null;
+            }
+            _session.EndChange();
+            GuidesChanged?.Invoke();
+            return;
+        }
         if (mode == DragMode.Marquee)
         {
             var mq = _marquee ?? Rect.Empty;
@@ -753,6 +824,8 @@ public sealed class PageView : FrameworkElement
                 i++;
             }
         }
-        return HitTest(p) is { Locked: false } ? Cursors.SizeAll : Cursors.Arrow;
+        if (HitTest(p) is { Locked: false }) return Cursors.SizeAll;
+        if (GuideAt(p) is { } g) return g.Vertical ? Cursors.SizeWE : Cursors.SizeNS;
+        return Cursors.Arrow;
     }
 }

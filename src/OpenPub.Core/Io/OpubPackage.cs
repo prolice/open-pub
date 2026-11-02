@@ -71,6 +71,16 @@ public sealed class OpubPackage : IDisposable
         return new OpubPackage(doc, work, null);
     }
 
+    /// <summary>Nouveau document vierge (pas encore enregistre).</summary>
+    public static OpubPackage CreateBlank(double width, double height, int pages = 1, double[]? margins = null)
+    {
+        var doc = new PubDocument { PageWidth = width, PageHeight = height, Margins = margins, Format = "openpub/2", Source = "Nouveau document" };
+        for (int i = 0; i < Math.Max(1, pages); i++) doc.Pages.Add(new Page { Index = i + 1, Width = width, Height = height });
+        var work = NewWorkDir();
+        DocumentJson.Save(doc, Path.Combine(work, DocumentEntry));
+        return new OpubPackage(doc, work, null);
+    }
+
     public string ResolveAsset(string relative) => Path.Combine(WorkDir, relative.Replace('/', Path.DirectorySeparatorChar));
 
     public string FontsDir => Path.Combine(WorkDir, "fonts");

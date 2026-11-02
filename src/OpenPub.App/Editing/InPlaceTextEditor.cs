@@ -234,6 +234,14 @@ public sealed class InPlaceTextEditor
         }, typing: !HasSelection && !text.Contains('\n'));
     }
 
+    /// <summary>Insere un champ (numero de page, nombre de pages, date) a la place de la selection.</summary>
+    public void InsertField(string field) => Modify(() =>
+    {
+        var font = StoryEditor.FontAt(Paras, SelStart);
+        var at = HasSelection ? StoryEditor.Delete(Paras, Caret, Anchor) : Caret;
+        return StoryEditor.InsertField(Paras, at, field, font);
+    });
+
     /// <summary>Saisie au clavier : avec la correction typographique francaise si elle est active.</summary>
     public void TypeInput(string text)
     {

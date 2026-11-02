@@ -14,6 +14,8 @@ public static class Snapper
         var m = Margins(doc);
         yield return 0; yield return page.Width / 2; yield return page.Width;
         yield return m[3]; yield return page.Width - m[1];
+        if (doc.Guides is { } g) foreach (var x in g.X) yield return x;
+        if (doc.Grid is { } grid) foreach (var x in grid.Lines(m[3], m[0], page.Width - m[1] - m[3], page.Height - m[0] - m[2]).Xs) yield return x;
         foreach (var s in Others(page, exclude, group)) { yield return s.X; yield return s.X + s.W / 2; yield return s.X + s.W; }
     }
 
@@ -22,6 +24,8 @@ public static class Snapper
         var m = Margins(doc);
         yield return 0; yield return page.Height / 2; yield return page.Height;
         yield return m[0]; yield return page.Height - m[2];
+        if (doc.Guides is { } g) foreach (var y in g.Y) yield return y;
+        if (doc.Grid is { } grid) foreach (var y in grid.Lines(m[3], m[0], page.Width - m[1] - m[3], page.Height - m[0] - m[2]).Ys) yield return y;
         foreach (var s in Others(page, exclude, group)) { yield return s.Y; yield return s.Y + s.H / 2; yield return s.Y + s.H; }
     }
 

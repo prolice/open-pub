@@ -29,9 +29,20 @@ public static class PageRenderer
     public static void DrawPage(DrawingContext dc, Page page, EditorSession session, double pixelsPerDip, bool editorMarks,
         Action<DrawingContext>? overlay = null)
     {
-        dc.DrawRectangle(System.Windows.Media.Brushes.White, null, new Rect(0, 0, page.Width, page.Height));
+        // arriere-plan : couleur de la page, sinon de sa page maitre, sinon blanc
+        var master = session.Doc.MasterOf(page);
+        var back = page.BackColor ?? master?.BackColor;
+        dc.DrawRectangle(back is null ? System.Windows.Media.Brushes.White : Brush(back), null, new Rect(0, 0, page.Width, page.Height));
         dc.PushClip(new RectangleGeometry(new Rect(0, 0, page.Width, page.Height)));
-        var layout = session.Layout(page);
+        // page maitre dessous (objets communs, numero de cette page dans ses champs)
+        if (master is not null) DrawShapes(dc, master, session.LayoutMaster(master, page), session, pixelsPerDip, false);
+        DrawShapes(dc, page, session.Layout(page), session, pixelsPerDip, editorMarks);
+        overlay?.Invoke(dc);       // ex. surbrillance de la selection de texte (semi-transparente)
+        dc.Pop();
+    }
+
+    static void DrawShapes(DrawingContext dc, Page page, PageLayoutResult layout, EditorSession session, double pixelsPerDip, bool editorMarks)
+    {
         foreach (var s in page.Shapes)
         {
             bool rotated = PushRotation(dc, s);
@@ -43,8 +54,6 @@ public static class PageRenderer
             }
             if (rotated) dc.Pop();
         }
-        overlay?.Invoke(dc);       // ex. surbrillance de la selection de texte (semi-transparente)
-        dc.Pop();
     }
 
     static Pen? PenOf(LineStyle? l)

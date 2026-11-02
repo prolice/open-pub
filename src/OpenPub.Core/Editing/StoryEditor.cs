@@ -78,7 +78,8 @@ public static class StoryEditor
         var merged = new List<Run>();
         foreach (var r in p.Runs)
         {
-            if (merged.Count > 0 && merged[^1].Font?.SameAs(r.Font) == true) merged[^1].Text += r.Text;
+            // un champ (numero de page...) reste un segment a part
+            if (merged.Count > 0 && merged[^1].Field is null && r.Field is null && merged[^1].Font?.SameAs(r.Font) == true) merged[^1].Text += r.Text;
             else merged.Add(r);
         }
         var nonEmpty = merged.Where(r => r.Text.Length > 0).ToList();
@@ -112,6 +113,19 @@ public static class StoryEditor
             pos = new TextPos(pos.Para, pos.Offset + lines[i].Length);
         }
         return pos;
+    }
+
+    /// <summary>Insere un champ ("page", "pages", "date") : un segment « # » dont la valeur est calculee a l'affichage.</summary>
+    public static TextPos InsertField(List<Paragraph> paras, TextPos pos, string field, FontSpec? font = null)
+    {
+        if (paras.Count == 0) paras.Add(new Paragraph { Runs = { new Run { Text = "", Font = (font ?? Default).Clone() } } });
+        pos = Clamp(paras, pos);
+        font ??= FontAt(paras, pos);
+        var p = paras[pos.Para];
+        int idx = SplitRunAt(p, pos.Offset);
+        p.Runs.Insert(idx, new Run { Text = "#", Font = font.Clone(), Field = field });
+        Normalize(p, font);
+        return new TextPos(pos.Para, pos.Offset + 1);
     }
 
     /// <summary>Coupe le paragraphe a la position (touche Entree) ; le nouveau paragraphe reprend ses reglages.</summary>

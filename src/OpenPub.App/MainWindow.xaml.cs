@@ -36,6 +36,7 @@ public partial class MainWindow : Window
         AddHelpGroup(PanelHome, Help.HelpService.HomeTab, "Aide sur l'onglet Accueil");
         AddHelpGroup(PanelInsert, Help.HelpService.InsertTab, "Aide sur l'onglet Insertion");
         AddHelpGroup(PanelDraw, Help.HelpService.FreeDrawing, "Aide sur le dessin");
+        AddHelpGroup(PanelDesign, Help.HelpService.PageDesign, "Aide sur la création de page : mise en page, pages maîtres, numéros");
         AddHelpGroup(PanelReview, Help.HelpService.Review, "Aide sur la révision : orthographe, rechercher, typographie");
         AddHelpGroup(PanelView, Help.HelpService.Snapping, "Aide sur l'affichage, les repères et le magnétisme");
         AddHelpGroup(PanelShape, Help.HelpService.ShapeFormat, "Aide sur le format des formes");
@@ -70,8 +71,20 @@ public partial class MainWindow : Window
             MessageBox.Show(this, $"Impossible d'ouvrir le fichier :\n{ex.Message}", "OpenPub", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
+        LoadPackage(pkg);
+        if (TrackRecent && remember) RecentFiles.Add(path);
+        if (pkg.Document.FormatVersion > Core.Model.PubDocument.SupportedFormat)
+            MessageBox.Show(this, "Ce document a été créé avec une version plus récente d'OpenPub. Il s'affiche, mais l'enregistrer avec cette " +
+                "version pourrait perdre des éléments : l'enregistrement est désactivé. Mettez OpenPub à jour (Fichier ▸ Rechercher des mises à jour).",
+                "OpenPub", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    /// <summary>Affiche un paquet ouvert ou cree (remplace le document courant, deja confirme).</summary>
+    void LoadPackage(OpubPackage pkg)
+    {
         DiscardRecovery();
         _session?.Dispose();
+        _editMasters = false;
         _session = new EditorSession(pkg);
         RecordFileStamp();
         _session.PageChanged += p => { foreach (var v in _views.Concat(_thumbs).Where(v => v.Page == p)) v.InvalidateVisual(); RefreshProperties(); };
@@ -96,7 +109,6 @@ public partial class MainWindow : Window
         SizeBox.ItemsSource = new[] { 6, 7, 8, 9, 9.5, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 48, 60, 72 };
         _session.History.Changed += (_, _) => CommandManager.InvalidateRequerySuggested();
         BuildPages();
-        if (TrackRecent && remember) RecentFiles.Add(path);
         Dispatcher.BeginInvoke(() => ZoomFit_Click(this, new RoutedEventArgs()), System.Windows.Threading.DispatcherPriority.Loaded);
         UpdateUi();
     }
@@ -123,6 +135,14 @@ public partial class MainWindow : Window
     bool SaveDocument(bool saveAs)
     {
         if (_session is null) return false;
+        if (_session.Doc.FormatVersion > Core.Model.PubDocument.SupportedFormat)
+        {
+            MessageBox.Show(this, "Ce document vient d'une version plus récente d'OpenPub : mettez OpenPub à jour pour l'enregistrer.",
+                "OpenPub", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+        // format : « openpub/2 » des que le document utilise une nouveaute que la version 1 perdrait
+        _session.Doc.Format = Core.Model.PubFormat.Required(_session.Doc);
         string? path = _session.Package.FilePath;
         if (saveAs || path is null)
         {
@@ -161,6 +181,8 @@ public partial class MainWindow : Window
         DiscardRecovery();          // fermeture normale : la copie de secours n'a plus lieu d'etre
         _session?.Dispose();
     }
+
+    void New_Executed(object sender, ExecutedRoutedEventArgs e) => NewDocument_Click();
 
     void Open_Executed(object sender, ExecutedRoutedEventArgs e)
     {
@@ -201,11 +223,32 @@ public partial class MainWindow : Window
         _views.Clear();
         _thumbs.Clear();
         if (_session is null) return;
-        foreach (var page in _session.Doc.Pages)
+        // annuler a pu retirer les pages maitres : retour aux pages du document
+        if (_editMasters && _session.Doc.Masters is not { Count: > 0 })
         {
-            PagesPanel.Children.Add(new TextBlock
+            _editMasters = false;
+            MastersToggle.IsChecked = false;
+            MasterBanner.Visibility = Visibility.Collapsed;
+        }
+        // double page : grille de deux colonnes, la premiere page seule a droite (comme une planche imprimee)
+        Panel host = PagesPanel;
+        bool spread = SpreadView && !EditingMasters;
+        if (spread)
+        {
+            var grid = new System.Windows.Controls.Primitives.UniformGrid { Columns = 2 };
+            grid.Children.Add(new Border());
+            PagesPanel.Children.Add(grid);
+            host = grid;
+        }
+        foreach (var page in PageList)
+        {
+            var cell = new StackPanel { Margin = spread ? new Thickness(1, 0, 1, 0) : new Thickness(0), VerticalAlignment = VerticalAlignment.Top };
+            host.Children.Add(cell);
+            cell.Children.Add(new TextBlock
             {
-                Text = $"Page {page.Index}", Foreground = (Brush)FindResource("Muted"), FontSize = 12, Margin = new Thickness(0, 14, 0, 6),
+                Text = EditingMasters ? $"Page maître {page.Id}{(page.Name is { Length: > 0 } nm ? " — " + nm : "")}" : $"Page {page.Index}",
+                Foreground = (Brush)FindResource(EditingMasters ? "Violet" : "Muted"), FontSize = 12, Margin = new Thickness(0, 14, 0, 6),
+                FontWeight = EditingMasters ? FontWeights.SemiBold : FontWeights.Normal,
             });
             var view = new PageView(_session, page) { Zoom = _zoom };
             view.ReplaceImageRequested += img => { _session?.Select(img, page); EditImage(false); };
@@ -213,11 +256,12 @@ public partial class MainWindow : Window
             view.ShapeDrawn += OnShapeDrawn;
             view.ShapeCreated += OnShapeCreated;
             view.LinkTargetPicked += OnLinkTargetPicked;
+            view.GuidesChanged += () => { foreach (var v2 in _views) v2.InvalidateVisual(); };
             view.ContextMenuRequested += OnPageContextMenu;
             view.OverflowClicked += OnOverflowClicked;
             view.TextSelectionFinished += () => { if (_painterFont is not null && _session?.TextEdit is { HasSelection: true }) ApplyPainter(); };
             _views.Add(view);
-            PagesPanel.Children.Add(new Border
+            cell.Children.Add(new Border
             {
                 Child = view, Background = Brushes.White,
                 // ombre douce et bleutee, comme les cartes de la charte
@@ -236,7 +280,7 @@ public partial class MainWindow : Window
             {
                 CornerRadius = new CornerRadius(7), Padding = new Thickness(8, 1, 8, 2), Margin = new Thickness(0, 5, 0, 0),
                 HorizontalAlignment = HorizontalAlignment.Center, Tag = "badge",
-                Child = new TextBlock { Text = page.Index.ToString(), FontWeight = FontWeights.Bold, FontSize = 12 },
+                Child = new TextBlock { Text = EditingMasters ? page.Id ?? "?" : page.Index.ToString(), FontWeight = FontWeights.Bold, FontSize = 12 },
             };
             var tb = new Button
             {
@@ -254,6 +298,7 @@ public partial class MainWindow : Window
         UpdateTitle();
         RefreshProperties();
         HighlightActivePage();
+        Dispatcher.BeginInvoke(UpdateRulers, System.Windows.Threading.DispatcherPriority.Loaded);
     }
 
     /// <summary>Met en evidence la miniature de la page active.</summary>
@@ -276,11 +321,12 @@ public partial class MainWindow : Window
             }
         }
         if (_session is not null && active is not null)
-            PageIndicator.Text = $"Page {_session.Doc.Pages.IndexOf(active) + 1} sur {_session.Doc.Pages.Count}";
+            PageIndicator.Text = EditingMasters ? $"Page maître {active.Id}" : $"Page {_session.Doc.Pages.IndexOf(active) + 1} sur {_session.Doc.Pages.Count}";
     }
 
     void Scroller_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {
+        UpdateRulers();
         if (_session?.Selected is null) HighlightActivePage();
     }
 
@@ -317,6 +363,7 @@ public partial class MainWindow : Window
         if (TabDraw.IsChecked == true) return Help.HelpService.FreeDrawing;
         if (TabView.IsChecked == true) return Help.HelpService.ViewTab;
         if (TabReview.IsChecked == true) return Help.HelpService.Review;
+        if (TabDesign.IsChecked == true) return _editMasters ? Help.HelpService.Masters : Help.HelpService.PageDesign;
         return Help.HelpService.Home;
     }
 
@@ -417,6 +464,7 @@ public partial class MainWindow : Window
         PanelInsert.Visibility = TabInsert.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelView.Visibility = TabView.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelReview.Visibility = TabReview.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PanelDesign.Visibility = TabDesign.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelDraw.Visibility = TabDraw.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelShape.Visibility = TabShape.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelPicture.Visibility = TabPicture.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
@@ -477,6 +525,7 @@ public partial class MainWindow : Window
             menu.Items.Add(it);
         }
         bool has = _session is not null;
+        Add("Nouveau…", "Ctrl+N", NewDocument_Click, glyph: "\uE8A5");
         Add("Ouvrir…", "Ctrl+O", () => ApplicationCommands.Open.Execute(null, this), glyph: "\uE8E5");
         AddRecent(menu);
         Add("Enregistrer", "Ctrl+S", () => SaveDocument(false), has, glyph: "\uE74E");
@@ -844,11 +893,12 @@ public partial class MainWindow : Window
     {
         if (_session is null || ActivePage() is not { } page) return;
         _session.EndTextEdit();
-        var pages = _session.Doc.Pages;
+        var pages = PageList;
         int idx = pages.IndexOf(page);
         _session.BeginChange();
         op(pages, idx);
         for (int i = 0; i < pages.Count; i++) pages[i].Index = i + 1;
+        if (EditingMasters) EnsureMasterIds();
         _session.EndChange();
         _session.StructureChanged();
         var target = pages[Math.Clamp(idx + selectAfter, 0, pages.Count - 1)];
@@ -873,7 +923,7 @@ public partial class MainWindow : Window
     void DeletePage_Click(object sender, RoutedEventArgs e)
     {
         if (_session is null || ActivePage() is not { } page) return;
-        if (_session.Doc.Pages.Count <= 1) { StatusText.Text = "Le document doit garder au moins une page."; return; }
+        if (PageList.Count <= 1) { StatusText.Text = EditingMasters ? "Gardez au moins une page maître (ou désactivez-les pour toutes les pages)." : "Le document doit garder au moins une page."; return; }
         if (MessageBox.Show(this, $"Supprimer la page {page.Index} ? (Annuler permet de la récupérer)", "OpenPub",
                 MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
         PageOp((pages, i) => pages.RemoveAt(i), 0);
@@ -881,13 +931,13 @@ public partial class MainWindow : Window
 
     void MovePageUp_Click(object sender, RoutedEventArgs e)
     {
-        if (_session is null || ActivePage() is not { } page || _session.Doc.Pages.IndexOf(page) == 0) return;
+        if (_session is null || ActivePage() is not { } page || PageList.IndexOf(page) == 0) return;
         PageOp((pages, i) => { var p = pages[i]; pages.RemoveAt(i); pages.Insert(i - 1, p); }, -1);
     }
 
     void MovePageDown_Click(object sender, RoutedEventArgs e)
     {
-        if (_session is null || ActivePage() is not { } page || _session.Doc.Pages.IndexOf(page) >= _session.Doc.Pages.Count - 1) return;
+        if (_session is null || ActivePage() is not { } page || PageList.IndexOf(page) >= PageList.Count - 1) return;
         PageOp((pages, i) => { var p = pages[i]; pages.RemoveAt(i); pages.Insert(i + 1, p); }, 1);
     }
 
@@ -896,6 +946,7 @@ public partial class MainWindow : Window
         _zoom = Math.Clamp(z, 0.25, 4);
         foreach (var v in _views) v.Zoom = _zoom;
         ZoomText.Text = ZoomStatus.Text = $"{_zoom * 100:0} %";
+        Dispatcher.BeginInvoke(UpdateRulers, System.Windows.Threading.DispatcherPriority.Loaded);
         _syncZoom = true;
         ZoomSlider.Value = _zoom * 100;
         _syncZoom = false;
@@ -910,9 +961,9 @@ public partial class MainWindow : Window
     void ZoomOut_Click(object sender, RoutedEventArgs e) => SetZoom(_zoom / 1.2);
     void ZoomFit_Click(object sender, RoutedEventArgs e)
     {
-        if (_session?.Doc.Pages.FirstOrDefault() is not { } p) return;
+        if (_session is null || PageList.FirstOrDefault() is not { } p) return;
         var avail = Scroller.ActualWidth - 90;
-        if (avail > 100) SetZoom(avail / (p.Width * PageView.DipPerPoint));
+        if (avail > 100) SetZoom(avail / ((SpreadView && !EditingMasters ? 2 : 1) * p.Width * PageView.DipPerPoint));
     }
     void Scroller_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
@@ -929,7 +980,7 @@ public partial class MainWindow : Window
     void UpdateUi()
     {
         bool has = _session is not null;
-        PanelInsert.IsEnabled = PanelShape.IsEnabled = PanelPicture.IsEnabled = PanelDraw.IsEnabled = PanelReview.IsEnabled = has;
+        PanelInsert.IsEnabled = PanelShape.IsEnabled = PanelPicture.IsEnabled = PanelDraw.IsEnabled = PanelReview.IsEnabled = PanelDesign.IsEnabled = has;
         if (PenWidthBox.ItemsSource is null)
         {
             PenWidthBox.ItemsSource = new[] { 0.5, 1, 1.5, 2, 3, 4.5, 6, 8, 12 };
@@ -970,6 +1021,7 @@ public partial class MainWindow : Window
     void RefreshProperties()
     {
         var s = Sel;
+        UpdateRulers();
         GeometryPanel.Visibility = TextPanel.Visibility = ImagePanel.Visibility = Visibility.Collapsed;
         RefreshFormat();
         RefreshContextTabs();
@@ -1136,7 +1188,7 @@ public partial class MainWindow : Window
             var top = v.TranslatePoint(new Point(0, 0), Scroller).Y;
             if (top + v.ActualHeight / 2 > 0) return v.Page;
         }
-        return _session.Doc.Pages.FirstOrDefault();
+        return PageList.FirstOrDefault();
     }
 
     void AddText_Click(object sender, RoutedEventArgs e)
