@@ -260,9 +260,9 @@ public sealed class EditorSession : IDisposable
         SelectionChanged?.Invoke();
     }
 
-    public void Save(string? path = null)
+    public void Save(string? path = null, bool keepBackup = false)
     {
-        Package.Save(path);
+        Package.Save(path, keepBackup);
         Modified = false;
         ModifiedChanged?.Invoke();
     }

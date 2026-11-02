@@ -178,9 +178,10 @@ public partial class App : Application
             return;
         }
 
-        var win = new MainWindow { TrackRecent = true };
+        var win = new MainWindow { TrackRecent = true, EnableRecovery = true };
         MainWindow = win;
         win.Show();
+        win.OfferRecovery();
         if (args.Length >= 1 && File.Exists(args[0])) win.OpenFile(args[0]);
     }
 }

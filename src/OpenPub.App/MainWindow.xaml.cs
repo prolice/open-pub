@@ -30,6 +30,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         PreviewKeyDown += OnPreviewKeyDown;
         Closing += OnClosing;
+        Activated += OnActivatedCheckFile;
         UpdateUi();
         // groupe « Aide » en fin de chaque onglet du ruban (lien vers la section correspondante)
         AddHelpGroup(PanelHome, Help.HelpService.HomeTab, "Aide sur l'onglet Accueil");
@@ -49,7 +50,10 @@ public partial class MainWindow : Window
 
     // ================================================================ fichiers
 
-    public void OpenFile(string path)
+    public void OpenFile(string path) => OpenFile(path, remember: true);
+
+    /// <param name="remember">Ajouter aux documents recents (pas pour une copie de secours).</param>
+    public void OpenFile(string path, bool remember)
     {
         if (Path.GetExtension(path).Equals(".pub", StringComparison.OrdinalIgnoreCase))
         {
@@ -65,8 +69,10 @@ public partial class MainWindow : Window
             MessageBox.Show(this, $"Impossible d'ouvrir le fichier :\n{ex.Message}", "OpenPub", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
+        DiscardRecovery();
         _session?.Dispose();
         _session = new EditorSession(pkg);
+        RecordFileStamp();
         _session.PageChanged += p => { foreach (var v in _views.Concat(_thumbs).Where(v => v.Page == p)) v.InvalidateVisual(); RefreshProperties(); };
         _session.DocumentReplaced += BuildPages;
         _session.SelectionChanged += RefreshProperties;
@@ -89,7 +95,7 @@ public partial class MainWindow : Window
         SizeBox.ItemsSource = new[] { 6, 7, 8, 9, 9.5, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 48, 60, 72 };
         _session.History.Changed += (_, _) => CommandManager.InvalidateRequerySuggested();
         BuildPages();
-        if (TrackRecent) RecentFiles.Add(path);
+        if (TrackRecent && remember) RecentFiles.Add(path);
         Dispatcher.BeginInvoke(() => ZoomFit_Click(this, new RoutedEventArgs()), System.Windows.Threading.DispatcherPriority.Loaded);
         UpdateUi();
     }
@@ -127,10 +133,17 @@ public partial class MainWindow : Window
             if (dlg.ShowDialog(this) != true) return false;
             path = dlg.FileName;
         }
+        // fichier modifie par un autre programme (OneDrive, autre PC) depuis son ouverture
+        if (!saveAs && path == _session.Package.FilePath && FileChangedOnDisk() &&
+            MessageBox.Show(this, $"« {Path.GetFileName(path)} » a été modifié par un autre programme depuis son ouverture (synchronisation, autre PC…).\n\n" +
+                "L'enregistrer quand même remplacera cette autre version. Continuer ?", "OpenPub", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+            return false;
         try
         {
-            _session.Save(path);
+            _session.Save(path, keepBackup: AppSettings.Load().KeepBackup);
             if (TrackRecent) RecentFiles.Add(path);
+            DiscardRecovery();
+            RecordFileStamp();
             StatusText.Text = $"Enregistré : {path}";
             return true;
         }
@@ -144,6 +157,7 @@ public partial class MainWindow : Window
     void OnClosing(object? sender, CancelEventArgs e)
     {
         if (!ConfirmDiscard()) { e.Cancel = true; return; }
+        DiscardRecovery();          // fermeture normale : la copie de secours n'a plus lieu d'etre
         _session?.Dispose();
     }
 
@@ -477,6 +491,13 @@ public partial class MainWindow : Window
         var auto = new MenuItem { Header = "Rechercher automatiquement au démarrage", IsCheckable = true, IsChecked = Update.UpdateService.AutoCheck };
         auto.Click += (_, _) => Update.UpdateService.AutoCheck = auto.IsChecked;
         menu.Items.Add(auto);
+        var prefs = AppSettings.Load();
+        var autosave = new MenuItem { Header = "Copie de secours automatique (toutes les 5 min)", IsCheckable = true, IsChecked = prefs.AutoSave };
+        autosave.Click += (_, _) => AppSettings.Update(x => x.AutoSave = autosave.IsChecked);
+        menu.Items.Add(autosave);
+        var backup = new MenuItem { Header = "Garder la version précédente (.bak) à l'enregistrement", IsCheckable = true, IsChecked = prefs.KeepBackup };
+        backup.Click += (_, _) => AppSettings.Update(x => x.KeepBackup = backup.IsChecked);
+        menu.Items.Add(backup);
         Add("À propos d'OpenPub", "", ShowAbout, glyph: "\uE946");
         menu.Items.Add(new Separator());
         Add("Quitter", "Alt+F4", Close, glyph: "\uE7E8");

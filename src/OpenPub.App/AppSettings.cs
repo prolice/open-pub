@@ -19,6 +19,10 @@ public static class AppSettings
         public bool SpellCheck { get; set; } = true;
         /// <summary>Correction typographique francaise a la frappe.</summary>
         public bool AutoCorrect { get; set; } = true;
+        /// <summary>Copie de secours automatique des documents modifies (toutes les 5 minutes).</summary>
+        public bool AutoSave { get; set; } = true;
+        /// <summary>Garder la version precedente a l'enregistrement (« nom.opub.bak »).</summary>
+        public bool KeepBackup { get; set; } = true;
     }
 
     static string SettingsPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OpenPub", "settings.json");

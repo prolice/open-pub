@@ -655,6 +655,42 @@ public static class SelfTest
         setTool.Invoke(w, new object?[] { null });
         Check(Help.HelpService.UrlOf(Help.HelpService.TextWrite) == "https://calm-pebble-0080d6003.5.azurestaticapps.net/aide/texte.html#ecrire", "adresse des pages d'aide");
 
+        Console.WriteLine("Surete des documents : copie de secours, recuperation, fichier modifie ailleurs");
+        {
+            w.SkipConfirm = true;
+            var mw = typeof(MainWindow);
+            var recDir = Path.Combine(Path.GetTempPath(), "openpub-selftest-recovery-" + Guid.NewGuid().ToString("N")[..8]);
+            w.Recovery = new Core.Io.RecoveryStore(recDir);
+            w.EnableRecovery = true;
+            var saved = Path.Combine(Path.GetTempPath(), $"openpub-selftest-{Guid.NewGuid():N}.opub");
+            session.EndTextEdit();
+            session.Save(saved);
+            mw.GetMethod("RecordFileStamp", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, null);
+            int pages = session.Doc.Pages.Count;
+            session.Select(null, session.Doc.Pages[0]);
+            Click(w, "AddPage_Click");
+            Check(session.Modified && w.AutoSaveNow(), "copie de secours d'un document modifie");
+            var entry = w.Recovery.List().SingleOrDefault();
+            Check(entry is not null && entry.OriginalPath == Path.GetFullPath(saved), "copie rangee a part, avec le fichier d'origine");
+            Check(File.Exists(saved) && Core.Io.OpubPackage.Open(saved).Document.Pages.Count == pages, "le fichier de l'utilisateur n'est pas touche");
+            // fermeture inattendue simulee : on rouvre la copie
+            w.OpenRecovered(entry!);
+            var s2 = (EditorSession)mw.GetField("_session", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(w)!;
+            Check(s2.Doc.Pages.Count == pages + 1 && s2.Modified && s2.Package.FilePath == Path.GetFullPath(saved), "document recupere : modifications retrouvees, fichier d'origine");
+            Check(!w.Recovery.List().Any(e => e.Id != entry!.Id), "pas de copie en double");
+            // un autre programme modifie le fichier
+            File.SetLastWriteTimeUtc(saved, DateTime.UtcNow.AddMinutes(1));
+            Check((bool)mw.GetMethod("FileChangedOnDisk", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, null)!, "modification exterieure detectee");
+            s2.Save(saved, keepBackup: true);
+            mw.GetMethod("RecordFileStamp", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, null);
+            mw.GetMethod("DiscardRecovery", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, null);
+            Check(File.Exists(saved + ".bak") && !w.Recovery.List().Any(), "enregistrer : version precedente gardee, copie de secours supprimee");
+            Check(!(bool)mw.GetMethod("FileChangedOnDisk", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, null)!, "apres enregistrement : plus d'alerte");
+            w.EnableRecovery = false;
+            foreach (var f in new[] { saved, saved + ".bak" }) try { File.Delete(f); } catch { }
+            try { Directory.Delete(recDir, true); } catch { }
+        }
+
         w.SkipConfirm = true;
         w.Close();
         if (tmp != file) try { File.Delete(tmp); } catch { }

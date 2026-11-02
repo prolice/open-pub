@@ -96,8 +96,11 @@ public sealed class OpubPackage : IDisposable
         return "assets/" + name;
     }
 
-    /// <summary>Enregistre le paquet (ecriture atomique : fichier temporaire puis remplacement).</summary>
-    public void Save(string? path = null)
+    /// <summary>
+    /// Enregistre le paquet (ecriture atomique : fichier temporaire puis remplacement). Avec keepBackup, la version
+    /// precedente du fichier est gardee a cote (« nom.opub.bak »).
+    /// </summary>
+    public void Save(string? path = null, bool keepBackup = false)
     {
         path ??= FilePath ?? throw new InvalidOperationException("Aucun chemin d'enregistrement");
         DocumentJson.Save(Document, Path.Combine(WorkDir, DocumentEntry));
@@ -105,9 +108,30 @@ public sealed class OpubPackage : IDisposable
         var tmp = path + ".tmp";
         if (File.Exists(tmp)) File.Delete(tmp);
         ZipFile.CreateFromDirectory(WorkDir, tmp, CompressionLevel.Optimal, includeBaseDirectory: false);
+        if (keepBackup && File.Exists(path))
+        {
+            try { File.Copy(path, path + ".bak", overwrite: true); } catch (IOException) { /* sauvegarde facultative */ }
+        }
         File.Move(tmp, path, overwrite: true);
         FilePath = Path.GetFullPath(path);
     }
+
+    /// <summary>
+    /// Copie complete du document dans un autre fichier (enregistrement automatique) ; le chemin du document
+    /// et les images du dossier de travail ne changent pas.
+    /// </summary>
+    public void SaveCopy(string path)
+    {
+        DocumentJson.Save(Document, Path.Combine(WorkDir, DocumentEntry));
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        var tmp = path + ".tmp";
+        if (File.Exists(tmp)) File.Delete(tmp);
+        ZipFile.CreateFromDirectory(WorkDir, tmp, CompressionLevel.Fastest, includeBaseDirectory: false);
+        File.Move(tmp, path, overwrite: true);
+    }
+
+    /// <summary>Change le fichier associe au document (document recupere : il retrouve son fichier d'origine).</summary>
+    public void Retarget(string? path) => FilePath = path is null ? null : Path.GetFullPath(path);
 
     void RemoveUnusedAssets()
     {
