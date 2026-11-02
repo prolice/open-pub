@@ -215,6 +215,7 @@ public partial class MainWindow : Window
             view.LinkTargetPicked += OnLinkTargetPicked;
             view.ContextMenuRequested += OnPageContextMenu;
             view.OverflowClicked += OnOverflowClicked;
+            HookShapeEvents(view);         // lot 9 : espaces reserves, WordArt, modification des points
             view.TextSelectionFinished += () => { if (_painterFont is not null && _session?.TextEdit is { HasSelection: true }) ApplyPainter(); };
             _views.Add(view);
             PagesPanel.Children.Add(new Border
@@ -310,9 +311,9 @@ public partial class MainWindow : Window
             case not null: return Help.HelpService.Shapes;
         }
         if (Sel is { } s)
-            return s.IsImage ? Help.HelpService.PictureTools
+            return s.IsImage ? (s.IsPlaceholder ? Help.HelpService.Placeholders : Help.HelpService.PictureTools)
                  : s.IsText ? (s.Chain is not null ? Help.HelpService.TextLinked : Help.HelpService.TextFormat)
-                 : Help.HelpService.ShapeFormat;
+                 : ShapeHelpTopic(s);          // lot 9 : WordArt, modification des points (MainWindow.Shapes.cs)
         if (TabInsert.IsChecked == true) return Help.HelpService.InsertTab;
         if (TabDraw.IsChecked == true) return Help.HelpService.FreeDrawing;
         if (TabView.IsChecked == true) return Help.HelpService.ViewTab;
@@ -461,6 +462,7 @@ public partial class MainWindow : Window
         ShapeShadowToggle.IsChecked = PicShadowToggle.IsChecked = s.Shadow is not null;
         PicReflectionToggle.IsChecked = (s.ImageFx?.ReflectionSize ?? 0) > 0;
         if (!RotationBox.IsKeyboardFocused) RotationBox.Text = s.Rotation.ToString("0.#", CultureInfo.CurrentCulture);
+        RefreshShapeTools(s);              // lot 9 (MainWindow.Shapes.cs)
         _updatingFormat = false;
     }
 
@@ -650,24 +652,8 @@ public partial class MainWindow : Window
             x => x.Path is { Count: >= 2 } && x.Kind == ShapeKind.Path);
     }
 
-    void ShapesButton_Click(object sender, RoutedEventArgs e)
-    {
-        var menu = new ContextMenu { PlacementTarget = ShapesButton, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
-        LastMenu = menu;
-        foreach (var (id, label) in ShapeGeometries.Catalog)
-        {
-            // petite vignette de la forme
-            var icon = new System.Windows.Shapes.Path
-            {
-                Data = ShapeGeometries.Build(id, new Rect(0, 0, 18, 14), null), Fill = (Brush)FindResource("Accent"), Stretch = Stretch.Uniform, Width = 18, Height = 14,
-            };
-            var it = new MenuItem { Header = label, Icon = icon, Padding = new Thickness(4, 5, 4, 5) };
-            var tool = id;
-            it.Click += (_, _) => SetDrawTool(tool);
-            menu.Items.Add(it);
-        }
-        menu.IsOpen = true;
-    }
+    // galerie par categories : MainWindow.Shapes.cs
+    void ShapesButton_Click(object sender, RoutedEventArgs e) => ShowShapesMenu(ShapesButton);
 
     void OnShapeDrawn(PageView view, string tool, Rect r)
     {
@@ -765,6 +751,7 @@ public partial class MainWindow : Window
         {
             if (x.Path is not null && geo is not null && x.Kind != ShapeKind.Image) { x.Path = null; x.Kind = ShapeKind.Rect; }
             x.Geometry = geo;
+            x.Adjust = null;               // les reglages (poignees jaunes) sont propres a chaque forme
             // une zone de texte sans contour recoit un contour visible pour voir son nouveau cadre
             if (x.IsText && geo is not null && x.Line is null && x.Fill is null) x.Line = new LineStyle { Color = "#000000", Weight = 1.5 };
         });
@@ -802,6 +789,7 @@ public partial class MainWindow : Window
     void EditImage(bool crop)
     {
         if (_session is null || Sel is not { IsImage: true } s || SelPage is not { } page) return;
+        if (s.IsPlaceholder) { FillPlaceholder(s); return; }        // cadre vide : choisir l'image (lot 9)
         var dlg = new ImageEditorWindow(_session, s) { Owner = this };
         if (crop) dlg.Loaded += (_, _) => dlg.StartCrop();
         if (dlg.ShowDialog() == true) _session.Change(page, dlg.Apply);
@@ -935,25 +923,10 @@ public partial class MainWindow : Window
             PenWidthBox.ItemsSource = new[] { 0.5, 1, 1.5, 2, 3, 4.5, 6, 8, 12 };
             PenWidthBox.Text = "2";
         }
-        if (ShapeGallery.Children.Count == 0)
-            foreach (var (id, label) in ShapeGeometries.Catalog)
-            {
-                var icon = new System.Windows.Shapes.Path
-                {
-                    Data = ShapeGeometries.Build(id, new Rect(0, 0, 18, 14), null), Fill = (Brush)FindResource("Accent"),
-                    Stretch = Stretch.Uniform, Width = 20, Height = 16,
-                };
-                var b = new ToggleButton { Style = (Style)FindResource("RSmall"), Content = icon, ToolTip = label, CommandParameter = id, Margin = new Thickness(1), Padding = new Thickness(4, 3, 4, 3) };
-                b.Click += DrawTool_Click;
-                ShapeGallery.Children.Add(b);
-            }
+        if (ShapeGallery.Children.Count == 0) FillShapeGallery();           // MainWindow.Shapes.cs
         if (LineWeightBox.ItemsSource is null)
             LineWeightBox.ItemsSource = new[] { 0.25, 0.5, 0.75, 1, 1.5, 2.25, 3, 4.5, 6 };
-        if (GeometryBox.Items.Count == 0)
-        {
-            GeometryBox.Items.Add(new ComboBoxItem { Content = "Aucun cadre / tracé d'origine", Tag = "" });
-            foreach (var (id, label) in ShapeGeometries.Catalog) GeometryBox.Items.Add(new ComboBoxItem { Content = label, Tag = id });
-        }
+        if (GeometryBox.Items.Count == 0) FillGeometryBox();
     }
 
     void UpdateTitle()
@@ -997,7 +970,8 @@ public partial class MainWindow : Window
         SelTitle.Text = (s.Locked ? "🔒 " : "") + s.Kind switch
         {
             ShapeKind.Text => "Zone de texte",
-            ShapeKind.Image => "Image",
+            ShapeKind.Image => s.IsPlaceholder ? "Espace réservé pour image" : "Image",
+            ShapeKind.WordArt => "WordArt",
             ShapeKind.Ellipse => "Ellipse",
             ShapeKind.Rect => "Rectangle",
             _ => "Forme",
@@ -1024,7 +998,7 @@ public partial class MainWindow : Window
         {
             ImagePanel.Visibility = Visibility.Visible;
             var bmp = _session.Images.Get(s.Src);
-            ImageInfo.Text = bmp is null ? "Image introuvable" : $"{bmp.PixelWidth} × {bmp.PixelHeight} px · {Path.GetFileName(s.Src)}";
+            ImageInfo.Text = bmp is null ? (s.IsPlaceholder ? "Cadre vide : cliquez sur son bouton pour insérer une image" : "Image introuvable") : $"{bmp.PixelWidth} × {bmp.PixelHeight} px · {Path.GetFileName(s.Src)}";
         }
     }
 
@@ -1181,6 +1155,7 @@ public partial class MainWindow : Window
     void ReplaceImage(Shape s)
     {
         if (_session is null || _session.PageOf(s) is not { } page) return;
+        if (s.IsPlaceholder) { FillPlaceholder(s); return; }        // cadre vide : il garde sa taille (lot 9)
         var file = PickImage();
         if (file is null) return;
         var src = _session.Package.AddAsset(file);

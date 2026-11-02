@@ -53,6 +53,16 @@ public static class HelpService
     public const string Review = "revision.html#orthographe";
     public const string FindReplace = "revision.html#rechercher";
     public const string Recovery = "interface.html#recuperation";
+    // version 2.1 (lot 9 : formes, effets et texte decoratif)
+    public const string ShapeAdjust = "formes.html#reglages";
+    public const string ShapeFills = "formes.html#remplissages";
+    public const string ShapeEffects = "formes.html#effets";
+    public const string EditPoints = "formes.html#points";
+    public const string WordArt = "formes.html#wordart";
+    public const string BorderArt = "formes.html#bordures";
+    public const string Placeholders = "images.html#espaces-reserves";
+    public const string Captions = "images.html#legende";
+    public const string CompressImages = "images.html#compresser";
 
     public static IReadOnlyList<string> AllTopics => typeof(HelpService).GetFields(BindingFlags.Public | BindingFlags.Static)
         .Where(f => f.IsLiteral && f.FieldType == typeof(string)).Select(f => (string)f.GetRawConstantValue()!).ToList();

@@ -40,7 +40,7 @@ public sealed class Page
         Shapes.Where(s => s.Chain == chain).OrderBy(s => s.ChainIndex ?? 0).ToList();
 }
 
-public static class ShapeKind
+public static partial class ShapeKind
 {
     public const string Text = "text";
     public const string Image = "image";
@@ -49,7 +49,7 @@ public static class ShapeKind
     public const string Path = "path";
 }
 
-public sealed class Shape
+public sealed partial class Shape
 {
     public string Kind { get; set; } = ShapeKind.Rect;
     public double X { get; set; }
@@ -180,14 +180,14 @@ public sealed class ImageFx
         FormattableString.Invariant($"{CropLeft:0.####},{CropTop:0.####},{CropRight:0.####},{CropBottom:0.####},{Recolor},{Brightness:0.###},{Contrast:0.###}");
 }
 
-public sealed class Fill
+public sealed partial class Fill
 {
     public string? Color { get; set; }
     public double? Opacity { get; set; }
     public bool Gradient { get; set; }
 }
 
-public sealed class LineStyle
+public sealed partial class LineStyle
 {
     public string Color { get; set; } = "#000000";
     public double Weight { get; set; } = 1;

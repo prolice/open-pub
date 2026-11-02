@@ -137,8 +137,9 @@ public sealed class OpubPackage : IDisposable
     {
         var assets = Path.Combine(WorkDir, "assets");
         if (!Directory.Exists(assets)) return;
-        var used = Document.AllShapes().Where(s => s.Src is not null)
-            .Select(s => Path.GetFullPath(ResolveAsset(s.Src!))).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // images des objets et images de remplissage (lot 9)
+        var used = Document.AllShapes().SelectMany(s => new[] { s.Src, s.Fill?.Image }).Where(src => !string.IsNullOrEmpty(src))
+            .Select(src => Path.GetFullPath(ResolveAsset(src!))).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var f in Directory.GetFiles(assets))
             if (!used.Contains(Path.GetFullPath(f))) File.Delete(f);
     }

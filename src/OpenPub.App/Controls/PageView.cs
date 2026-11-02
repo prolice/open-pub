@@ -12,7 +12,7 @@ namespace OpenPub.App.Controls;
 /// Affiche une page et gere la souris et le clavier : selection, deplacement, redimensionnement
 /// (8 poignees) avec magnetisme, edition du texte directement sur la page (double-clic).
 /// </summary>
-public sealed class PageView : FrameworkElement
+public sealed partial class PageView : FrameworkElement
 {
     public const double DipPerPoint = 96.0 / 72.0;
     readonly EditorSession _session;
@@ -129,8 +129,9 @@ public sealed class PageView : FrameworkElement
         if (Interactive && _session.Selected is { } sel && Page.Shapes.Contains(sel))
         {
             if (_session.MultiSelection) DrawMultiSelection(dc);
-            else DrawSelection(dc, sel);
+            else if (sel != PointEditShape) DrawSelection(dc, sel);
         }
+        DrawShapeEditOverlay(dc);          // lot 9 : poignees jaunes, modification des points (PageView.Shapes.cs)
         if (_marquee is { } mq)
             dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(0x18, 0x1f, 0x6f, 0xd1)), new Pen(new SolidColorBrush(Color.FromRgb(0x1f, 0x6f, 0xd1)), 1 / K) { DashStyle = DashStyles.Dash }, mq);
         if (Interactive && _session.TextEdit is { } ed && ed.Page == Page && ed.CaretVisible && ed.CaretInfo() is { } ci)
@@ -361,6 +362,8 @@ public sealed class PageView : FrameworkElement
             e.Handled = true;
             return;
         }
+        // lot 9 : poignees jaunes, modification des points, espaces reserves, WordArt (PageView.Shapes.cs)
+        if (ShapeEditMouseDown(p, e)) { e.Handled = true; return; }
 
         var sel = _session.Selected;
         bool add = Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || shift;
@@ -476,6 +479,7 @@ public sealed class PageView : FrameworkElement
     {
         if (!Interactive) return;
         var p = ToPage(e);
+        if (ShapeEditMouseMove(p, e)) return;          // lot 9 (PageView.Shapes.cs)
         if (_mode == DragMode.TextSelect)
         {
             if (_session.TextEdit is { } ed && e.LeftButton == MouseButtonState.Pressed) ed.SetCaret(ed.HitTest(p), extend: true);
@@ -619,6 +623,7 @@ public sealed class PageView : FrameworkElement
 
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
+        if (ShapeEditMouseUp()) return;                // lot 9 (PageView.Shapes.cs)
         if (_mode == DragMode.None) return;
         var mode = _mode;
         _mode = DragMode.None;
@@ -673,6 +678,7 @@ public sealed class PageView : FrameworkElement
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        if (ShapeEditKeyDown(e)) return;               // lot 9 : mode « modifier les points » (PageView.Shapes.cs)
         if (_poly is not null)
         {
             switch (e.Key)

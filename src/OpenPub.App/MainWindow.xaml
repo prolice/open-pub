@@ -161,6 +161,12 @@
                                 <Button Style="{StaticResource RBig}" Tag="&#xEB9F;" Content="Image" Click="AddImage_Click" ToolTip="Insérer une image depuis un fichier"/>
                                 <Button x:Name="ShapesButton" Style="{StaticResource RBig}" Tag="&#xE790;" Content="Formes ▾" Click="ShapesButton_Click" ToolTip="Dessiner une forme : rectangle arrondi, ellipse, flèche, étoile, bulle…"/>
                                 <ToggleButton x:Name="DrawLineTool" Style="{StaticResource RBig}" Tag="&#xE70F;" Content="Ligne" Click="DrawTool_Click" CommandParameter="line" ToolTip="Tracer une ligne"/>
+                                <!-- lot 9 : WordArt, espaces reserves, legende (MainWindow.Shapes.cs) -->
+                                <Button x:Name="WordArtButton" Style="{StaticResource RBig}" Tag="&#xE8D2;" Content="WordArt ▾" Click="WordArtMenu_Click" ToolTip="Texte décoratif : dégradé, contour, ombre, arc, cercle, vague"/>
+                                <StackPanel>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE91B;" Content="Espace réservé" Click="AddPlaceholder_Click" ToolTip="Cadre d'image vide, à remplir plus tard (clic sur son bouton)"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE8BD;" Content="Image + légende" Click="AddCaption_Click" ToolTip="Image (ou cadre vide) et sa légende, groupées"/>
+                                </StackPanel>
                             </StackPanel>
                         </HeaderedContentControl>
                     </StackPanel>
@@ -300,8 +306,22 @@
                                 </StackPanel>
                             </StackPanel>
                         </HeaderedContentControl>
-                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Effets">
-                            <ToggleButton x:Name="ShapeShadowToggle" Style="{StaticResource RBig}" Tag="&#xE81E;" Content="Ombre" Click="ShadowToggle_Click"/>
+                        <!-- lot 9 : ombre (ancien groupe Effets), remplissages, effets, bordures, points, WordArt (MainWindow.Shapes.cs) -->
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Styles et effets">
+                            <StackPanel Orientation="Horizontal">
+                                <StackPanel>
+                                    <ToggleButton x:Name="ShapeShadowToggle" Style="{StaticResource RSmall}" Tag="&#xE81E;" Content="Ombre" Click="ShadowToggle_Click" ToolTip="Ombre portée"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE7B3;" Content="Effets ▾" Click="EffectsMenu_Click" ToolTip="Lueur, bords adoucis, ombre intérieure"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE80A;" Content="Bordure ▾" Click="BorderArtMenu_Click" ToolTip="Bordure décorative : motifs répétés le long du cadre"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE771;" Content="Remplissage ▾" Click="FillMenu_Click" ToolTip="Dégradé, motif, image, transparence du remplissage et du contour"/>
+                                    <ToggleButton x:Name="EditPointsToggle" Style="{StaticResource RSmall}" Tag="&#xE879;" Content="Modifier les points" Click="EditPoints_Click"
+                                                  ToolTip="Déplacer, ajouter (Ctrl + clic sur le contour) ou supprimer (Ctrl + clic, Suppr) les sommets ; double-clic : lisse / angle"/>
+                                    <Button x:Name="WordArtTextButton" Style="{StaticResource RSmall}" Tag="&#xE8D2;" Content="Texte WordArt…" Click="WordArtEdit_Click" ToolTip="Texte, police et déformation du WordArt (double-clic)"/>
+                                    <Button x:Name="WarpButton" Style="{StaticResource RSmall}" Tag="&#xE7AD;" Content="Déformation ▾" Click="WarpMenu_Click" ToolTip="Texte droit, en arc, en cercle ou en vague"/>
+                                </StackPanel>
+                            </StackPanel>
                         </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Habillage">
                             <Button Style="{StaticResource RBig}" Tag="&#xE8A4;" Content="Habillage&#x0a;▾" Click="WrapButton_Click" ToolTip="Comment le texte contourne cet objet : aucun, carré, serré, haut et bas ; distance"/>
@@ -366,6 +386,21 @@
                                 <ToggleButton x:Name="PicShadowToggle" Style="{StaticResource RBig}" Tag="&#xE81E;" Content="Ombre" Click="ShadowToggle_Click"/>
                                 <ToggleButton x:Name="PicReflectionToggle" Style="{StaticResource RBig}" Tag="&#xE7B3;" Content="Reflet" Click="ReflectionToggle_Click"/>
                                 <Button Style="{StaticResource RBig}" Tag="&#xE777;" Content="Réinitialiser" Click="ResetImage_Click" ToolTip="Retirer toutes les retouches de l'image"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <!-- lot 9 : effets, bordure, legende, permutation, compression (MainWindow.Shapes.cs) -->
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Cadre">
+                            <StackPanel Orientation="Horizontal">
+                                <StackPanel>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE7B3;" Content="Effets ▾" Click="EffectsMenu_Click" ToolTip="Lueur, bords adoucis, ombre intérieure"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE80A;" Content="Bordure ▾" Click="BorderArtMenu_Click" ToolTip="Bordure décorative autour de l'image"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE8BD;" Content="Légende" Click="AddCaption_Click" ToolTip="Ajouter une légende groupée avec l'image"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <Button x:Name="SwapButton" Style="{StaticResource RSmall}" Tag="&#xE8AB;" Content="Permuter" Click="SwapImages_Click" ToolTip="Échanger les deux images sélectionnées ; chaque cadre garde sa place et sa taille"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE74D;" Content="Vider le cadre" Click="ClearImage_Click" ToolTip="Retirer l'image en gardant son cadre (espace réservé)"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE8B7;" Content="Compresser…" Click="CompressImages_Click" ToolTip="Réduire à 300 ppp les images plus grandes que nécessaire, pour alléger le fichier"/>
+                                </StackPanel>
                             </StackPanel>
                         </HeaderedContentControl>
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Habillage">

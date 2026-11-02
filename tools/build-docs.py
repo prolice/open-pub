@@ -67,7 +67,7 @@ son bouton <strong>?</strong>, et le panneau de droite propose un lien « En sav
 <a class="card" href="interface.html"><b>Interface et ruban</b><span>Fichier, onglets, panneaux, barre d'état</span></a>
 <a class="card" href="texte.html"><b>Texte</b><span>Écrire, paragraphes, listes, zones liées, colonnes</span></a>
 <a class="card" href="images.html"><b>Images</b><span>Insérer, recadrer, couleurs, ombre, reflet</span></a>
-<a class="card" href="formes.html"><b>Formes et dessin</b><span>Formes, crayon, forme libre, flèches</span></a>
+<a class="card" href="formes.html"><b>Formes et dessin</b><span>Formes, WordArt, effets, crayon, forme libre</span></a>
 <a class="card" href="disposition.html"><b>Disposition</b><span>Plusieurs objets, grouper, aligner, magnétisme</span></a>
 <a class="card" href="revision.html"><b>Révision</b><span>Orthographe, rechercher et remplacer, typographie</span></a>
 <a class="card" href="pages.html"><b>Pages</b><span>Ajouter, dupliquer, réordonner</span></a>
@@ -210,7 +210,8 @@ photo en gardant sa place : sélectionnez-la puis <strong>Outils image</strong> 
         ("outils", "Outils image (ruban)", f"""
 <p>Sélectionnez une image : l'onglet <strong>Outils image</strong> s'ouvre. Il propose en un clic les couleurs
 (origine, niveaux de gris, noir et blanc, sépia, filigrane), le miroir, l'ombre, le reflet, la rotation et la
-réinitialisation.</p>
+réinitialisation. Le groupe <strong>Cadre</strong> ajoute les effets (lueur, bords adoucis, ombre intérieure), la
+bordure décorative, la légende, la permutation de deux images, <strong>Vider le cadre</strong> et la compression.</p>
 {shot("onglet-image", "Onglet Outils image")}"""),
         ("editeur", "Éditeur d'images", f"""
 <p><strong>Double-cliquez</strong> sur une image (ou <strong>Modifier l'image…</strong>) : l'éditeur affiche un aperçu
@@ -230,16 +231,48 @@ de Publisher peuvent garder leur <em>détourage d'origine</em>.</p>"""),
         ("ombre-reflet", "Ombre et reflet", """
 <p><strong>Ombre portée</strong> : distance, flou, opacité et direction ; la direction reste la même quand l'objet
 tourne. <strong>Reflet</strong> : copie en miroir sous l'image, en dégradé (taille, opacité, écart).</p>"""),
+        ("espaces-reserves", "Espaces réservés et permutation", f"""
+<p><strong>Insertion ▸ Espace réservé</strong> pose un cadre d'image vide (gris, avec une icône) : préparez la mise
+en page, puis cliquez sur <strong>le bouton au centre du cadre</strong> (ou double-cliquez) pour choisir la photo.
+Elle remplit le cadre sans être déformée (recadrage automatique, ajustable avec <strong>Recadrer</strong>). Un cadre
+vide n'apparaît ni à l'impression ni à l'export. <strong>Vider le cadre</strong> retire la photo et garde le cadre.</p>
+<p><strong>Permuter</strong> : sélectionnez deux images ({k('Ctrl')} + clic) puis <strong>Outils image ▸ Permuter</strong> :
+les photos échangent leur place, chaque cadre garde sa position, sa taille et sa forme.</p>"""),
+        ("legende", "Légende d'image", """
+<p>Sélectionnez une image puis <strong>Légende</strong> (Outils image) : une zone de texte en italique est posée sous
+l'image et <strong>groupée</strong> avec elle ; ils se déplacent ensemble et le texte de la page contourne les deux.
+Double-cliquez sur la légende pour l'écrire. Sans image sélectionnée, <strong>Insertion ▸ Image + légende</strong>
+crée un espace réservé et sa légende.</p>"""),
+        ("compresser", "Compresser les images", f"""
+<p>Les photos d'un appareil ou d'un téléphone sont souvent bien plus grandes que nécessaire.
+<strong>Outils image ▸ Compresser…</strong> réduit à <strong>300 ppp</strong> (la qualité d'impression) chaque image
+plus grande que sa plus grande taille sur la page, recadrage compris : le fichier .opub s'allège sans changement
+visible. Les anciennes images quittent le fichier à l'enregistrement suivant ({k('Ctrl', 'Z')} annule tant que le
+document n'est pas enregistré).</p>"""),
     ]),
 
-    ("formes.html", "Formes et dessin", "Formes, crayon, forme libre, lignes et flèches.", "✏️", [
+    ("formes.html", "Formes et dessin", "Formes, WordArt, effets, crayon, forme libre, lignes et flèches.", "✏️", [
         ("formes", "Dessiner une forme", f"""
 {steps("Onglet <strong>Dessin</strong> (ou Insertion ▸ Formes) : choisissez une forme dans la galerie.",
        f"Tracez-la sur la page. {k('Maj')} donne un carré, un cercle ou une forme régulière.",
        "La forme est sélectionnée : réglez-la dans l'onglet <strong>Format de la forme</strong>.")}
-<p>Formes disponibles : rectangle, rectangle à coins arrondis, ellipse, triangle, losange, hexagone, étoile, flèche
-pleine, bulle de dialogue, cœur.</p>
+<p>Une cinquantaine de formes, rangées en quatre catégories dans <strong>Insertion ▸ Formes ▾</strong> (et
+<strong>Plus ▾</strong> dans la galerie de l'onglet Dessin) :</p>
+<ul><li><strong>Formes de base</strong> : rectangle (coins arrondis), ellipse, triangles, losange, parallélogramme,
+trapèze, pentagone, hexagone, octogone, croix, cadre, anneau, cœur, éclair, soleil, lune, nuage, visage souriant.</li>
+<li><strong>Flèches pleines</strong> : droite, gauche, haut, bas, doubles, quadruple, chevron, pentagone, flèche à
+encoche, flèche courbe, flèche circulaire.</li>
+<li><strong>Étoiles et bannières</strong> : étoiles de 4 à 32 branches, explosion, ruban, bannière ondulée.</li>
+<li><strong>Bulles et légendes</strong> : bulle de dialogue, légendes rectangulaire, arrondie, ovale, bulle de
+pensée, légende avec trait.</li></ul>
+{shot("menu-formes", "Menu Formes : les catégories")}
 {shot("onglet-dessin", "Onglet Dessin du ruban")}"""),
+        ("reglages", "Poignées jaunes de réglage", f"""
+<p>Une forme sélectionnée montre, en plus des poignées blanches, un ou deux <strong>losanges jaunes</strong> : tirez-les
+pour régler la forme sans la redimensionner — épaisseur et pointe d'une flèche, profondeur des branches d'une étoile,
+<strong>pointe d'une bulle</strong> (elle peut sortir du cadre pour désigner un personnage), arrondi des coins,
+épaisseur d'un cadre ou d'un anneau, croissant de lune, sourire… Les réglages suivent le redimensionnement de la
+forme ; {k('Ctrl', 'Z')} les annule.</p>"""),
         ("dessin-libre", "Dessin libre", f"""
 <ul><li><strong>Crayon</strong> : dessinez à main levée, le trait est lissé automatiquement. L'outil reste actif pour
 enchaîner les traits ; {k('Échap')} pour terminer.</li>
@@ -254,8 +287,53 @@ dernier point.</li>
 <li><strong>Épaisseur</strong> et <strong>Tirets</strong> du contour.</li>
 <li><strong>Flèches</strong> : pointe au début et/ou à la fin d'une ligne ou d'un tracé.</li>
 <li><strong>Forme</strong> : change la forme d'un objet ou le cadre d'une zone de texte ; <strong>Arrondi</strong> des coins.</li>
-<li><strong>Ombre</strong>, <strong>Rotation</strong>, <strong>Organiser</strong> (premier plan, arrière-plan, supprimer).</li></ul>"""
+<li><strong>Ombre</strong>, <strong>Rotation</strong>, <strong>Organiser</strong> (premier plan, arrière-plan, supprimer).</li>
+<li>Groupe <strong>Styles</strong> : <strong>Remplissage ▾</strong>, <strong>Effets ▾</strong>, <strong>Bordure ▾</strong>,
+<strong>Modifier les points</strong> et, pour un WordArt, <strong>Texte WordArt…</strong> et
+<strong>Déformation ▾</strong> (voir ci-dessous).</li></ul>"""
          + "{SHOT_FORMAT}"),
+        ("remplissages", "Dégradés, motifs, images et transparence", """
+<p><strong>Format de la forme ▸ Remplissage ▾</strong> propose :</p>
+<ul><li><strong>Couleur unie</strong> ;</li>
+<li><strong>Dégradé</strong> : des dégradés prêts à l'emploi (clair vers foncé à partir de la couleur de la forme,
+radial, coucher de soleil, océan, arc-en-ciel) ou un <em>dégradé personnalisé</em> : linéaire (direction en degrés)
+ou radial, avec ses <strong>arrêts</strong> (couleur, position, opacité ; ajouter, supprimer) ;</li>
+<li><strong>Motif</strong> : pois, lignes, diagonales, quadrillage, treillis, damier, zigzag, briques, vagues, dans
+deux couleurs au choix ;</li>
+<li><strong>Image</strong> : une photo remplit la forme (sans déformation) ou se répète en mosaïque ;</li>
+<li><strong>Transparence</strong> du remplissage et <strong>du contour</strong>, de 0 à 90 %.</li></ul>
+<p><strong>Options de remplissage…</strong> réunit tous ces réglages avec un aperçu. Un remplissage s'applique aussi
+au cadre d'une zone de texte et au texte d'un WordArt.</p>"""),
+        ("effets", "Lueur, bords adoucis, ombre intérieure", """
+<p><strong>Effets ▾</strong> (onglet Format de la forme, ou Outils image pour une photo) ajoute une
+<strong>lueur</strong> colorée autour de l'objet, des <strong>bords adoucis</strong> (le contour se fond vers la
+transparence) ou une <strong>ombre intérieure</strong> (l'objet semble creusé). <strong>Options des effets…</strong>
+règle couleur, taille, transparence, distance et direction. Ces effets se combinent avec l'ombre portée.</p>"""),
+        ("points", "Modifier les points", f"""
+<p>Sélectionnez une forme ou un tracé puis <strong>Format de la forme ▸ Modifier les points</strong> : les sommets
+apparaissent en petits carrés.</p>
+<ul><li><strong>Glissez</strong> un sommet pour le déplacer ; cliquez dessus pour voir ses <strong>poignées de
+courbe</strong> (ronds) et glissez-les pour arrondir le tracé.</li>
+<li>{k('Ctrl')} + clic (ou double-clic) <strong>sur le contour</strong> ajoute un sommet ; {k('Ctrl')} + clic
+<strong>sur un sommet</strong> (ou {k('Suppr')}) le supprime.</li>
+<li><strong>Double-clic sur un sommet</strong> : passe d'un <strong>angle vif</strong> à un <strong>point lisse</strong>
+(et inversement).</li>
+<li>{k('Échap')}, {k('Entrée')} ou un clic hors de la forme terminent la modification.</li></ul>
+<p>Une forme automatique (étoile, flèche…) devient alors un tracé libre : elle perd ses poignées jaunes
+({k('Ctrl', 'Z')} pour revenir en arrière).</p>"""),
+        ("wordart", "WordArt (texte décoratif)", f"""
+{steps("<strong>Insertion ▸ WordArt ▾</strong> : choisissez un style (dégradé, contour, arc-en-ciel, ombre, lueur…).",
+       "Tapez le texte, choisissez la police, le gras ou l'italique et la <strong>déformation</strong> : texte droit, arc vers le haut, arc vers le bas, cercle ou vague.",
+       "Le texte remplit son cadre : redimensionnez-le pour l'étirer ; double-clic pour modifier le texte.")}
+<p>Le WordArt se met en forme comme une forme : <strong>Remplissage ▾</strong> (dégradé, motif, image),
+<strong>Contour</strong>, <strong>Ombre</strong>, <strong>Effets ▾</strong>, rotation. <strong>Déformation ▾</strong>
+change la courbe du texte. Il ne contient qu'une ligne : pour un titre sur plusieurs lignes, utilisez plusieurs
+WordArt ou une zone de texte.</p>"""),
+        ("bordures", "Bordures décoratives", """
+<p><strong>Bordure ▾</strong> entoure une forme, une zone de texte ou une image d'un <strong>motif répété</strong> :
+cœurs, étoiles, pois, losanges, triangles, fleurs, soleils, lunes, nuages, chevrons, damier, éclairs. Réglez la
+<strong>taille des motifs</strong>, leur <strong>couleur</strong> et une <strong>couleur alternée</strong>. Les motifs
+sont dessinés à l'intérieur du cadre : laissez une marge intérieure suffisante dans une zone de texte.</p>"""),
         ("couleurs", "Choisir une couleur", """
 <p>Le sélecteur propose les couleurs du thème et leurs nuances, des couleurs standard, les couleurs déjà utilisées
 dans le document et la saisie d'un code (par exemple <code>#087aff</code>). « Aucune » retire le remplissage ou le

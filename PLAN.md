@@ -537,3 +537,93 @@ deviennent les versions 2.1 et suivantes.
 **Jalons** : après les lots 0 à 5 (≈ 67 jours), OpenPub couvre tout l'usage mensuel de la newsletter sans manque gênant ; la version 2.0 apporte la structure de document de Publisher ; les lots 9 à 11 complètent la parité visuelle et les sorties d'imprimerie.
 
 **Risques** : habillage serré et WordArt (géométrie du texte), tableaux (nouveau type d'objet dans tout l'éditeur), PDF identique à l'écran (polices et effets) ; pour chacun, un prototype de 1 à 2 jours avant d'engager le lot.
+
+## 10. Lot 9 livré : formes, effets et texte décoratif
+
+Réalisé sur la branche du lot 9 (version inchangée : à publier avec la prochaine version, `"depuis": "2.1.0"` dans
+`fonctionnalites.json`). Tous les nouveaux champs de `document.json` sont facultatifs ; une version plus ancienne les
+ignore et garde `Fill.Color`, toujours renseignée (première couleur d'un dégradé, fond d'un motif).
+
+- **Conception** : la géométrie est passée dans le noyau, sans WPF. `Core/Geometry/ShapeLibrary.cs` décrit chaque
+  forme automatique (contour en segments M/L/C/Q/Z calculé depuis le cadre, catégorie, réglages par défaut, poignées) ;
+  `Rendering/ShapeGeometries.cs` ne fait plus que convertir en géométrie WPF. Les mêmes contours servent au rendu, à
+  l'habillage serré (`PageLayouter.Bands` utilise `ShapeLibrary.Polygons`, courbes aplaties, plusieurs sous-tracés pour
+  un cadre ou un anneau) et à la modification des points. Les nouveaux champs sont dans `Core/Model/DecorModel.cs`
+  (classes `Shape`, `Fill`, `LineStyle`, `ShapeKind` rendues `partial` dans `Document.cs`, seul changement de ce
+  fichier).
+- **50 formes** en 4 catégories (formes de base, flèches pleines, étoiles et bannières, bulles et légendes), dont les
+  étoiles de 4 à 32 branches, nuage, éclair, soleil, lune, croix, cadre, anneau, visage, flèches doubles, quadruple,
+  courbe, circulaire, à encoche, ruban, bannière ondulée, légendes rectangulaire / arrondie / ovale / pensée / trait.
+  Les 10 identifiants existants sont gardés (la bulle par défaut est identique à l'ancienne). Menu Insertion ▸ Formes en
+  grilles par catégorie ; galerie de l'onglet Dessin réduite à 14 formes + « ⋯ » ; liste « Forme » avec intertitres.
+- **Poignées jaunes** : `Shape.Adjust` (liste de nombres en parts du cadre, donc qui suivent le redimensionnement ;
+  null = valeurs par défaut). Chaque `ShapeDef` déclare ses `AdjustHandle` (position et effet d'un glissement, dans le
+  repère non tourné de l'objet) ; `PageView.Shapes.cs` les dessine (losanges jaunes) et les fait glisser. Flèches
+  (épaisseur + pointe, une poignée 2D), étoiles (profondeur), bulles (pointe libre, même hors du cadre), coins arrondis
+  (`CornerRadius`), cadre, anneau, lune, soleil, sourire, parallélogramme, trapèze, hexagone, octogone, chevron, ruban…
+  Changer de forme remet `Adjust` à null.
+- **Remplissages** (`Rendering/DecorRenderer.cs`) : `Fill.Stops` / `GradientType` / `Angle` (dégradé linéaire ou
+  radial ; l'ancien drapeau d'import `Fill.Gradient` est inchangé), `Fill.Pattern` / `PatternColor` (12 motifs en
+  carreaux de 8 pt dessinés en code), `Fill.Image` / `ImageTile` (couvre la forme ou mosaïque à 150 ppp),
+  `LineStyle.Opacity`. Menu Remplissage ▾ (dégradés prêts à l'emploi calculés depuis la couleur de la forme, motifs,
+  image, transparences) et `FillWindow` (éditeur d'arrêts : couleur, position, opacité ; aperçu). Les images de
+  remplissage sont gardées à l'enregistrement (`OpubPackage.RemoveUnusedAssets`) et suivent le copier-coller entre
+  documents.
+- **Effets** : `Shape.Effects` (`EffectsFx` : lueur couleur/taille/opacité, bords adoucis, ombre intérieure `ShadowFx`)
+  pour les formes, cadres de zones de texte, images et WordArt ; rendus par silhouettes floutées mises en cache
+  (`ImageCache.Shadow`) : lueur = silhouette élargie, bords adoucis = masque d'opacité de la silhouette rétrécie, ombre
+  intérieure = extérieur flouté, décalé et découpé par la silhouette. Menu Effets ▾ (préréglages) et `EffectsWindow`.
+- **Modifier les points** (`Core/Geometry/PathEditor.cs`, mode dans `PageView.Shapes.cs`) : la forme est convertie en
+  tracé (annulable), puis normalisée (Q → C, sommet de fermeture explicite). Glisser un sommet (ses poignées suivent)
+  ou une poignée de courbe (la poignée opposée reste alignée sur un point lisse) ; Ctrl + clic ou double-clic sur le
+  contour ajoute un sommet (découpe de Casteljau, la courbe ne change pas) ; Ctrl + clic ou Suppr supprime (au moins
+  2 sommets, 3 si fermé) ; double-clic sur un sommet : lisse / angle vif. Le cadre est recalculé à la fin du geste, avec
+  compensation pour un objet tourné (rien ne bouge à l'écran). Les arcs SVG importés (A) gardent leurs extrémités
+  modifiables et sont aplatis exactement pour les boîtes englobantes.
+- **WordArt** : nouveau type d'objet `"wordart"` (`Shape.WordArt` : texte d'une ligne, police, gras, italique,
+  déformation). Choix retenu plutôt qu'une option de zone de texte : aucun changement du moteur de texte, de l'édition
+  sur la page ni des chaînes ; le texte est dessiné comme une forme (contours des glyphes), donc remplissage (dégradé,
+  motif, image), contour, ombre, effets et rotation s'appliquent sans code spécial. Le placement est un calcul pur
+  (`Core/Geometry/TextOnPath.cs`) : texte droit qui remplit le cadre (étiré), vague, arc vers le haut / le bas
+  (demi-ellipse, taille réduite jusqu'à ce que le texte tienne), cercle (texte centré en haut) ; glyphes posés le long
+  d'une polyligne par abscisse curviligne (`Polyline`), réutilisable pour le « texte sur tracé » du lot 12. Insertion ▸
+  WordArt ▾ (6 styles), double-clic ou « Texte WordArt… » (`WordArtWindow`, aperçu), « Déformation ▾ ». Un nouveau
+  WordArt prend les proportions naturelles de son texte.
+- **Bordures décoratives** : `Shape.BorderArt` (motif, taille, couleur, couleur alternée) ; 12 motifs dessinés en code
+  à partir des formes de la bibliothèque (`BorderArtLayout` : un motif par coin, répartition régulière sur les bords,
+  motifs tournés vers l'extérieur, à l'intérieur du cadre). Pour formes, zones de texte et images.
+- **Images** : espace réservé = image sans `Src` (`Shape.IsPlaceholder`), dessiné à l'écran seulement (cadre gris
+  pointillé, bouton central ; rien à l'impression ni à l'export) ; clic sur le bouton ou double-clic → choix de l'image,
+  qui remplit le cadre (`ImageFit.CoverCrop`). « Permuter » échange les images de deux cadres (recadrage recalculé pour
+  chacun), « Vider le cadre », « Légende » (zone de texte groupée sous l'image ; sans image, Insertion ▸ Image +
+  légende crée l'espace réservé et sa légende ; le texte de la page contourne le groupe comme avant).
+- **Compression** (`Core/Imaging/ImageTools.cs` pour le calcul, `MainWindow.Shapes.cs` pour les pixels) : résolution utile
+  de chaque image = plus grande taille affichée (recadrage et remplissage compris) à 300 ppp ; une image plus grande de
+  15 % est réduite (JPEG qualité 88, PNG si transparence), sous un nouveau nom ; les anciennes quittent le paquet à
+  l'enregistrement (annulable jusque-là). Les mosaïques ne sont pas touchées.
+- **Fichiers partagés touchés** (blocs marqués « lot 9 ») : `Document.cs` (mot `partial`), `PageRenderer.cs`
+  (appels à `DecorRenderer` : objets spéciaux, bordure, corps avec effets, pinceaux, `PenOf`, réglages des formes),
+  `PageView.cs` (classe `partial`, 6 appels d'une ligne vers `PageView.Shapes.cs`), `MainWindow.xaml` (groupe « Styles et
+  effets » qui reprend le bouton Ombre, groupe « Cadre » des outils image, WordArt / espace réservé / légende dans
+  Insertion), `MainWindow.xaml.cs` (galeries, abonnements, aide contextuelle, espace réservé dans Remplacer / Modifier),
+  `MainWindow.Objects.cs` (images de remplissage au presse-papiers), `PageLayouter.cs` (polygones d'habillage),
+  `OpubPackage.cs` (images de remplissage gardées), `SelfTest.cs` (classe `partial`, un appel).
+- **Vérifications** : 95 tests unitaires (27 nouveaux : bibliothèque, poignées, habillage d'une étoile, points, arcs SVG,
+  WordArt, bordures, recadrage, compression, format de fichier, paquet) ; **151 vérifications** de bout en bout (36
+  nouvelles, sur une page vierge ajoutée au document : aucune capture ne montre la newsletter), captures
+  `selftest-9-*.png`.
+- **Aide** : `formes.html#reglages|remplissages|effets|points|wordart|bordures`, `images.html#espaces-reserves|legende|compresser`
+  (constantes `HelpService`, vérifiées contre `ancres.txt`) ; nouvelle capture `menu-formes` (scène `shapes-menu`).
+- **Non fait** :
+  - « Texture » en remplissage (Publisher propose des photos de bois, papier…) : pas de bibliothèque libre de droits
+    embarquée ; une image en mosaïque en tient lieu.
+  - WordArt sur plusieurs lignes et déformations « enveloppe » (glyphes déformés, pas seulement tournés) : une ligne
+    par WordArt ; les déformations Office qui étirent les lettres demanderaient de transformer chaque contour point
+    par point.
+  - Poignées jaunes en sélection multiple ; clic sur la pointe d'une légende hors du cadre (la sélection se fait sur
+    le cadre) ; flèches du clavier pour déplacer un sommet.
+  - Effets et WordArt ne sont pas encore pris en compte par un export PDF vectoriel (lot 10) : le rendu actuel est
+    celui de WPF (écran, impression, PNG).
+  - Le site d'aide est régénéré par `publish-portal.yml` à chaque modification de `build-docs.py` : les nouvelles
+    sections seront en ligne avant la version qui les apporte (captures de la version publiée) ; à pousser avec la
+    version, ou à accepter.

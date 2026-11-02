@@ -16,7 +16,7 @@ namespace OpenPub.App;
 /// Test de bout en bout de l'interface (OpenPub.exe --selftest fichier.opub dossier_captures) :
 /// ouvre la vraie fenetre hors ecran, rejoue des actions d'edition et verifie leurs effets.
 /// </summary>
-public static class SelfTest
+public static partial class SelfTest
 {
     static int _ok, _ko;
 
@@ -664,6 +664,8 @@ public static class SelfTest
         Check(topic() == Help.HelpService.FreeDrawing, "outil forme libre -> aide du dessin libre");
         setTool.Invoke(w, new object?[] { null });
         Check(Help.HelpService.UrlOf(Help.HelpService.TextWrite) == "https://calm-pebble-0080d6003.5.azurestaticapps.net/aide/texte.html#ecrire", "adresse des pages d'aide");
+
+        Lot9(w, session, outDir);          // formes, effets, WordArt, images (SelfTest.Shapes.cs)
 
         Console.WriteLine("Surete des documents : copie de secours, recuperation, fichier modifie ailleurs");
         {

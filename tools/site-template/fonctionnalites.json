@@ -134,6 +134,26 @@
         {
           "titre": "Formes et effets",
           "texte": "Photo découpée en coins arrondis, ellipse, étoile ou cœur ; ombre portée et reflet."
+        },
+        {
+          "titre": "Lueur, bords adoucis, ombre intérieure",
+          "texte": "Effets de photo combinables avec l'ombre portée, et bordure décorative autour du cadre.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Espaces réservés et permutation",
+          "texte": "Cadre vide à remplir d'un clic, photo ajustée au cadre sans déformation ; deux photos échangent leur place.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Légende d'image",
+          "texte": "Zone de texte posée sous la photo et groupée avec elle ; le texte de la page contourne les deux.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Compression à 300 ppp",
+          "texte": "Les photos plus grandes que nécessaire sont réduites d'après leur taille sur la page : fichier plus léger, aspect inchangé.",
+          "depuis": "2.1.0"
         }
       ]
     },
@@ -159,6 +179,31 @@
         {
           "titre": "Remplissage, contour et ombre",
           "texte": "Couleurs du thème et du document, code couleur, épaisseur, tirets et pointes de flèche."
+        },
+        {
+          "titre": "Une cinquantaine de formes",
+          "texte": "Formes de base, flèches pleines, étoiles de 4 à 32 branches, bannières, bulles et légendes, rangées par catégorie.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Poignées jaunes de réglage",
+          "texte": "Pointe d'une bulle, épaisseur d'une flèche, profondeur d'une étoile, arrondi des coins, comme dans Office.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Dégradés, motifs, images et transparence",
+          "texte": "Dégradé linéaire ou radial avec éditeur d'arrêts, motifs, photo en remplissage, transparence du remplissage et du contour.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "Modifier les points",
+          "texte": "Déplacer, ajouter ou supprimer les sommets d'un tracé, passer d'un angle vif à un point lisse.",
+          "depuis": "2.1.0"
+        },
+        {
+          "titre": "WordArt et bordures décoratives",
+          "texte": "Titres en dégradé, contour, ombre et lueur, en arc, en cercle ou en vague ; motifs répétés autour d'un cadre.",
+          "depuis": "2.1.0"
         }
       ]
     },
