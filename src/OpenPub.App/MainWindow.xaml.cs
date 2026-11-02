@@ -70,6 +70,12 @@ public partial class MainWindow : Window
         _session.PageChanged += p => { foreach (var v in _views.Concat(_thumbs).Where(v => v.Page == p)) v.InvalidateVisual(); RefreshProperties(); };
         _session.DocumentReplaced += BuildPages;
         _session.SelectionChanged += RefreshProperties;
+        _session.SelectionChanged += () =>
+        {
+            // pinceau : un clic sur une zone de texte (hors ecriture) lui applique la mise en forme
+            if (_painterFont is not null && _session?.TextEdit is null && Sel is { IsText: true })
+                Dispatcher.BeginInvoke(ApplyPainter);
+        };
         _session.ModifiedChanged += UpdateTitle;
         _session.TextEditChanged += RefreshFormat;
         _session.SnapEnabled = SnapToggle.IsChecked == true;
@@ -186,6 +192,7 @@ public partial class MainWindow : Window
             view.CaretMoved += (v, r) => v.BringIntoView(r);
             view.ShapeDrawn += OnShapeDrawn;
             view.ShapeCreated += OnShapeCreated;
+            view.TextSelectionFinished += () => { if (_painterFont is not null && _session?.TextEdit is { HasSelection: true }) ApplyPainter(); };
             _views.Add(view);
             PagesPanel.Children.Add(new Border
             {
@@ -606,7 +613,8 @@ public partial class MainWindow : Window
     void Arrow_Click(object sender, RoutedEventArgs e)
     {
         bool start = ArrowStartCheck.IsChecked == true, end = ArrowEndCheck.IsChecked == true;
-        ChangeSel(x => { x.Line ??= new LineStyle { Color = "#000000", Weight = 1.5 }; x.Line.ArrowStart = start; x.Line.ArrowEnd = end; });
+        ChangeSel(x => { x.Line ??= new LineStyle { Color = "#000000", Weight = 1.5 }; x.Line.ArrowStart = start; x.Line.ArrowEnd = end; },
+            x => x.Path is { Count: >= 2 } && x.Kind == ShapeKind.Path);
     }
 
     void ShapesButton_Click(object sender, RoutedEventArgs e)
@@ -673,10 +681,12 @@ public partial class MainWindow : Window
     // ---------------------------------------------------------------- format de la forme
 
     /// <summary>Modifie l'objet selectionne (annulable) puis rafraichit.</summary>
-    void ChangeSel(Action<Shape> change)
+    void ChangeSel(Action<Shape> change, Func<Shape, bool>? only = null)
     {
-        if (_session is null || Sel is not { } s || SelPage is not { } page || _updatingFormat) return;
-        _session.Change(page, () => change(s));
+        if (_session is null || Sel is null || SelPage is not { } page || _updatingFormat) return;
+        var targets = _session.Selection.Where(x => only is null || only(x)).ToList();
+        if (targets.Count == 0) return;
+        _session.Change(page, () => { foreach (var x in targets) change(x); });
         RefreshProperties();
     }
 
@@ -770,14 +780,14 @@ public partial class MainWindow : Window
     void Recolor_Click(object sender, RoutedEventArgs e)
     {
         var tag = (string)((Button)sender).CommandParameter;
-        ChangeSel(x => { x.ImageFx ??= new ImageFx(); x.ImageFx.Recolor = tag == "" ? null : tag; if (x.ImageFx.IsEmpty) x.ImageFx = null; });
+        ChangeSel(x => { x.ImageFx ??= new ImageFx(); x.ImageFx.Recolor = tag == "" ? null : tag; if (x.ImageFx.IsEmpty) x.ImageFx = null; }, x => x.IsImage);
     }
-    void FlipH_Click(object sender, RoutedEventArgs e) => ChangeSel(x => { x.ImageFx ??= new ImageFx(); x.ImageFx.FlipH = !x.ImageFx.FlipH; if (x.ImageFx.IsEmpty) x.ImageFx = null; });
-    void FlipV_Click(object sender, RoutedEventArgs e) => ChangeSel(x => { x.ImageFx ??= new ImageFx(); x.ImageFx.FlipV = !x.ImageFx.FlipV; if (x.ImageFx.IsEmpty) x.ImageFx = null; });
+    void FlipH_Click(object sender, RoutedEventArgs e) => ChangeSel(x => { x.ImageFx ??= new ImageFx(); x.ImageFx.FlipH = !x.ImageFx.FlipH; if (x.ImageFx.IsEmpty) x.ImageFx = null; }, x => x.IsImage);
+    void FlipV_Click(object sender, RoutedEventArgs e) => ChangeSel(x => { x.ImageFx ??= new ImageFx(); x.ImageFx.FlipV = !x.ImageFx.FlipV; if (x.ImageFx.IsEmpty) x.ImageFx = null; }, x => x.IsImage);
     void ReflectionToggle_Click(object sender, RoutedEventArgs e)
     {
         var on = PicReflectionToggle.IsChecked == true;
-        ChangeSel(x => { x.ImageFx ??= new ImageFx(); x.ImageFx.ReflectionSize = on ? 0.35 : 0; if (x.ImageFx.IsEmpty) x.ImageFx = null; });
+        ChangeSel(x => { x.ImageFx ??= new ImageFx(); x.ImageFx.ReflectionSize = on ? 0.35 : 0; if (x.ImageFx.IsEmpty) x.ImageFx = null; }, x => x.IsImage);
     }
     void ResetImage_Click(object sender, RoutedEventArgs e)
     {
@@ -940,7 +950,18 @@ public partial class MainWindow : Window
         }
         SelInfo.Visibility = Visibility.Collapsed;
         GeometryPanel.Visibility = Visibility.Visible;
-        SelTitle.Text = s.Kind switch
+        if (_session.MultiSelection)
+        {
+            var b = ShapeOps.Bounds(_session.Selection);
+            bool grouped = _session.Selection.All(x => x.Group is not null && x.Group == s.Group);
+            SelTitle.Text = (grouped ? "Groupe de " : "") + $"{_session.Selection.Count} objets" + (AnyLockedSel ? " (verrouillé)" : "");
+            if (!BoxX.IsKeyboardFocused) BoxX.Text = Cm(b.X);
+            if (!BoxY.IsKeyboardFocused) BoxY.Text = Cm(b.Y);
+            if (!BoxW.IsKeyboardFocused) BoxW.Text = Cm(b.W);
+            if (!BoxH.IsKeyboardFocused) BoxH.Text = Cm(b.H);
+            return;
+        }
+        SelTitle.Text = (s.Locked ? "🔒 " : "") + s.Kind switch
         {
             ShapeKind.Text => "Zone de texte",
             ShapeKind.Image => "Image",
@@ -987,6 +1008,25 @@ public partial class MainWindow : Window
         if (!double.TryParse(box.Text.Trim().Replace(".", sep).Replace(",", sep), NumberStyles.Float, CultureInfo.CurrentCulture, out var cm))
         { RefreshProperties(); return; }
         var pt = cm / CmPerPoint;
+        if (_session.MultiSelection)
+        {
+            var b0 = ShapeOps.Bounds(_session.Selection);
+            var from = new Rect(b0.X, b0.Y, b0.W, b0.H);
+            var to = from;
+            switch (box.Tag as string)
+            {
+                case "X": to.X = pt; break;
+                case "Y": to.Y = pt; break;
+                case "W": to.Width = Math.Max(1, pt); break;
+                case "H": to.Height = Math.Max(1, pt); break;
+            }
+            if (to == from) return;
+            var sel = _session.Selection.Where(x => !x.Locked).ToList();
+            _session.Change(page, () => PageView.FitShapes(sel, from, to));
+            RefreshProperties();
+            return;
+        }
+        if (s.Locked) { RefreshProperties(); return; }
         var r = new Rect(s.X, s.Y, s.W, s.H);
         switch (box.Tag as string)
         {
@@ -1022,8 +1062,9 @@ public partial class MainWindow : Window
         }
         if (_session is null || Keyboard.FocusedElement is TextBox || Keyboard.FocusedElement is ComboBox) return;
         if (_session.TextEdit is not null) return;          // la page gere le clavier pendant l'edition du texte
+        if (e.Key == Key.Escape && _painterFont is not null) { EndPainter(); StatusText.Text = ""; e.Handled = true; return; }
         if (e.Key == Key.Escape) { SetDrawTool(null); _session.Select(null); e.Handled = true; return; }
-        if (Sel is not { } s || SelPage is not { } page) return;
+        if (Sel is null || SelPage is not { } page) return;
         double step = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? 10 : 1;
         (double dx, double dy) = e.Key switch
         {
@@ -1031,68 +1072,17 @@ public partial class MainWindow : Window
         };
         if (dx != 0 || dy != 0)
         {
-            _session.Change(page, () => PageView.MoveShape(s, new Rect(s.X + dx, s.Y + dy, s.W, s.H)));
+            var moving = _session.Selection.Where(x => !x.Locked).ToList();
+            if (moving.Count > 0) _session.Change(page, () => { foreach (var x in moving) ShapeOps.Translate(x, dx, dy); });
             e.Handled = true;
         }
     }
 
     // ================================================================ actions sur la selection
 
-    void Delete_Executed(object sender, ExecutedRoutedEventArgs e)
-    {
-        if (Sel is not { } s || SelPage is not { } page || _session is null) return;
-        if (s.Chain is not null && s.IsStoryHead && page.ChainFrames(s.Chain).Count > 1)
-        {
-            MessageBox.Show(this, "Cette zone est la première d'une chaîne de zones liées : supprimez d'abord les zones suivantes.",
-                "OpenPub", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-        _session.Change(page, () =>
-        {
-            page.Shapes.Remove(s);
-            if (s.Chain is not null)
-            {
-                var rest = page.ChainFrames(s.Chain);
-                for (int i = 0; i < rest.Count; i++) rest[i].ChainIndex = i;
-                if (rest.Count == 1) { rest[0].Chain = null; rest[0].ChainIndex = null; }
-            }
-        });
-        _session.Select(null, page);
-    }
-
     void Renumber(Page page)
     {
         for (int i = 0; i < page.Shapes.Count; i++) page.Shapes[i].Z = i + 1;
-    }
-
-    void BringFront_Click(object sender, RoutedEventArgs e)
-    {
-        if (Sel is not { } s || SelPage is not { } page || _session is null) return;
-        _session.Change(page, () => { page.Shapes.Remove(s); page.Shapes.Add(s); Renumber(page); });
-    }
-
-    void SendBack_Click(object sender, RoutedEventArgs e)
-    {
-        if (Sel is not { } s || SelPage is not { } page || _session is null) return;
-        // reste au-dessus d'un eventuel fond de page
-        int idx = page.Shapes.FindLastIndex(x => x.Background) + 1;
-        _session.Change(page, () => { page.Shapes.Remove(s); page.Shapes.Insert(Math.Min(idx, page.Shapes.Count), s); Renumber(page); });
-    }
-
-    void Duplicate_Click(object sender, RoutedEventArgs e)
-    {
-        if (Sel is not { } s || SelPage is not { } page || _session is null) return;
-        var json = System.Text.Json.JsonSerializer.Serialize(s, DocumentJson.Options);
-        var copy = System.Text.Json.JsonSerializer.Deserialize<Shape>(json, DocumentJson.Options)!;
-        copy.Chain = null; copy.ChainIndex = null; copy.FlowFrom = null;
-        if (copy.IsText && !s.IsStoryHead) copy.Paragraphs = new List<Paragraph>();
-        _session.Change(page, () =>
-        {
-            PageView.MoveShape(copy, new Rect(s.X + 12, s.Y + 12, s.W, s.H));
-            page.Shapes.Add(copy);
-            Renumber(page);
-        });
-        _session.Select(copy, page);
     }
 
     Page? ActivePage()
@@ -1190,18 +1180,26 @@ public partial class MainWindow : Window
     {
         if (_session is null) return;
         if (_session.TextEdit is { } ed) { ed.ApplyFont(change); RefocusPage(); return; }
-        if (Sel is not { IsText: true } s || SelPage is not { } page || StoryHead(s) is not { } head) return;
-        var paras = head.Paragraphs ??= new List<Paragraph>();
-        _session.Change(page, () => StoryEditor.ApplyFont(paras, new TextPos(0, 0), StoryEditor.End(paras), change));
+        if (SelPage is not { } page || SelectedStories() is not { Count: > 0 } stories) return;
+        _session.Change(page, () => { foreach (var paras in stories) StoryEditor.ApplyFont(paras, new TextPos(0, 0), StoryEditor.End(paras), change); });
+    }
+
+    /// <summary>Textes des zones selectionnees (une fois par chaine), hors edition sur la page.</summary>
+    List<List<Paragraph>> SelectedStories()
+    {
+        var res = new List<List<Paragraph>>();
+        if (_session is null) return res;
+        foreach (var s in _session.Selection.Where(x => x.IsText))
+            if (StoryHead(s) is { } head && !res.Contains(head.Paragraphs ??= new List<Paragraph>())) res.Add(head.Paragraphs);
+        return res;
     }
 
     void ApplyParagraph(Action<Paragraph> change)
     {
         if (_session is null) return;
         if (_session.TextEdit is { } ed) { ed.ApplyParagraph(change); RefocusPage(); return; }
-        if (Sel is not { IsText: true } s || SelPage is not { } page || StoryHead(s) is not { } head) return;
-        var paras = head.Paragraphs ??= new List<Paragraph>();
-        _session.Change(page, () => StoryEditor.ApplyParagraph(paras, new TextPos(0, 0), StoryEditor.End(paras), change));
+        if (SelPage is not { } page || SelectedStories() is not { Count: > 0 } stories) return;
+        _session.Change(page, () => { foreach (var paras in stories) StoryEditor.ApplyParagraph(paras, new TextPos(0, 0), StoryEditor.End(paras), change); });
     }
 
     void RefocusPage()

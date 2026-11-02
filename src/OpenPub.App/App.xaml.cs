@@ -104,7 +104,15 @@ public partial class App : Application
             if (args.Length >= 3 && args[0] == "--selftest")
             {
                 ShutdownMode = ShutdownMode.OnExplicitShutdown;
-                var code = SelfTest.Run(args[1], args[2]);
+                int code;
+                try { code = SelfTest.Run(args[1], args[2]); }
+                catch (Exception ex)
+                {
+                    // une fenetre restee ouverte bloquerait le processus : on sort franchement
+                    Console.Error.WriteLine(ex);
+                    Environment.Exit(2);
+                    return;
+                }
                 Shutdown(code);
                 return;
             }

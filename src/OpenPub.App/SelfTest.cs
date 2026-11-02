@@ -376,6 +376,150 @@ public static class SelfTest
         Click(w, "ResetImage_Click");
         Check(pic.ImageFx is null && Math.Abs(pic.W - w0) < 0.5 && Math.Abs(pic.X - x0) < 0.5, "reinitialiser : image d'origine, recadrage annule");
 
+        Console.WriteLine("Objets : selection multiple, groupes, alignement, presse-papiers");
+        {
+            var pg = session.Doc.Pages[1];
+            onDrawn.Invoke(w, new object[] { view2, ShapeGeometry.Rect, new Rect(60, 650, 40, 30) });
+            var o1 = pg.Shapes[^1];
+            onDrawn.Invoke(w, new object[] { view2, ShapeGeometry.Ellipse, new Rect(130, 640, 50, 50) });
+            var o2 = pg.Shapes[^1];
+            onDrawn.Invoke(w, new object[] { view2, ShapeGeometry.Triangle, new Rect(260, 660, 30, 40) });
+            var o3 = pg.Shapes[^1];
+            session.SelectMany(new[] { o1, o2, o3 }, o3, pg);
+            Pump();
+            Check(session.Selection.Count == 3 && session.MultiSelection, "selection multiple de 3 objets");
+            var title = (System.Windows.Controls.TextBlock)w.FindName("SelTitle");
+            Check(title.Text.Contains("3 objets"), "panneau de droite : « 3 objets »");
+            typeof(MainWindow).GetMethod("AlignSel", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { AlignEdge.Top });
+            Check(o1.Y == 640 && o2.Y == 640 && o3.Y == 640, "aligner en haut");
+            typeof(MainWindow).GetMethod("DistributeSel", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { true });
+            Check(Math.Abs((o2.X - (o1.X + o1.W)) - (o3.X - (o2.X + o2.W))) < 0.01, "repartir horizontalement : espaces egaux");
+            MainWindow.GroupCommand.Execute(null, w);
+            Check(o1.Group is not null && o1.Group == o2.Group && o2.Group == o3.Group, "grouper (Ctrl+G)");
+            session.Select(null, pg);
+            var unit = ShapeOps.GroupOf(pg, o2);
+            session.SelectMany(unit, o2, pg);
+            Check(session.Selection.Count == 3, "un clic sur un membre selectionne tout le groupe");
+            double gx0 = o1.X;
+            var nudge = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(w)!, 0, Key.Right) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
+            typeof(MainWindow).GetMethod("OnPreviewKeyDown", BindingFlags.NonPublic | BindingFlags.Instance, new[] { typeof(object), typeof(KeyEventArgs) })!.Invoke(w, new object[] { w, nudge });
+            Check(Math.Abs(o1.X - gx0 - 1) < 0.01 && Math.Abs(o3.X - (o3.X)) < 0.01, "fleche du clavier : tout le groupe se deplace");
+            Click(w, "Lock_Click");
+            Check(o1.Locked && o2.Locked && o3.Locked, "verrouiller la position");
+            double lx = o1.X;
+            typeof(MainWindow).GetMethod("OnPreviewKeyDown", BindingFlags.NonPublic | BindingFlags.Instance, new[] { typeof(object), typeof(KeyEventArgs) })!.Invoke(w, new object[] { w, nudge });
+            Check(o1.X == lx, "objet verrouille : la fleche ne le deplace plus");
+            Click(w, "Lock_Click");
+            MainWindow.UngroupCommand.Execute(null, w);
+            Check(o1.Group is null && o3.Group is null && !o1.Locked, "dissocier, deverrouiller");
+            // ordre d'empilement
+            session.Select(o1, pg);
+            int i1 = pg.Shapes.IndexOf(o1);
+            Click(w, "BringForward_Click");
+            Check(pg.Shapes.IndexOf(o1) > i1 || pg.Shapes.IndexOf(o1) == pg.Shapes.Count - 1, "avancer d'un plan");
+            // copier / coller (meme document) puis coller dans un autre emplacement
+            session.SelectMany(new[] { o1, o2 }, o2, pg);
+            ApplicationCommands.Copy.Execute(null, w);
+            int cnt = pg.Shapes.Count;
+            ApplicationCommands.Paste.Execute(null, w);
+            Check(pg.Shapes.Count == cnt + 2 && session.Selection.Count == 2 && !session.Selection.Contains(o1), "copier / coller deux objets");
+            Check(Math.Abs(session.Selection[0].X - o1.X - 12) < 0.01 || Math.Abs(session.Selection[1].X - o1.X - 12) < 0.01, "les objets colles sont decales");
+            ApplicationCommands.Paste.Execute(null, w);
+            Check(pg.Shapes.Count == cnt + 4, "coller une seconde fois : nouvel emplacement");
+            // copier une image vers une autre page
+            var pic1 = session.Doc.Pages[0].Shapes.First(x => x.IsImage && !x.Background && x.W > 80);
+            session.Select(pic1, session.Doc.Pages[0]);
+            ApplicationCommands.Copy.Execute(null, w);
+            session.Select(null, pg);
+            ApplicationCommands.Paste.Execute(null, w);
+            Check(session.Selected is { IsImage: true } pasted && pasted.Src == pic1.Src && pg.Shapes.Contains(pasted), "image copiee sur une autre page");
+            // coller du texte d'une autre application
+            Clipboard.SetText("Ligne un\r\nLigne deux");
+            ApplicationCommands.Paste.Execute(null, w);
+            Check(session.Selected is { IsText: true } tt && tt.Paragraphs!.Count == 2 && tt.Paragraphs[1].PlainText == "Ligne deux", "texte colle : nouvelle zone de texte");
+            // couper puis supprimer une selection multiple
+            session.SelectMany(new[] { o1, o2, o3 }, o3, pg);
+            cnt = pg.Shapes.Count;
+            ApplicationCommands.Cut.Execute(null, w);
+            Check(pg.Shapes.Count == cnt - 3 && !pg.Shapes.Contains(o2), "couper trois objets");
+            ApplicationCommands.SelectAll.Execute(null, w);
+            Check(session.Selection.Count > 5 && session.Selection.All(pg.Shapes.Contains), "tout selectionner (Ctrl+A)");
+            session.Undo();
+            pg = session.Doc.Pages[1];          // annuler recree le document
+            Check(pg.Shapes.Count == cnt, "annuler le couper");
+            session.Select(null, pg);
+            Capture(w, Path.Combine(outDir, "selftest-6-objets.png"));
+        }
+
+        Console.WriteLine("Paragraphes et caracteres");
+        {
+            // page vierge : aucun objet ne fait devier le texte
+            session.Select(null, session.Doc.Pages[^1]);
+            Click(w, "AddPage_Click");
+            var pg = session.Doc.Pages[^1];
+            Pump();
+            var t = new Shape
+            {
+                Kind = ShapeKind.Text, X = 60, Y = 620, W = 240, H = 160, Padding = new[] { 2.85, 2.85, 2.85, 2.85 },
+                Paragraphs = new[] { "Premier point", "Deuxième point", "Troisième point" }
+                    .Select(x => new Paragraph { Runs = { new Run { Text = x, Font = new FontSpec { Family = "Arial", Size = 11, Color = "#000000" } } } }).ToList(),
+            };
+            session.Change(pg, () => pg.Shapes.Add(t));
+            session.Select(t, pg);
+            var mw = typeof(MainWindow);
+            mw.GetMethod("SetList", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object?[] { new ListStyle { Kind = "number", Format = "1." } });
+            Check(t.Paragraphs!.All(x => x.List?.Kind == "number" && x.IndentLeft == 18 && x.FirstIndent == -18), "numerotation sur toute la zone (retrait suspendu)");
+            var lay = session.Layout(pg).Frames[t];
+            Check(lay.Lines.Count == 3 && lay.Lines[2].Marks.Any(m => m.Text == "3."), "numeros 1. 2. 3. affiches");
+            session.BeginTextEdit(pg, t);
+            var te = session.TextEdit!;
+            te.SetCaret(new TextPos(1, 0), false);
+            te.HandleKey(Key.Tab, ModifierKeys.None);
+            Check(t.Paragraphs[1].List!.Level == 1 && t.Paragraphs[1].IndentLeft == 36, "Tab en debut d'element : niveau 2");
+            te.HandleKey(Key.Tab, ModifierKeys.Shift);
+            Check(t.Paragraphs[1].List!.Level == 0, "Maj+Tab : retour au niveau 1");
+            te.SetCaret(new TextPos(2, StoryEditor.Length(t.Paragraphs[2])), false);
+            te.HandleKey(Key.Enter, ModifierKeys.None);
+            Check(t.Paragraphs.Count == 4 && t.Paragraphs[3].List is not null, "Entree : nouvel element de liste");
+            te.HandleKey(Key.Enter, ModifierKeys.None);
+            Check(t.Paragraphs.Count == 4 && t.Paragraphs[3].List is null, "Entree sur un element vide : fin de la liste");
+            te.Type("Note\tfin");
+            Check(session.Layout(pg).Frames[t].Lines.Last().Pieces.Last().X - t.X > 36, "tabulation : le texte saute au taquet");
+            te.Select(new TextPos(0, 0), new TextPos(0, 7));
+            Click(w, "Strike_Click");
+            Click(w, "Superscript_Click");
+            var f0 = StoryEditor.FontAt(t.Paragraphs, new TextPos(0, 1));
+            Check(f0.Strike && f0.Script == "super", "barre et exposant sur la selection");
+            mw.GetMethod("ApplyFont", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { new Action<FontSpec>(f => { f.Caps = "small"; f.Tracking = 50; f.Highlight = "#fff200"; f.Script = null; }) });
+            var piece = session.Layout(pg).Frames[t].Lines[0].Pieces;
+            Check(piece.Any(x => x.Tracking > 0) && piece.Any(x => x.Text == "REMIER"), "petites majuscules et espacement des caracteres");
+            // reproduire la mise en forme vers le 2e paragraphe
+            te.SetCaret(new TextPos(0, 2), false);
+            Click(w, "FormatPainter_Click");
+            te.Select(new TextPos(1, 0), new TextPos(1, 8));
+            mw.GetMethod("ApplyPainter", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, null);
+            Check(StoryEditor.FontAt(t.Paragraphs, new TextPos(1, 2)).Highlight == "#fff200", "reproduire la mise en forme");
+            session.EndTextEdit();
+            session.Select(t, pg);
+            mw.GetMethod("ApplyParagraph", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(w, new object[] { new Action<Paragraph>(p => { p.LineHeight = "150%"; p.SpaceAfter = 6; }) });
+            var l2 = session.Layout(pg).Frames[t].Lines;
+            Check(l2.Count >= 2 && l2[1].Top - l2[0].Top > 11 * 1.4, "interligne 1,5 et espace apres");
+            var dlg = new ParagraphWindow(t.Paragraphs[0]);
+            Check(dlg.Result is null, "boite Paragraphe : rien n'est applique sans OK");
+            dlg.Close();
+            var big = new Shape
+            {
+                Kind = ShapeKind.Text, X = 320, Y = 620, W = 230, H = 160,
+                Paragraphs = new List<Paragraph> { new() { DropCap = 3, Align = "justify", Runs = { new Run { Text = string.Join(" ", Enumerable.Repeat("Il était une fois un texte de démonstration.", 6)), Font = new FontSpec { Family = "Arial", Size = 10, Color = "#1f2a44" } } } } },
+            };
+            session.Change(pg, () => pg.Shapes.Add(big));
+            var bl = session.Layout(pg).Frames[big].Lines;
+            Check(bl[0].Marks.Any(m => m.Text == "I" && m.SizePt > 25) && bl[3].Pieces[0].X < bl[0].Pieces[0].X, "lettrine sur 3 lignes");
+            session.Select(null, pg);
+            Capture(w, Path.Combine(outDir, "selftest-7-paragraphes.png"));
+            Exporter.ExportPng(session, outDir, 110);
+        }
+
         Console.WriteLine("Aide contextuelle");
         var topic = (Func<string>)(() => w.CurrentHelpTopic());
         session.Select(pic, session.Doc.Pages[0]);

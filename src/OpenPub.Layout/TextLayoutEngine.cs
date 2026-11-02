@@ -1,4 +1,4 @@
-using OpenPub.Core.Model;
+﻿using OpenPub.Core.Model;
 
 namespace OpenPub.Layout;
 
@@ -52,6 +52,8 @@ public sealed class TextLayoutEngine
         public string Space = "";
         public FontSpec? SpaceFont;
         public bool BreakAfter;
+        /// <summary>Jeton de tabulation (le caractere \t a la position Start).</summary>
+        public bool IsTab;
         /// <summary>Position source du debut du mot (ou de ses espaces s'il n'a pas de lettres).</summary>
         public int Start;
         public string Text => string.Concat(Parts.Select(p => p.Text));
@@ -59,7 +61,7 @@ public sealed class TextLayoutEngine
 
     static readonly FontSpec DefaultFont = new() { Family = "Arial", Size = 10, Color = "#000000" };
 
-    static List<Word> Tokenize(Paragraph p)
+    static List<Word> Tokenize(Paragraph p, int skip = 0)
     {
         var words = new List<Word>();
         int pos = 0;                         // position dans le texte du paragraphe
@@ -78,6 +80,7 @@ public sealed class TextLayoutEngine
             while (i < text.Length)
             {
                 char c = text[i];
+                if (pos < skip) { i++; pos++; continue; }          // lettrine : premiere lettre posee a part
                 if (Invisible(c)) { i++; pos++; continue; }
                 if (c == '\n' || c == '\v' || c == '\u2028')
                 {
@@ -85,12 +88,19 @@ public sealed class TextLayoutEngine
                     i++; pos++;
                     Flush(force: true);
                 }
-                else if (c == ' ' || c == '\t')
+                else if (c == '\t')
+                {
+                    Flush();
+                    words.Add(new Word { IsTab = true, Start = pos });
+                    cur = new Word { Start = pos + 1 };
+                    i++; pos++;
+                }
+                else if (c == ' ')
                 {
                     int j = i;
-                    while (j < text.Length && (text[j] == ' ' || text[j] == '\t')) j++;
+                    while (j < text.Length && text[j] == ' ') j++;
                     if (cur.Parts.Count == 0 && cur.Space.Length == 0) cur.Start = pos;
-                    cur.Space += text[i..j].Replace('\t', ' ');
+                    cur.Space += text[i..j];
                     cur.SpaceFont = font;
                     pos += j - i;
                     i = j;
@@ -121,10 +131,43 @@ public sealed class TextLayoutEngine
 
     double Size(FontSpec f, double scale) => (f.Size ?? 10) * scale;
 
-    double WordWidth(Word w, double scale) => w.Parts.Sum(p => _m.Width(p.Text, p.Font, Size(p.Font, scale)));
+    /// <summary>
+    /// Decoupe un morceau de texte selon son apparence : majuscules (toutes ou petites), exposant / indice.
+    /// Chaque segment garde le meme nombre de caracteres que la source (la position du curseur reste exacte).
+    /// </summary>
+    static IEnumerable<(string Text, double Size, double Dy, int Offset)> Segments(string text, FontSpec f, double size)
+    {
+        double sz = f.Script is "super" or "sub" ? size * 0.62 : size;
+        double dy = f.Script switch { "super" => -0.34 * size, "sub" => 0.14 * size, _ => 0 };
+        if (f.Caps == "all") { yield return (Upper(text), sz, dy, 0); yield break; }
+        if (f.Caps != "small") { yield return (text, sz, dy, 0); yield break; }
+        // petites majuscules : les minuscules deviennent des capitales reduites
+        int i = 0;
+        while (i < text.Length)
+        {
+            bool lower = char.IsLower(text[i]);
+            int j = i;
+            while (j < text.Length && char.IsLower(text[j]) == lower) j++;
+            yield return (lower ? Upper(text[i..j]) : text[i..j], lower ? sz * 0.78 : sz, dy, i);
+            i = j;
+        }
+    }
+
+    static string Upper(string t) => string.Create(t.Length, t, (span, src) => { for (int k = 0; k < src.Length; k++) span[k] = char.ToUpperInvariant(src[k]); });
+
+    static double TrackingPt(FontSpec f, double size) => (f.Tracking ?? 0) / 1000 * size;
+
+    double PartWidth(string text, FontSpec f, double scale)
+    {
+        double size = Size(f, scale), w = 0, tr = TrackingPt(f, size);
+        foreach (var (t, sz, _, _) in Segments(text, f, size)) w += _m.Width(t, f, sz) + tr * t.Length;
+        return w;
+    }
+
+    double WordWidth(Word w, double scale) => w.Parts.Sum(p => PartWidth(p.Text, p.Font, scale));
 
     double SpaceWidth(Word w, double scale) =>
-        w.Space.Length == 0 ? 0 : _m.Width(w.Space, w.SpaceFont ?? DefaultFont, Size(w.SpaceFont ?? DefaultFont, scale));
+        w.Space.Length == 0 ? 0 : PartWidth(w.Space, w.SpaceFont ?? DefaultFont, scale);
 
     (double LineHeight, double Single, double Ascent, double Size) Metrics(Paragraph p, double scale)
     {
@@ -164,6 +207,7 @@ public sealed class TextLayoutEngine
         foreach (var f in frames) result.Frames.Add(new FrameLayout { Shape = f.Shape });
         if (frames.Count == 0) return result;
         var st = new State();
+        var markers = ListMarkers(paragraphs);
 
         for (int pi = 0; pi < paragraphs.Count; pi++)
         {
@@ -171,7 +215,25 @@ public sealed class TextLayoutEngine
             var (lineH, single, asc, fsize) = Metrics(para, scale);
             var glyph = GlyphBand(lineH, single, asc, fsize);
             st.Y += para.SpaceBefore ?? 0;
-            var words = Tokenize(para);
+            var firstFont = para.Runs.FirstOrDefault(r => r.Text.Length > 0)?.Font ?? para.Runs.FirstOrDefault()?.Font ?? DefaultFont;
+
+            // lettrine : premiere lettre agrandie sur plusieurs lignes, posee a part
+            int dropLines = markers[pi] is null && para.DropCap is >= 2 and <= 10 ? para.DropCap.Value : 0;
+            LaidPiece? cap = null;
+            double capIndent = 0;
+            var plain = para.PlainText;
+            if (dropLines > 0 && plain.Length > 0 && char.IsLetterOrDigit(plain[0]))
+            {
+                double capSize = ((dropLines - 1) * lineH + 0.72 * fsize) / 0.72;
+                var capText = plain[..1];
+                double capW = _m.Width(capText, firstFont, capSize);
+                cap = new LaidPiece { Text = capText, Font = firstFont, SizePt = capSize, Width = capW, Start = 0, Length = 1, Dy = (dropLines - 1) * lineH };
+                capIndent = capW + 0.2 * fsize;
+            }
+            else dropLines = 0;
+            int lineNo = 0;
+
+            var words = Tokenize(para, cap is null ? 0 : 1);
             int paraLen = para.Runs.Sum(r => r.Text.Length);
             bool first = true;
             int idx = 0;
@@ -189,15 +251,52 @@ public sealed class TextLayoutEngine
             while (idx < words.Count)
             {
                 if (!FindBand(frames, st, lineH, glyph, para, first, out var start, out var end)) { result.Overflow = true; return result; }
+                var marks = new List<LaidPiece>();
+                double capX = start;
+                if (lineNo < dropLines) start += capIndent;
                 double avail = end - start, x = 0, lastSpace = 0;
-                int lineStart = remainder is not null ? remainder.Start : words[idx].Start;
+                int lineStart = first ? 0 : remainder is not null ? remainder.Start : words[idx].Start;
                 var pieces = new List<LaidPiece>();
                 int gaps = 0;
-                bool hardBreak = false;
+                bool hardBreak = false, hasTab = false;
+                if (first && cap is not null)
+                    marks.Add(new LaidPiece { Text = cap.Text, Font = cap.Font, SizePt = cap.SizePt, Width = cap.Width, Start = 0, Length = 1, Dy = cap.Dy, X = capX - start });
+                if (first && markers[pi] is { } mk)
+                {
+                    // puce ou numero dans le retrait negatif ; le texte commence au retrait gauche
+                    // police du paragraphe, sans les effets de caractere (barre, surlignage, exposant...)
+                    var mf = firstFont.Clone();
+                    mf.Strike = mf.Underline = false; mf.Highlight = null; mf.Script = null; mf.Caps = null; mf.Tracking = null;
+                    var size = Size(mf, scale);
+                    double mw = _m.Width(mk, mf, size);
+                    marks.Add(new LaidPiece { Text = mk, Font = mf, SizePt = size, Width = mw, X = 0, Start = 0, Length = 0 });
+                    double hang = -(para.FirstIndent ?? 0);
+                    x = Math.Max(hang, mw + _m.Width(" ", firstFont, size));
+                }
 
                 while (idx < words.Count)
                 {
                     var w = remainder ?? words[idx];
+                    if (w.IsTab)
+                    {
+                        // tabulation : saut au taquet suivant (le texte qui suit s'aligne selon le taquet)
+                        var tab = NextTab(para, start + x);
+                        double target = tab.Pos - start;
+                        if (tab.Align is "right" or "center" or "decimal")
+                        {
+                            double seg = SegmentAfter(words, idx + 1, scale, tab.Align == "decimal");
+                            target -= tab.Align == "center" ? seg / 2 : seg;
+                        }
+                        target = Math.Max(target, x);
+                        if (target > avail + 0.01 && pieces.Count > 0) target = x;          // taquet hors de la ligne : on ne saute pas
+                        var tabFont = w.SpaceFont ?? pieces.LastOrDefault()?.Font ?? firstFont;
+                        if (Leader(tab.Leader, tabFont, Size(tabFont, scale), x, target) is { } ld) marks.Add(ld);
+                        x = target;
+                        lastSpace = 0;
+                        hasTab = true;
+                        idx++;
+                        continue;
+                    }
                     double ww = WordWidth(w, scale);
                     double tol = Math.Max(FitTolerance, avail * 0.01);
                     if (x + ww <= avail + tol || (pieces.Count == 0 && !CanSplit(w)))
@@ -236,10 +335,13 @@ public sealed class TextLayoutEngine
                 bool lastOfPara = idx >= words.Count && remainder is null;
                 double lineWidth = x - lastSpace;
                 int lineEnd = lastOfPara ? paraLen : (remainder is not null ? remainder.Start : words[idx].Start);
-                AddLine(result, frames, st, pi, lineH, single, asc, pieces, start, avail, lineWidth, para.Align,
-                    justify: !lastOfPara && !hardBreak, gaps, lineStart, lineEnd);
+                // une ligne avec tabulations ou puce garde ses positions : ni centrage ni justification
+                var align = hasTab || (first && markers[pi] is not null && para.Align is "center" or "right" or "end") ? "left" : para.Align;
+                AddLine(result, frames, st, pi, lineH, single, asc, pieces, start, avail, lineWidth, align,
+                    justify: !lastOfPara && !hardBreak && !hasTab, gaps, lineStart, lineEnd, marks);
                 st.Y += lineH;
                 first = false;
+                lineNo++;
             }
             st.Y += para.SpaceAfter ?? 0;
         }
@@ -309,12 +411,116 @@ public sealed class TextLayoutEngine
         foreach (var (t, f, start, hyphen) in w.Parts)
         {
             var size = Size(f, scale);
-            var width = _m.Width(t, f, size);
-            pieces.Add(new LaidPiece { Text = t, Font = f, SizePt = size, X = x, Width = width, Start = start,
-                Length = hyphen ? t.Length - 1 : t.Length, Hyphen = hyphen });
-            x += width;
+            double tr = TrackingPt(f, size);
+            foreach (var (seg, sz, dy, off) in Segments(t, f, size))
+            {
+                var width = _m.Width(seg, f, sz) + tr * seg.Length;
+                bool last = off + seg.Length == t.Length;
+                pieces.Add(new LaidPiece { Text = seg, Font = f, SizePt = sz, X = x, Width = width, Start = start + off,
+                    Length = hyphen && last ? seg.Length - 1 : seg.Length, Hyphen = hyphen && last, Dy = dy, Tracking = tr });
+                x += width;
+            }
         }
         // l'espace suivant est implicite : on memorise sa largeur dans la piece suivante via X
+    }
+
+    // ------------------------------------------------------------------ listes, tabulations, lettrines
+
+    /// <summary>Texte de la puce ou du numero de chaque paragraphe (null si le paragraphe n'est pas dans une liste).</summary>
+    public static string?[] ListMarkers(IReadOnlyList<Paragraph> paras)
+    {
+        var res = new string?[paras.Count];
+        var counters = new int[10];
+        for (int i = 0; i < paras.Count; i++)
+        {
+            var l = paras[i].List;
+            if (l is null)
+            {
+                // un paragraphe ordinaire non vide interrompt la numerotation
+                if (paras[i].PlainText.Trim().Length > 0) Array.Clear(counters);
+                continue;
+            }
+            int lv = Math.Clamp(l.Level, 0, 9);
+            for (int k = lv + 1; k < 10; k++) counters[k] = 0;
+            if (l.Kind != "number") { res[i] = string.IsNullOrEmpty(l.Symbol) ? "•" : l.Symbol; continue; }
+            // numero de depart : au debut de la liste a ce niveau
+            counters[lv] = l.Start is { } st && counters[lv] == 0 ? st : counters[lv] + 1;
+            res[i] = FormatNumber(counters[lv], l.Format ?? "1.");
+        }
+        return res;
+    }
+
+    public static string FormatNumber(int n, string format)
+    {
+        if (format.Length == 0) format = "1.";
+        string body = format[0] switch
+        {
+            'a' => Alpha(n, false),
+            'A' => Alpha(n, true),
+            'i' => Roman(n).ToLowerInvariant(),
+            'I' => Roman(n),
+            _ => n.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        };
+        return body + format[1..];
+    }
+
+    static string Alpha(int n, bool upper)
+    {
+        var sb = new System.Text.StringBuilder();
+        for (; n > 0; n = (n - 1) / 26) sb.Insert(0, (char)((upper ? 'A' : 'a') + (n - 1) % 26));
+        return sb.ToString();
+    }
+
+    static string Roman(int n)
+    {
+        var map = new[] { (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I") };
+        var sb = new System.Text.StringBuilder();
+        foreach (var (v, r) in map) while (n >= v) { sb.Append(r); n -= v; }
+        return sb.ToString();
+    }
+
+    /// <summary>Intervalle des tabulations par defaut (1,27 cm, comme Publisher).</summary>
+    public const double DefaultTabInterval = 36;
+
+    /// <summary>Taquet suivant une position (points depuis le bord gauche du texte).</summary>
+    public static TabStop NextTab(Paragraph p, double pos)
+    {
+        if (p.Tabs is { Count: > 0 } tabs)
+            foreach (var t in tabs.OrderBy(t => t.Pos))
+                if (t.Pos > pos + 0.01) return t;
+        return new TabStop { Pos = (Math.Floor(pos / DefaultTabInterval + 1e-6) + 1) * DefaultTabInterval, Align = "left" };
+    }
+
+    /// <summary>Largeur du texte qui suit une tabulation, jusqu'a la tabulation suivante ou la fin de ligne (decimal : jusqu'au separateur).</summary>
+    double SegmentAfter(List<Word> words, int from, double scale, bool decimalOnly)
+    {
+        double w = 0;
+        for (int k = from; k < words.Count && !words[k].IsTab; k++)
+        {
+            var word = words[k];
+            if (decimalOnly)
+            {
+                var txt = word.Text;
+                int sep = txt.IndexOfAny(new[] { ',', '.' });
+                if (sep >= 0 && word.Parts.Count > 0) return w + PartWidth(txt[..sep], word.Parts[0].Font, scale);
+            }
+            w += WordWidth(word, scale);
+            if (word.BreakAfter) break;
+            if (k + 1 < words.Count && !words[k + 1].IsTab) w += SpaceWidth(word, scale);
+        }
+        return w;
+    }
+
+    LaidPiece? Leader(string? kind, FontSpec font, double size, double from, double to)
+    {
+        if (kind is null || to - from < 2) return null;
+        string ch = kind switch { "dash" => "-", "line" => "_", _ => "." };
+        double cw = _m.Width(ch + " ", font, size);
+        if (cw <= 0) return null;
+        int n = (int)Math.Floor((to - from - 1) / cw);
+        if (n <= 0) return null;
+        var text = string.Concat(Enumerable.Repeat(ch + " ", n)).TrimEnd();
+        return new LaidPiece { Text = text, Font = font, SizePt = size, X = to - _m.Width(text, font, size) - 1, Width = _m.Width(text, font, size), Start = 0, Length = 0 };
     }
 
     /// <summary>Trouve la prochaine bande horizontale libre de hauteur lineH (change de zone si besoin).</summary>
@@ -368,7 +574,7 @@ public sealed class TextLayoutEngine
 
     static void AddLine(ChainLayout result, IReadOnlyList<FrameGeometry> frames, State st, int pi, double lineH, double single,
         double asc, List<LaidPiece> pieces, double start, double avail, double lineWidth, string? align, bool justify, int gaps,
-        int startOffset, int endOffset)
+        int startOffset, int endOffset, List<LaidPiece>? marks = null)
     {
         var f = frames[st.Frame];
         var line = new LaidLine
@@ -400,6 +606,8 @@ public sealed class TextLayoutEngine
             p.X = f.X + start + offset + localX + shift;
         }
         line.Pieces.AddRange(pieces);
+        if (marks is not null)
+            foreach (var m in marks) { m.X = f.X + start + offset + m.X; line.Marks.Add(m); }
         result.Frames[st.Frame].Lines.Add(line);
     }
 

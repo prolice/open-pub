@@ -22,8 +22,14 @@ public sealed class EditorSession : IDisposable
 
     readonly Dictionary<Page, PageLayoutResult> _layouts = new();
 
+    readonly List<Shape> _selection = new();
+
+    /// <summary>Objet principal de la selection (dernier clique) ; ses proprietes sont affichees.</summary>
     public Shape? Selected { get; private set; }
     public Page? SelectedPage { get; private set; }
+    /// <summary>Tous les objets selectionnes (une seule page) ; contient <see cref="Selected"/>.</summary>
+    public IReadOnlyList<Shape> Selection => _selection;
+    public bool MultiSelection => _selection.Count > 1;
 
     /// <summary>Edition de texte en cours sur la page (null sinon).</summary>
     public InPlaceTextEditor? TextEdit { get; private set; }
@@ -100,16 +106,38 @@ public sealed class EditorSession : IDisposable
 
     public Page? PageOf(Shape s) => Doc.Pages.FirstOrDefault(p => p.Shapes.Contains(s));
 
-    public void Select(Shape? s, Page? page = null)
+    public void Select(Shape? s, Page? page = null) =>
+        SelectMany(s is null ? Array.Empty<Shape>() : new[] { s }, s, page);
+
+    /// <summary>Selectionne plusieurs objets d'une meme page ; primary = objet principal (sinon le dernier).</summary>
+    public void SelectMany(IEnumerable<Shape> shapes, Shape? primary = null, Page? page = null)
     {
-        if (TextEdit is { } ed && (s is null || !ed.Contains(s))) EndTextEdit();
+        var list = shapes.Distinct().ToList();
+        primary ??= list.LastOrDefault();
+        if (primary is not null && !list.Contains(primary)) list.Add(primary);
+        if (TextEdit is { } ed && (primary is null || list.Count > 1 || !ed.Contains(primary))) EndTextEdit();
         var oldPage = SelectedPage;
-        Selected = s;
-        SelectedPage = s is null ? page ?? SelectedPage : page ?? PageOf(s);
+        _selection.Clear();
+        _selection.AddRange(list);
+        Selected = primary;
+        SelectedPage = primary is null ? page ?? SelectedPage : page ?? PageOf(primary);
         if (oldPage is not null && oldPage != SelectedPage) PageChanged?.Invoke(oldPage);
         if (SelectedPage is not null) PageChanged?.Invoke(SelectedPage);
         SelectionChanged?.Invoke();
     }
+
+    /// <summary>Ajoute ou retire des objets de la selection (Ctrl / Maj + clic).</summary>
+    public void ToggleSelect(IReadOnlyList<Shape> shapes, Page page)
+    {
+        if (SelectedPage != page) { SelectMany(shapes, shapes.LastOrDefault(), page); return; }
+        var list = _selection.ToList();
+        if (shapes.All(list.Contains)) list.RemoveAll(shapes.Contains);
+        else list.AddRange(shapes.Where(x => !list.Contains(x)));
+        var primary = list.Contains(Selected!) ? Selected : list.LastOrDefault();
+        SelectMany(list, primary, page);
+    }
+
+    public bool IsSelected(Shape s) => _selection.Contains(s);
 
     // ---------------------------------------------------------------- modifications
 
@@ -160,14 +188,20 @@ public sealed class EditorSession : IDisposable
         // conserve la selection par position (les objets sont recrees)
         int pageIdx = SelectedPage is null ? -1 : Doc.Pages.IndexOf(SelectedPage);
         int shapeIdx = Selected is null || SelectedPage is null ? -1 : SelectedPage.Shapes.IndexOf(Selected);
+        var others = SelectedPage is null ? new List<int>() : _selection.Select(x => SelectedPage.Shapes.IndexOf(x)).Where(i => i >= 0).ToList();
         Package.Document = doc;
         Measurer.LineFactorOverrides = doc.FontLineFactors;
         Measurer.AscentOverrides = doc.FontAscents;
         _layouts.Clear();
         Selected = null;
+        _selection.Clear();
         SelectedPage = pageIdx >= 0 && pageIdx < doc.Pages.Count ? doc.Pages[pageIdx] : null;
         if (SelectedPage is not null && shapeIdx >= 0 && shapeIdx < SelectedPage.Shapes.Count)
+        {
             Selected = SelectedPage.Shapes[shapeIdx];
+            _selection.AddRange(others.Where(i => i < SelectedPage.Shapes.Count).Select(i => SelectedPage.Shapes[i]));
+            if (!_selection.Contains(Selected)) _selection.Add(Selected);
+        }
         MarkModified();
         DocumentReplaced?.Invoke();
         SelectionChanged?.Invoke();

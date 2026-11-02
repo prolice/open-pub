@@ -90,6 +90,8 @@ public static class StoryEditor
     {
         Align = p.Align, LineHeight = p.LineHeight, SpaceBefore = p.SpaceBefore, SpaceAfter = p.SpaceAfter,
         IndentLeft = p.IndentLeft, IndentRight = p.IndentRight, FirstIndent = p.FirstIndent,
+        List = p.List?.Clone(), Tabs = p.Tabs?.Select(t => t.Clone()).ToList(),
+        // la lettrine reste au premier paragraphe
     };
 
     /// <summary>Insere du texte (les sauts de ligne creent des paragraphes) ; renvoie la position apres l'insertion.</summary>

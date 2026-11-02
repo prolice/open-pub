@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -78,7 +78,18 @@ public partial class TextEditorWindow : Window
             FontStyle = f.Italic ? FontStyles.Italic : FontStyles.Normal,
             Foreground = PageRenderer.Brush(f.Color),
         };
-        if (f.Underline) run.TextDecorations = TextDecorations.Underline;
+        if (f.Underline || f.Strike)
+        {
+            var deco = new TextDecorationCollection();
+            if (f.Underline) deco.Add(TextDecorations.Underline);
+            if (f.Strike) deco.Add(TextDecorations.Strikethrough);
+            run.TextDecorations = deco;
+        }
+        if (f.Highlight is { } hl) run.Background = PageRenderer.Brush(hl);
+        if (f.Script is "super") run.BaselineAlignment = BaselineAlignment.Superscript;
+        else if (f.Script is "sub") run.BaselineAlignment = BaselineAlignment.Subscript;
+        if (f.Caps == "small") Typography.SetCapitals(run, FontCapitals.SmallCaps);
+        run.Tag = f;          // conserve l'espacement des caracteres (non affiche ici)
         return run;
     }
 
@@ -116,6 +127,9 @@ public partial class TextEditorWindow : Window
                 IndentLeft = model?.IndentLeft,
                 IndentRight = model?.IndentRight,
                 FirstIndent = model?.FirstIndent,
+                List = model?.List?.Clone(),
+                Tabs = model?.Tabs?.Select(t => t.Clone()).ToList(),
+                DropCap = i < _original.Count ? model?.DropCap : null,
             };
             var lang = model?.Runs.FirstOrDefault()?.Font?.Lang ?? "fr";
             foreach (var (text, font) in Collect(block.Inlines))
@@ -174,8 +188,17 @@ public partial class TextEditorWindow : Window
         if (!underline && e is Inline child && child.Parent is Inline parent)
             underline = parent.TextDecorations?.Any(d => d.Location == TextDecorationLocation.Underline) ?? false;
         var color = (e.Foreground as SolidColorBrush)?.Color ?? Colors.Black;
+        var inline = e as Inline;
+        bool strike = inline?.TextDecorations?.Any(d => d.Location == TextDecorationLocation.Strikethrough) == true;
+        var bg = (e.Background as SolidColorBrush)?.Color;
+        var caps = Typography.GetCapitals(e);
         return new FontSpec
         {
+            Strike = strike,
+            Highlight = bg is { } h && h.A > 0 ? $"#{h.R:x2}{h.G:x2}{h.B:x2}" : null,
+            Script = inline?.BaselineAlignment switch { BaselineAlignment.Superscript => "super", BaselineAlignment.Subscript => "sub", _ => null },
+            Caps = caps == FontCapitals.SmallCaps ? "small" : (e as FrameworkContentElement)?.Tag is FontSpec { Caps: "all" } ? "all" : null,
+            Tracking = (e as FrameworkContentElement)?.Tag is FontSpec orig ? orig.Tracking : null,
             Family = FontResolver.NameOf(e.FontFamily),
             Size = Math.Round(e.FontSize / Dip * 2, MidpointRounding.AwayFromZero) / 2,
             Bold = e.FontWeight >= FontWeights.SemiBold,

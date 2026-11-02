@@ -85,6 +85,17 @@ public sealed class OpubPackage : IDisposable
         return "assets/" + name;
     }
 
+    /// <summary>Ajoute une image a partir de son contenu (collage depuis un autre document) ; renvoie son chemin relatif.</summary>
+    public string AddAsset(byte[] data, string fileName)
+    {
+        var assets = Path.Combine(WorkDir, "assets");
+        Directory.CreateDirectory(assets);
+        var safe = string.Concat(Path.GetFileName(fileName).Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
+        var name = $"img-{Guid.NewGuid().ToString("N")[..8]}-{safe}";
+        File.WriteAllBytes(Path.Combine(assets, name), data);
+        return "assets/" + name;
+    }
+
     /// <summary>Enregistre le paquet (ecriture atomique : fichier temporaire puis remplacement).</summary>
     public void Save(string? path = null)
     {

@@ -58,6 +58,8 @@ public sealed class Shape
     public double H { get; set; }
     public int Z { get; set; }
     public string? Group { get; set; }
+    /// <summary>Position verrouillee : l'objet ne peut plus etre deplace, redimensionne ou tourne a la souris ni au clavier.</summary>
+    public bool Locked { get; set; }
     /// <summary>Rotation en degres, sens horaire, autour du centre de l'objet.</summary>
     public double Rotation { get; set; }
     /// <summary>
@@ -215,6 +217,12 @@ public sealed class Paragraph
     public double? IndentLeft { get; set; }
     public double? IndentRight { get; set; }
     public double? FirstIndent { get; set; }
+    /// <summary>Puce ou numero du paragraphe (null = paragraphe normal).</summary>
+    public ListStyle? List { get; set; }
+    /// <summary>Taquets de tabulation (positions depuis le bord gauche du texte, en points) ; sinon tous les 1,27 cm.</summary>
+    public List<TabStop>? Tabs { get; set; }
+    /// <summary>Lettrine : la premiere lettre occupe ce nombre de lignes (null ou 0 = aucune).</summary>
+    public int? DropCap { get; set; }
     public List<Run> Runs { get; set; } = new();
 
     [JsonIgnore] public string PlainText => string.Concat(Runs.Select(r => r.Text));
@@ -230,6 +238,36 @@ public sealed class Paragraph
     }
 }
 
+/// <summary>Liste a puces ou numerotee.</summary>
+public sealed class ListStyle
+{
+    /// <summary>"bullet" ou "number".</summary>
+    public string Kind { get; set; } = "bullet";
+    /// <summary>Symbole de la puce (ex. "•", "–", "✓").</summary>
+    public string? Symbol { get; set; } = "•";
+    /// <summary>Numerotation : "1." "1)" "a." "a)" "A." "i." "I." ; le premier caractere donne le style.</summary>
+    public string? Format { get; set; }
+    /// <summary>Niveau d'imbrication (0 = premier niveau).</summary>
+    public int Level { get; set; }
+    /// <summary>Numero de depart (numerotation), sinon suite de la liste precedente.</summary>
+    public int? Start { get; set; }
+
+    public ListStyle Clone() => (ListStyle)MemberwiseClone();
+}
+
+/// <summary>Taquet de tabulation.</summary>
+public sealed class TabStop
+{
+    /// <summary>Position en points depuis le bord gauche du texte de la zone.</summary>
+    public double Pos { get; set; }
+    /// <summary>"left", "center", "right" ou "decimal".</summary>
+    public string Align { get; set; } = "left";
+    /// <summary>Points de suite : null, "dot", "dash" ou "line".</summary>
+    public string? Leader { get; set; }
+
+    public TabStop Clone() => (TabStop)MemberwiseClone();
+}
+
 public sealed class Run
 {
     public string Text { get; set; } = "";
@@ -243,11 +281,22 @@ public sealed class FontSpec
     public bool Bold { get; set; }
     public bool Italic { get; set; }
     public bool Underline { get; set; }
+    public bool Strike { get; set; }
+    /// <summary>"super" (exposant), "sub" (indice) ou null.</summary>
+    public string? Script { get; set; }
+    /// <summary>"all" (tout en majuscules), "small" (petites majuscules) ou null.</summary>
+    public string? Caps { get; set; }
+    /// <summary>Couleur de surlignage du texte (null = aucune).</summary>
+    public string? Highlight { get; set; }
+    /// <summary>Espacement des caracteres, en millièmes de la taille (positif : plus large).</summary>
+    public double? Tracking { get; set; }
     public string? Color { get; set; }
     public string? Lang { get; set; }
 
     public FontSpec Clone() => (FontSpec)MemberwiseClone();
 
     public bool SameAs(FontSpec? o) => o is not null && Family == o.Family && Size == o.Size && Bold == o.Bold &&
-                                       Italic == o.Italic && Underline == o.Underline && Color == o.Color;
+                                       Italic == o.Italic && Underline == o.Underline && Color == o.Color &&
+                                       Strike == o.Strike && Script == o.Script && Caps == o.Caps && Highlight == o.Highlight &&
+                                       Tracking == o.Tracking && Lang == o.Lang;
 }

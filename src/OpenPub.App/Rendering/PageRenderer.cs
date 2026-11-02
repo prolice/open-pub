@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
 using OpenPub.Core.Model;
@@ -247,6 +247,38 @@ public static class PageRenderer
         if (outline && PenOf(s.Line) is { } pen) dc.DrawGeometry(null, pen, clip);
     }
 
+    /// <summary>Dessine un morceau de texte : decalage (exposant, lettrine), interlettrage, souligne, barre.</summary>
+    static void DrawPiece(DrawingContext dc, OpenPub.Layout.LaidPiece p, OpenPub.Layout.LaidLine line, EditorSession session, double ppd)
+    {
+        if (p.Text.Length == 0) return;
+        var tf = session.Fonts.Typeface(p.Font);
+        var brush = Brush(p.Font.Color);
+        TextDecorationCollection? deco = null;
+        if (p.Font.Underline || p.Font.Strike)
+        {
+            deco = new TextDecorationCollection();
+            if (p.Font.Underline) deco.Add(TextDecorations.Underline);
+            if (p.Font.Strike) deco.Add(TextDecorations.Strikethrough);
+        }
+        double baseline = line.Baseline + p.Dy;
+        if (Math.Abs(p.Tracking) < 0.001)
+        {
+            var ft = new FormattedText(p.Text, Fr, FlowDirection.LeftToRight, tf, p.SizePt, brush, ppd);
+            if (deco is not null) ft.SetTextDecorations(deco);
+            dc.DrawText(ft, new Point(p.X, baseline - ft.Baseline));
+            return;
+        }
+        // interlettrage : caractere par caractere
+        double x = p.X;
+        foreach (var ch in p.Text)
+        {
+            var ft = new FormattedText(ch.ToString(), Fr, FlowDirection.LeftToRight, tf, p.SizePt, brush, ppd);
+            if (deco is not null) ft.SetTextDecorations(deco);
+            dc.DrawText(ft, new Point(x, baseline - ft.Baseline));
+            x += session.Measurer.Width(ch.ToString(), p.Font, p.SizePt) + p.Tracking;
+        }
+    }
+
     static void DrawText(DrawingContext dc, Shape s, PageLayoutResult layout, EditorSession session, double ppd, bool marks)
     {
         // cadre de la zone (forme automatique ou rectangle) : fond et contour
@@ -267,14 +299,18 @@ public static class PageRenderer
         if (!layout.Frames.TryGetValue(s, out var fl)) return;
         dc.PushClip(new RectangleGeometry(new Rect(s.X - 2, s.Y - 2, s.W + 4, s.H + 4)));
         foreach (var line in fl.Lines)
+        {
+            // surlignage sous le texte
             foreach (var p in line.Pieces)
-            {
-                if (p.Text.Length == 0) continue;
-                var ft = new FormattedText(p.Text, Fr, FlowDirection.LeftToRight, session.Fonts.Typeface(p.Font), p.SizePt,
-                    Brush(p.Font.Color), ppd);
-                if (p.Font.Underline) ft.SetTextDecorations(TextDecorations.Underline);
-                dc.DrawText(ft, new Point(p.X, line.Baseline - ft.Baseline));
-            }
+                if (p.Font.Highlight is { } hl && p.Width > 0)
+                {
+                    // hauteur des lettres (et non de tout l'interligne)
+                    double sz = p.SizePt, top = line.Baseline + p.Dy - 0.9 * sz;
+                    dc.DrawRectangle(Brush(hl), null, new Rect(p.X, top, p.Width, 1.15 * sz));
+                }
+            foreach (var p in line.Marks) DrawPiece(dc, p, line, session, ppd);
+            foreach (var p in line.Pieces) DrawPiece(dc, p, line, session, ppd);
+        }
         dc.Pop();
         if (marks && layout.Overflows(s))
         {

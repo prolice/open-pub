@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 using OpenPub.App.Controls;
@@ -118,7 +118,7 @@ public sealed class InPlaceTextEditor
                 double bestD = Math.Abs(x - pc.X);
                 for (int k = 1; k <= pc.Length; k++)
                 {
-                    double px = pc.X + _session.Measurer.Width(pc.Text[..k], pc.Font, pc.SizePt);
+                    double px = pc.X + pc.Advance(_session.Measurer, k);
                     double d = Math.Abs(x - px);
                     if (d < bestD) { bestD = d; best = pc.Start + k; }
                 }
@@ -166,7 +166,7 @@ public sealed class InPlaceTextEditor
                 return bo > ao ? a + (b - a) * (offset - ao) / (bo - ao) : a;
             }
             if (offset <= pc.Start + pc.Length)
-                return pc.X + _session.Measurer.Width(pc.Text[..Math.Min(offset - pc.Start, pc.Text.Length)], pc.Font, pc.SizePt);
+                return pc.X + pc.Advance(_session.Measurer, offset - pc.Start);
             prev = pc;
         }
         var last = line.Pieces[^1];
@@ -311,6 +311,16 @@ public sealed class InPlaceTextEditor
         ApplyFont(f => set(f, !on));
     }
 
+    /// <summary>Change le niveau des elements de liste selectionnes (retrait de 18 pt par niveau).</summary>
+    public void ShiftListLevel(int delta) => ApplyParagraph(p =>
+    {
+        if (p.List is null) return;
+        int lv = Math.Clamp(p.List.Level + delta, 0, 8);
+        p.List.Level = lv;
+        p.IndentLeft = 18 * (lv + 1);
+        p.FirstIndent = -18;
+    });
+
     /// <summary>Mise en forme au curseur (pour la barre de mise en forme).</summary>
     public FontSpec CurrentFont() => StoryEditor.FontAt(Paras, HasSelection ? StoryEditor.Step(Paras, SelStart, 1) : Caret);
     public Paragraph CurrentParagraph() => Paras[StoryEditor.Clamp(Paras, Caret).Para];
@@ -343,10 +353,25 @@ public sealed class InPlaceTextEditor
             case Key.Back: Backspace(ctrl); return true;
             case Key.Delete: DeleteForward(ctrl); return true;
             case Key.Enter:
-                if (shift) Type("\v");          // saut de ligne dans le paragraphe
-                else NewParagraph();
+                if (shift) { Type("\v"); return true; }          // saut de ligne dans le paragraphe
+                // Entree sur un element de liste vide : fin de la liste (comme Word et Publisher)
+                if (!HasSelection && CurrentParagraph() is { List: not null } lp && lp.PlainText.Length == 0)
+                {
+                    ApplyParagraph(p => { p.List = null; p.IndentLeft = null; p.FirstIndent = null; });
+                    return true;
+                }
+                NewParagraph();
                 return true;
-            case Key.Tab: Type("\t"); return true;
+            case Key.Tab:
+                // dans une liste, en debut d'element (ou sur une selection) : change le niveau
+                if (CurrentParagraph() is { List: not null } && (HasSelection || Caret.Offset == 0))
+                {
+                    ShiftListLevel(shift ? -1 : 1);
+                    return true;
+                }
+                if (shift) return true;
+                Type("\t");
+                return true;
         }
         if (ctrl)
         {

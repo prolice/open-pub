@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using OpenPub.App.Rendering;
@@ -28,10 +28,12 @@ public sealed class PageView : FrameworkElement
     double K => DipPerPoint * _zoom;
 
     public event Action<Shape>? ReplaceImageRequested;
+    /// <summary>Fin d'une selection de texte a la souris (reproduction de la mise en forme).</summary>
+    public event Action? TextSelectionFinished;
     /// <summary>Le curseur de texte a bouge (pour le faire defiler dans la vue) : rectangle en pixels de la vue.</summary>
     public event Action<PageView, Rect>? CaretMoved;
 
-    enum DragMode { None, Move, Resize, TextSelect, Rotate, Draw, Freehand }
+    enum DragMode { None, Move, Resize, TextSelect, Rotate, Draw, Freehand, Marquee }
     DragMode _mode;
     int _handle;                 // 0..7 : NO, N, NE, E, SE, S, SO, O
     Point _start;
@@ -39,6 +41,10 @@ public sealed class PageView : FrameworkElement
     double _origRotation;
     bool _moved;
     Rect? _drawRect;              // apercu du trace en mode dessin
+    Rect? _marquee;               // rectangle de selection en cours
+    bool _marqueeAdd;             // Ctrl/Maj : le rectangle ajoute a la selection
+    /// <summary>Etat de depart des objets deplaces ou redimensionnes ensemble (selection multiple, groupe).</summary>
+    readonly Dictionary<Shape, Rect> _origs = new();
 
     /// <summary>Points de depart et d'arrivee du dernier trace (pour le sens d'une ligne).</summary>
     public Point DrawStart { get; private set; }
@@ -117,7 +123,12 @@ public sealed class PageView : FrameworkElement
 
         if (marks) DrawMargins(dc);
         if (Interactive && _session.Selected is { } sel && Page.Shapes.Contains(sel))
-            DrawSelection(dc, sel);
+        {
+            if (_session.MultiSelection) DrawMultiSelection(dc);
+            else DrawSelection(dc, sel);
+        }
+        if (_marquee is { } mq)
+            dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(0x18, 0x1f, 0x6f, 0xd1)), new Pen(new SolidColorBrush(Color.FromRgb(0x1f, 0x6f, 0xd1)), 1 / K) { DashStyle = DashStyles.Dash }, mq);
         if (Interactive && _session.TextEdit is { } ed && ed.Page == Page && ed.CaretVisible && ed.CaretInfo() is { } ci)
         {
             bool rot = PageRenderer.PushRotation(dc, ci.Frame);
@@ -160,6 +171,34 @@ public sealed class PageView : FrameworkElement
 
     double HandleSize => 7 / K;
 
+    static readonly Brush SelBlue = Freeze(new SolidColorBrush(Color.FromRgb(0x1f, 0x6f, 0xd1)));
+    static readonly Brush LockedGray = Freeze(new SolidColorBrush(Color.FromRgb(0x9a, 0xa3, 0xb5)));
+
+    /// <summary>Boite englobante de la selection multiple (coordonnees de page).</summary>
+    Rect SelectionBox()
+    {
+        var b = OpenPub.Core.Editing.ShapeOps.Bounds(_session.Selection);
+        return new Rect(b.X, b.Y, b.W, b.H);
+    }
+
+    bool AnyLocked => _session.Selection.Any(x => x.Locked);
+
+    /// <summary>Selection multiple ou groupe : contour de chaque objet et poignees sur la boite commune (sans rotation).</summary>
+    void DrawMultiSelection(DrawingContext dc)
+    {
+        var thin = new Pen(new SolidColorBrush(Color.FromArgb(0xa0, 0x1f, 0x6f, 0xd1)), 1 / K) { DashStyle = DashStyles.Dash };
+        foreach (var s in _session.Selection.Where(Page.Shapes.Contains))
+        {
+            bool rot = PageRenderer.PushRotation(dc, s);
+            dc.DrawRectangle(null, thin, new Rect(s.X, s.Y, s.W, s.H));
+            if (rot) dc.Pop();
+        }
+        var box = SelectionBox();
+        var pen = new Pen(AnyLocked ? LockedGray : SelBlue, 1.2 / K);
+        dc.DrawRectangle(null, pen, box);
+        foreach (var h in Handles(box)) dc.DrawRectangle(Brushes.White, pen, h);
+    }
+
     void DrawSelection(DrawingContext dc, Shape s)
     {
         bool rot = PageRenderer.PushRotation(dc, s);
@@ -172,7 +211,7 @@ public sealed class PageView : FrameworkElement
 
     void DrawSelectionLocal(DrawingContext dc, Shape s)
     {
-        var pen = new Pen(new SolidColorBrush(Color.FromRgb(0x1f, 0x6f, 0xd1)), 1.2 / K);
+        var pen = new Pen(s.Locked ? LockedGray : SelBlue, 1.2 / K);
         if (Editing) pen.DashStyle = DashStyles.Dash;
         dc.DrawRectangle(null, pen, new Rect(s.X, s.Y, s.W, s.H));
         // zones liees : montrer toute la chaine
@@ -183,6 +222,14 @@ public sealed class PageView : FrameworkElement
                 dc.DrawRectangle(null, chainPen, new Rect(f.X, f.Y, f.W, f.H));
         }
         if (Editing) return;          // pas de poignees pendant l'edition du texte
+        if (s.Locked)
+        {
+            // objet verrouille : petit cadenas au lieu des poignees
+            var ft = new FormattedText("\uE72E", System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                new Typeface("Segoe Fluent Icons, Segoe MDL2 Assets"), 11 / K, LockedGray, 1);
+            dc.DrawText(ft, new Point(s.X + s.W - 12 / K, s.Y - 14 / K));
+            return;
+        }
         foreach (var h in Handles(s))
             dc.DrawRectangle(Brushes.White, pen, h);
         // poignee de rotation (cercle vert au-dessus de l'objet)
@@ -191,9 +238,11 @@ public sealed class PageView : FrameworkElement
         dc.DrawEllipse(new SolidColorBrush(Color.FromRgb(0x2e, 0xa0, 0x43)), new Pen(Brushes.White, 1 / K), rh, 4.5 / K, 4.5 / K);
     }
 
-    IEnumerable<Rect> Handles(Shape s)
+    IEnumerable<Rect> Handles(Shape s) => Handles(new Rect(s.X, s.Y, s.W, s.H));
+
+    IEnumerable<Rect> Handles(Rect r)
     {
-        double hs = HandleSize, x0 = s.X, y0 = s.Y, x1 = s.X + s.W, y1 = s.Y + s.H, xm = (x0 + x1) / 2, ym = (y0 + y1) / 2;
+        double hs = HandleSize, x0 = r.X, y0 = r.Y, x1 = r.Right, y1 = r.Bottom, xm = (x0 + x1) / 2, ym = (y0 + y1) / 2;
         foreach (var (x, y) in new[] { (x0, y0), (xm, y0), (x1, y0), (x1, ym), (x1, y1), (xm, y1), (x0, y1), (x0, ym) })
             yield return new Rect(x - hs / 2, y - hs / 2, hs, hs);
     }
@@ -206,8 +255,7 @@ public sealed class PageView : FrameworkElement
         for (int i = Page.Shapes.Count - 1; i >= 0; i--)
         {
             var s = Page.Shapes[i];
-            if (s.Background) continue;
-            if (s.Kind is not (ShapeKind.Text or ShapeKind.Image) && s.W >= Page.Width * 0.95 && s.H >= Page.Height * 0.95) continue;
+            if (!Selectable(s)) continue;
             var tol = 3 / K;
             var lp = Geo.ToLocal(s, p);
             if (lp.X >= s.X - tol && lp.X <= s.X + s.W + tol && lp.Y >= s.Y - tol && lp.Y <= s.Y + s.H + tol)
@@ -215,6 +263,10 @@ public sealed class PageView : FrameworkElement
         }
         return null;
     }
+
+    /// <summary>Les fonds de page (image de fond, forme couvrant toute la page) ne se selectionnent pas a la souris.</summary>
+    bool Selectable(Shape s) =>
+        !s.Background && !(s.Kind is not (ShapeKind.Text or ShapeKind.Image) && s.W >= Page.Width * 0.95 && s.H >= Page.Height * 0.95);
 
     /// <summary>Zone de la chaine en cours d'edition sous le point (les zones de texte passent avant les autres objets).</summary>
     Shape? EditingFrameAt(Point p)
@@ -288,28 +340,64 @@ public sealed class PageView : FrameworkElement
         }
 
         var sel = _session.Selected;
-        if (sel is not null && Page.Shapes.Contains(sel) && !Editing)
+        bool add = Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || shift;
+        if (sel is not null && Page.Shapes.Contains(sel) && !Editing && !add && !AnyLocked)
         {
-            var lp = Geo.ToLocal(sel, p);
-            if ((lp - RotationHandle(sel)).Length <= 7 / K) { StartDrag(DragMode.Rotate, p, sel, -1); e.Handled = true; return; }
-            int i = 0;
-            foreach (var h in Handles(sel))
+            if (_session.MultiSelection)
             {
-                var hit = h; hit.Inflate(HandleSize * 0.6, HandleSize * 0.6);
-                if (hit.Contains(lp)) { StartDrag(DragMode.Resize, p, sel, i); e.Handled = true; return; }
-                i++;
+                int i = 0;
+                foreach (var h in Handles(SelectionBox()))
+                {
+                    var hit = h; hit.Inflate(HandleSize * 0.6, HandleSize * 0.6);
+                    if (hit.Contains(p)) { StartDrag(DragMode.Resize, p, sel, i); e.Handled = true; return; }
+                    i++;
+                }
+            }
+            else
+            {
+                var lp = Geo.ToLocal(sel, p);
+                if ((lp - RotationHandle(sel)).Length <= 7 / K) { StartDrag(DragMode.Rotate, p, sel, -1); e.Handled = true; return; }
+                int i = 0;
+                foreach (var h in Handles(sel))
+                {
+                    var hit = h; hit.Inflate(HandleSize * 0.6, HandleSize * 0.6);
+                    if (hit.Contains(lp)) { StartDrag(DragMode.Resize, p, sel, i); e.Handled = true; return; }
+                    i++;
+                }
             }
         }
         var target = HitTest(p);
+        // dans un groupe deja « ouvert » (un seul de ses membres selectionne), le clic choisit un membre
+        bool inGroup = target?.Group is not null && _session.Selection.Count == 1 && sel?.Group == target.Group && Page.Shapes.Contains(sel);
         if (e.ClickCount == 2 && target is not null)
         {
             if (target.IsText) _session.BeginTextEdit(Page, target, p);
+            else if (target.Group is not null && !inGroup) _session.Select(target, Page);      // entrer dans le groupe
             else if (target.IsImage) ReplaceImageRequested?.Invoke(target);
             e.Handled = true;
             return;
         }
-        _session.Select(target, Page);
-        if (target is not null) StartDrag(DragMode.Move, p, target, -1);
+        if (target is null)
+        {
+            // clic dans le vide : rectangle de selection
+            if (!add) _session.Select(null, Page);
+            _mode = DragMode.Marquee;
+            _marqueeAdd = add;
+            _start = p;
+            _marquee = new Rect(p, p);
+            CaptureMouse();
+            e.Handled = true;
+            return;
+        }
+        var unit = inGroup ? new List<Shape> { target } : OpenPub.Core.Editing.ShapeOps.GroupOf(Page, target);
+        if (add)
+        {
+            _session.ToggleSelect(unit, Page);
+            if (!_session.IsSelected(target)) { e.Handled = true; return; }
+        }
+        else if (!(_session.IsSelected(target) && _session.MultiSelection && _session.SelectedPage == Page))
+            _session.SelectMany(unit, target, Page);
+        if (!_session.Selection.All(x => x.Locked)) StartDrag(DragMode.Move, p, target, -1);
         e.Handled = true;
     }
 
@@ -318,11 +406,47 @@ public sealed class PageView : FrameworkElement
         _mode = mode;
         _handle = handle;
         _start = p;
-        _orig = new Rect(s.X, s.Y, s.W, s.H);
-        _origRotation = s.Rotation;
+        _origs.Clear();
+        if (_session.MultiSelection && mode != DragMode.Rotate)
+        {
+            foreach (var x in _session.Selection) _origs[x] = new Rect(x.X, x.Y, x.W, x.H);
+            _orig = SelectionBox();
+            _origRotation = 0;
+        }
+        else
+        {
+            _orig = new Rect(s.X, s.Y, s.W, s.H);
+            _origRotation = s.Rotation;
+        }
         _moved = false;
         _session.BeginChange();
         CaptureMouse();
+    }
+
+    /// <summary>Place des objets d'une boite dans une autre (deplacement et mise a l'echelle, centres conserves en proportion).</summary>
+    public static void FitShapes(IEnumerable<Shape> shapes, Rect from, Rect to)
+    {
+        double sx = from.Width > 0 ? to.Width / from.Width : 1, sy = from.Height > 0 ? to.Height / from.Height : 1;
+        foreach (var x in shapes.ToList())
+        {
+            double cx = to.X + (x.X + x.W / 2 - from.X) * sx, cy = to.Y + (x.Y + x.H / 2 - from.Y) * sy;
+            double w = x.W * sx, h = x.H * sy;
+            MoveShape(x, new Rect(cx - w / 2, cy - h / 2, w, h));
+        }
+    }
+
+    /// <summary>Selection multiple : place chaque objet en suivant la boite commune (deplacement ou mise a l'echelle).</summary>
+    void ApplyMulti(Rect box)
+    {
+        double sx = _orig.Width > 0 ? box.Width / _orig.Width : 1, sy = _orig.Height > 0 ? box.Height / _orig.Height : 1;
+        foreach (var (x, o) in _origs)
+        {
+            if (x.Locked) continue;
+            // centre de l'objet ramene dans la nouvelle boite ; taille a l'echelle
+            double cx = box.X + (o.X + o.Width / 2 - _orig.X) * sx, cy = box.Y + (o.Y + o.Height / 2 - _orig.Y) * sy;
+            double w = o.Width * sx, h = o.Height * sy;
+            MoveShape(x, new Rect(cx - w / 2, cy - h / 2, w, h));
+        }
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
@@ -347,6 +471,12 @@ public sealed class PageView : FrameworkElement
         if (_mode == DragMode.None)
         {
             Cursor = _session.DrawTool is "freehand" ? Cursors.Pen : _session.DrawTool is not null ? Cursors.Cross : CursorAt(p);
+            return;
+        }
+        if (_mode == DragMode.Marquee)
+        {
+            _marquee = new Rect(_start, p);
+            InvalidateVisual();
             return;
         }
         if (_mode == DragMode.Draw)
@@ -389,10 +519,12 @@ public sealed class PageView : FrameworkElement
         bool snap = _session.SnapEnabled && !Keyboard.Modifiers.HasFlag(ModifierKeys.Alt);
         double tol = 6 / K;                                              // 6 pixels a l'ecran
         _session.ActiveGuidesX.Clear(); _session.ActiveGuidesY.Clear();
+        bool multi = _origs.Count > 0;
         if (_mode == DragMode.Move)
         {
             r.X += dx; r.Y += dy;
-            if (snap) r = Snapper.SnapMove(r, Page, _session.Doc, s, tol, _session.ActiveGuidesX, _session.ActiveGuidesY);
+            if (snap) r = Snapper.SnapMove(r, Page, _session.Doc, s, tol, _session.ActiveGuidesX, _session.ActiveGuidesY, multi ? _session.Selection : null);
+            if (multi) { ApplyMulti(r); _session.Invalidate(Page); return; }
         }
         else if (Math.Abs(_origRotation % 360) > 0.01)
         {
@@ -429,7 +561,8 @@ public sealed class PageView : FrameworkElement
             if (y1 - y0 < min) { if (_handle is 0 or 1 or 2) y0 = y1 - min; else y1 = y0 + min; }
             r = new Rect(x0, y0, x1 - x0, y1 - y0);
             if (snap && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
-                r = Snapper.SnapResize(r, _handle, Page, _session.Doc, s, tol, _session.ActiveGuidesX, _session.ActiveGuidesY);
+                r = Snapper.SnapResize(r, _handle, Page, _session.Doc, s, tol, _session.ActiveGuidesX, _session.ActiveGuidesY, multi ? _session.Selection : null);
+            if (multi) { ApplyMulti(r); _session.Invalidate(Page); return; }
         }
         MoveShape(s, r);
         _session.Invalidate(Page);
@@ -466,7 +599,21 @@ public sealed class PageView : FrameworkElement
         var mode = _mode;
         _mode = DragMode.None;
         ReleaseMouseCapture();
-        if (mode == DragMode.TextSelect) return;
+        if (mode == DragMode.TextSelect) { TextSelectionFinished?.Invoke(); return; }
+        if (mode == DragMode.Marquee)
+        {
+            var mq = _marquee ?? Rect.Empty;
+            _marquee = null;
+            InvalidateVisual();
+            if (mq.Width * K < 3 && mq.Height * K < 3) return;
+            // objets entierement dans le rectangle ; un groupe n'est pris que s'il y est en entier
+            bool Inside(Shape x) { var b = x.Bounds(); return mq.Contains(new Rect(b.X, b.Y, b.W, b.H)); }
+            var picked = Page.Shapes.Where(x => Selectable(x) && Inside(x)).ToList();
+            picked.RemoveAll(x => x.Group is not null && !OpenPub.Core.Editing.ShapeOps.GroupOf(Page, x).All(Inside));
+            var all = (_marqueeAdd && _session.SelectedPage == Page ? _session.Selection.Concat(picked) : picked).Distinct().ToList();
+            _session.SelectMany(all, all.LastOrDefault(), Page);
+            return;
+        }
         if (mode == DragMode.Freehand)
         {
             var pts = _stroke;
@@ -545,7 +692,18 @@ public sealed class PageView : FrameworkElement
     {
         if (EditingFrameAt(p) is not null) return Cursors.IBeam;
         var sel = _session.Selected;
-        if (sel is not null && Page.Shapes.Contains(sel) && !Editing)
+        if (sel is not null && Page.Shapes.Contains(sel) && !Editing && _session.MultiSelection && !AnyLocked)
+        {
+            int k = 0;
+            foreach (var h in Handles(SelectionBox()))
+            {
+                var hit = h; hit.Inflate(HandleSize * 0.6, HandleSize * 0.6);
+                if (hit.Contains(p))
+                    return k switch { 0 or 4 => Cursors.SizeNWSE, 2 or 6 => Cursors.SizeNESW, 1 or 5 => Cursors.SizeNS, _ => Cursors.SizeWE };
+                k++;
+            }
+        }
+        else if (sel is not null && Page.Shapes.Contains(sel) && !Editing && !sel.Locked)
         {
             var lp = Geo.ToLocal(sel, p);
             if ((lp - RotationHandle(sel)).Length <= 7 / K) return Cursors.Hand;
@@ -558,6 +716,6 @@ public sealed class PageView : FrameworkElement
                 i++;
             }
         }
-        return HitTest(p) is not null ? Cursors.SizeAll : Cursors.Arrow;
+        return HitTest(p) is { Locked: false } ? Cursors.SizeAll : Cursors.Arrow;
     }
 }

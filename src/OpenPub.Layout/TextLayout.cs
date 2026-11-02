@@ -52,6 +52,17 @@ public sealed class LaidPiece
     public int Length { get; init; }
     /// <summary>Le texte affiche se termine par un tiret de cesure absent du texte source.</summary>
     public bool Hyphen { get; init; }
+    /// <summary>Decalage vertical de la ligne de base (exposant &lt; 0, indice &gt; 0, lettrine), en points.</summary>
+    public double Dy { get; init; }
+    /// <summary>Espacement ajoute apres chaque caractere (interlettrage), en points.</summary>
+    public double Tracking { get; init; }
+
+    /// <summary>Avance des k premiers caracteres affiches (pour placer le curseur).</summary>
+    public double Advance(ITextMeasurer m, int k)
+    {
+        k = Math.Clamp(k, 0, Text.Length);
+        return k == 0 ? 0 : m.Width(Text[..k], Font, SizePt) + k * Tracking;
+    }
 }
 
 public sealed class LaidLine
@@ -61,6 +72,11 @@ public sealed class LaidLine
     public double Height { get; init; }
     public double Baseline { get; set; }
     public List<LaidPiece> Pieces { get; } = new();
+    /// <summary>
+    /// Elements dessines mais hors du texte editable : puce ou numero, points de suite d'une tabulation, lettrine.
+    /// Le curseur ne s'y arrete pas.
+    /// </summary>
+    public List<LaidPiece> Marks { get; } = new();
     public int ParagraphIndex { get; init; }
     /// <summary>Plage du texte source couverte par la ligne : [StartOffset, EndOffset[ (espaces de fin compris).</summary>
     public int StartOffset { get; init; }
