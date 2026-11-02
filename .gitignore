@@ -1,0 +1,29 @@
+# --- Donnees personnelles : la newsletter et ses conversions restent sur le poste ---
+*.pub
+*.opub
+converted/
+
+# --- Travail, telechargements, environnements Python, sorties ---
+work/
+dist/
+__pycache__/
+*.pyc
+
+# --- .NET / Visual Studio ---
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+
+# --- Secrets (la cle de signature des mises a jour vit dans %APPDATA%\OpenPub, jamais ici) ---
+*.pem
+*.pfx
+*.key
+.env
+
+# --- Systeme ---
+Thumbs.db
+desktop.ini
+.DS_Store

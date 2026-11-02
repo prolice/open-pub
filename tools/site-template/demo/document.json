@@ -1,0 +1,421 @@
+{
+ "format": "openpub/1",
+ "source": "demo",
+ "unit": "pt",
+ "pageWidth": 595.276,
+ "pageHeight": 841.89,
+ "pages": [
+  {
+   "index": 1,
+   "width": 595.276,
+   "height": 841.89,
+   "shapes": [
+    {
+     "kind": "rect",
+     "geometry": "roundRect",
+     "x": 36,
+     "y": 36,
+     "w": 523,
+     "h": 250,
+     "z": 1,
+     "cornerRadius": 18,
+     "fill": {
+      "color": "#eef4ff"
+     }
+    },
+    {
+     "kind": "text",
+     "x": 54,
+     "y": 60,
+     "w": 260,
+     "h": 120,
+     "z": 2,
+     "padding": [
+      2.85,
+      2.85,
+      2.85,
+      2.85
+     ],
+     "vAlign": "top",
+     "paragraphs": [
+      {
+       "align": "left",
+       "spaceAfter": 0,
+       "runs": [
+        {
+         "text": "Votre",
+         "font": {
+          "family": "Georgia",
+          "size": 40,
+          "bold": true,
+          "color": "#111c43",
+          "lang": "fr"
+         }
+        }
+       ]
+      },
+      {
+       "align": "left",
+       "spaceAfter": 6,
+       "runs": [
+        {
+         "text": "publication",
+         "font": {
+          "family": "Georgia",
+          "size": 40,
+          "bold": true,
+          "color": "#111c43",
+          "lang": "fr"
+         }
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "rect",
+     "geometry": "roundRect",
+     "x": 56,
+     "y": 200,
+     "w": 190,
+     "h": 10,
+     "z": 3,
+     "cornerRadius": 5,
+     "fill": {
+      "color": "#c9d4f0"
+     }
+    },
+    {
+     "kind": "rect",
+     "geometry": "roundRect",
+     "x": 56,
+     "y": 220,
+     "w": 160,
+     "h": 10,
+     "z": 4,
+     "cornerRadius": 5,
+     "fill": {
+      "color": "#c9d4f0"
+     }
+    },
+    {
+     "kind": "rect",
+     "geometry": "roundRect",
+     "x": 56,
+     "y": 246,
+     "w": 110,
+     "h": 26,
+     "z": 5,
+     "cornerRadius": 8,
+     "fill": {
+      "color": "#d9cdfb"
+     }
+    },
+    {
+     "kind": "image",
+     "src": "assets/paysage.jpg",
+     "x": 300,
+     "y": 80,
+     "w": 230,
+     "h": 153,
+     "z": 6,
+     "rotation": -4,
+     "shadow": {
+      "color": "#000000",
+      "opacity": 0.3,
+      "distance": 6,
+      "angle": 60,
+      "blur": 8
+     },
+     "geometry": "roundRect",
+     "cornerRadius": 10
+    },
+    {
+     "kind": "path",
+     "x": 420,
+     "y": 44,
+     "w": 110,
+     "h": 40,
+     "z": 7,
+     "line": {
+      "color": "#9935f4",
+      "weight": 3,
+      "arrowEnd": true
+     },
+     "path": [
+      {
+       "a": "M",
+       "x": 530,
+       "y": 56
+      },
+      {
+       "a": "C",
+       "x1": 500,
+       "y1": 38,
+       "x2": 450,
+       "y2": 44,
+       "x": 422,
+       "y": 82
+      }
+     ]
+    },
+    {
+     "kind": "rect",
+     "geometry": "star5",
+     "x": 500,
+     "y": 238,
+     "w": 44,
+     "h": 42,
+     "z": 8,
+     "line": {
+      "color": "#06c7c0",
+      "weight": 2.5
+     }
+    },
+    {
+     "kind": "path",
+     "x": 250,
+     "y": 250,
+     "w": 200,
+     "h": 30,
+     "z": 9,
+     "line": {
+      "color": "#06c7c0",
+      "weight": 3
+     },
+     "path": [
+      {
+       "a": "M",
+       "x": 250,
+       "y": 270
+      },
+      {
+       "a": "C",
+       "x1": 280,
+       "y1": 240,
+       "x2": 300,
+       "y2": 290,
+       "x": 330,
+       "y": 266
+      },
+      {
+       "a": "C",
+       "x1": 360,
+       "y1": 244,
+       "x2": 380,
+       "y2": 292,
+       "x": 410,
+       "y": 268
+      },
+      {
+       "a": "C",
+       "x1": 425,
+       "y1": 258,
+       "x2": 440,
+       "y2": 262,
+       "x": 450,
+       "y": 266
+      }
+     ]
+    },
+    {
+     "kind": "text",
+     "x": 36,
+     "y": 310,
+     "w": 250,
+     "h": 300,
+     "z": 10,
+     "padding": [
+      2.85,
+      2.85,
+      2.85,
+      2.85
+     ],
+     "vAlign": "top",
+     "paragraphs": [
+      {
+       "align": "left",
+       "spaceAfter": 6,
+       "runs": [
+        {
+         "text": "À la une",
+         "font": {
+          "family": "Segoe UI",
+          "size": 16,
+          "bold": true,
+          "color": "#4e32cf",
+          "lang": "fr"
+         }
+        }
+       ]
+      },
+      {
+       "align": "justify",
+       "spaceAfter": 6,
+       "runs": [
+        {
+         "text": "Créez vos publications simplement : bulletins, affiches, cartes et invitations. Placez vos textes et vos images où vous le souhaitez, le texte s'écoule d'une colonne à l'autre et contourne les illustrations.",
+         "font": {
+          "family": "Segoe UI",
+          "size": 11,
+          "bold": false,
+          "color": "#394b72",
+          "lang": "fr"
+         }
+        }
+       ]
+      },
+      {
+       "align": "justify",
+       "spaceAfter": 6,
+       "runs": [
+        {
+         "text": "Créez vos publications simplement : bulletins, affiches, cartes et invitations. Placez vos textes et vos images où vous le souhaitez, le texte s'écoule d'une colonne à l'autre et contourne les illustrations.",
+         "font": {
+          "family": "Segoe UI",
+          "size": 11,
+          "bold": false,
+          "color": "#394b72",
+          "lang": "fr"
+         }
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "text",
+     "x": 309,
+     "y": 310,
+     "w": 250,
+     "h": 300,
+     "z": 11,
+     "padding": [
+      2.85,
+      2.85,
+      2.85,
+      2.85
+     ],
+     "vAlign": "top",
+     "paragraphs": [
+      {
+       "align": "left",
+       "spaceAfter": 6,
+       "runs": [
+        {
+         "text": "Agenda",
+         "font": {
+          "family": "Segoe UI",
+          "size": 16,
+          "bold": true,
+          "color": "#4e32cf",
+          "lang": "fr"
+         }
+        }
+       ]
+      },
+      {
+       "align": "justify",
+       "spaceAfter": 6,
+       "runs": [
+        {
+         "text": "Créez vos publications simplement : bulletins, affiches, cartes et invitations. Placez vos textes et vos images où vous le souhaitez, le texte s'écoule d'une colonne à l'autre et contourne les illustrations.",
+         "font": {
+          "family": "Segoe UI",
+          "size": 11,
+          "bold": false,
+          "color": "#394b72",
+          "lang": "fr"
+         }
+        }
+       ]
+      },
+      {
+       "align": "justify",
+       "spaceAfter": 6,
+       "runs": [
+        {
+         "text": "Créez vos publications simplement : bulletins, affiches, cartes et invitations. Placez vos textes et vos images où vous le souhaitez, le texte s'écoule d'une colonne à l'autre et contourne les illustrations.",
+         "font": {
+          "family": "Segoe UI",
+          "size": 11,
+          "bold": false,
+          "color": "#394b72",
+          "lang": "fr"
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "index": 2,
+   "width": 595.276,
+   "height": 841.89,
+   "shapes": [
+    {
+     "kind": "image",
+     "src": "assets/paysage.jpg",
+     "x": 36,
+     "y": 36,
+     "w": 523,
+     "h": 300,
+     "z": 1,
+     "geometry": "roundRect",
+     "cornerRadius": 14
+    },
+    {
+     "kind": "text",
+     "x": 36,
+     "y": 360,
+     "w": 523,
+     "h": 200,
+     "z": 2,
+     "padding": [
+      2.85,
+      2.85,
+      2.85,
+      2.85
+     ],
+     "vAlign": "top",
+     "paragraphs": [
+      {
+       "align": "left",
+       "spaceAfter": 6,
+       "runs": [
+        {
+         "text": "Deuxième page",
+         "font": {
+          "family": "Georgia",
+          "size": 28,
+          "bold": true,
+          "color": "#111c43",
+          "lang": "fr"
+         }
+        }
+       ]
+      },
+      {
+       "align": "justify",
+       "spaceAfter": 6,
+       "runs": [
+        {
+         "text": "Créez vos publications simplement : bulletins, affiches, cartes et invitations. Placez vos textes et vos images où vous le souhaitez, le texte s'écoule d'une colonne à l'autre et contourne les illustrations.",
+         "font": {
+          "family": "Segoe UI",
+          "size": 11,
+          "bold": false,
+          "color": "#394b72",
+          "lang": "fr"
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

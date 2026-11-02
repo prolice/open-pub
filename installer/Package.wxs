@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- OpenPub : installeur MSI par utilisateur. Installe dans %LOCALAPPDATA%\Programs\OpenPub,
+     cree un raccourci dans le menu Demarrer et associe les fichiers .opub. -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="OpenPub"
+           Manufacturer="OpenPub"
+           Version="1.5.1.0"
+           UpgradeCode="6B7E3C1A-5D2F-4E8B-9A41-0C3F7D2E8B15"
+           Scope="perUser"
+           Language="1036"
+           Codepage="1252">
+    <SummaryInformation Description="OpenPub — éditeur de mise en page" />
+
+    <MajorUpgrade DowngradeErrorMessage="Une version plus récente d'OpenPub est déjà installée." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="OpenPubIcon" SourceFile="$(AssetsDir)\openpub.ico" />
+    <Property Id="ARPPRODUCTICON" Value="OpenPubIcon" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsDir" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="OpenPub" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="OpenPub" Level="1">
+      <!-- Executable autonome (runtime .NET inclus) -->
+      <Component Id="AppExe" Directory="INSTALLFOLDER" Guid="3F0C6D8E-2B7A-4C51-8E94-7A1D2C6B5E30">
+        <File Id="OpenPubExe" Source="$(PublishDir)\OpenPub.exe" />
+        <RegistryValue Root="HKCU" Key="Software\OpenPub" Name="InstallDir" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+        <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+        <RemoveFolder Id="RemoveProgramsDir" Directory="ProgramsDir" On="uninstall" />
+      </Component>
+
+      <!-- Raccourci dans le menu Demarrer -->
+      <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder" Guid="9C4E2A71-6F3B-4D8A-B0E5-1D7C3A9F6B42">
+        <Shortcut Id="OpenPubShortcut" Name="OpenPub" Description="Éditeur de mise en page"
+                  Target="[INSTALLFOLDER]OpenPub.exe" WorkingDirectory="INSTALLFOLDER" Icon="OpenPubIcon" />
+        <RegistryValue Root="HKCU" Key="Software\OpenPub" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <!-- Association des fichiers .opub (double-clic = ouvrir dans OpenPub) -->
+      <Component Id="FileAssociation" Directory="INSTALLFOLDER" Guid="5A8D1F3C-7E2B-4A69-9C0D-3B6E8F1A2D57">
+        <RegistryValue Root="HKCU" Key="Software\Classes\.opub" Type="string" Value="OpenPub.Document" KeyPath="yes" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\OpenPub.Document" Type="string" Value="Document OpenPub" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\OpenPub.Document\DefaultIcon" Type="string" Value="&quot;[INSTALLFOLDER]OpenPub.exe&quot;,0" />
+        <RegistryValue Root="HKCU" Key="Software\Classes\OpenPub.Document\shell\open\command" Type="string" Value="&quot;[INSTALLFOLDER]OpenPub.exe&quot; &quot;%1&quot;" />
+      </Component>
+    </Feature>
+  </Package>
+</Wix>

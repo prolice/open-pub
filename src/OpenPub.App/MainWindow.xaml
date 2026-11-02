@@ -1,0 +1,399 @@
+﻿<Window x:Class="OpenPub.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="OpenPub" Height="900" Width="1480" WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Chrome}" Foreground="{StaticResource Ink}" FontFamily="{StaticResource UiFont}" FontSize="13" Icon="Assets/openpub.ico"
+        TextOptions.TextFormattingMode="Display">
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Open" Executed="Open_Executed"/>
+        <CommandBinding Command="ApplicationCommands.Save" Executed="Save_Executed" CanExecute="HasDoc_CanExecute"/>
+        <CommandBinding Command="ApplicationCommands.SaveAs" Executed="SaveAs_Executed" CanExecute="HasDoc_CanExecute"/>
+        <CommandBinding Command="ApplicationCommands.Undo" Executed="Undo_Executed" CanExecute="Undo_CanExecute"/>
+        <CommandBinding Command="ApplicationCommands.Redo" Executed="Redo_Executed" CanExecute="Redo_CanExecute"/>
+        <CommandBinding Command="ApplicationCommands.Print" Executed="Print_Executed" CanExecute="HasDoc_CanExecute"/>
+        <CommandBinding Command="ApplicationCommands.Delete" Executed="Delete_Executed" CanExecute="HasSel_CanExecute"/>
+    </Window.CommandBindings>
+    <Window.InputBindings>
+        <KeyBinding Key="S" Modifiers="Ctrl+Shift" Command="ApplicationCommands.SaveAs"/>
+        <KeyBinding Key="Y" Modifiers="Ctrl" Command="ApplicationCommands.Redo"/>
+    </Window.InputBindings>
+
+    <DockPanel>
+        <!-- ===================== RUBAN ===================== -->
+        <Border DockPanel.Dock="Top" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+            <StackPanel>
+                <!-- ligne des onglets -->
+                <DockPanel Margin="6,6,6,0" LastChildFill="False">
+                    <!-- marque -->
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="4,0,14,0" VerticalAlignment="Center">
+                        <Image Source="Assets/openpub-64.png" Width="30" Height="30" RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <TextBlock Text="OpenPub" FontFamily="{StaticResource TitleFont}" FontWeight="ExtraBold" FontSize="19" Margin="7,0,0,1" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Button x:Name="FileButton" DockPanel.Dock="Left" Style="{StaticResource PillButton}" Content="Fichier" Click="FileButton_Click" Margin="0,0,10,0" Padding="18,6"/>
+                    <RadioButton x:Name="TabHome" Style="{StaticResource RibbonTab}" Content="Accueil" IsChecked="True" Checked="Tab_Checked"/>
+                    <RadioButton x:Name="TabInsert" Style="{StaticResource RibbonTab}" Content="Insertion" Checked="Tab_Checked"/>
+                    <RadioButton x:Name="TabDraw" Style="{StaticResource RibbonTab}" Content="Dessin" Checked="Tab_Checked"/>
+                    <RadioButton x:Name="TabView" Style="{StaticResource RibbonTab}" Content="Affichage" Checked="Tab_Checked"/>
+                    <RadioButton x:Name="TabShape" Style="{StaticResource RibbonTab}" Content="Format de la forme" Tag="#9935F4" Foreground="#7B2BC7" Visibility="Collapsed" Checked="Tab_Checked"/>
+                    <RadioButton x:Name="TabPicture" Style="{StaticResource RibbonTab}" Content="Outils image" Tag="#06C7C0" Foreground="#05807C" Visibility="Collapsed" Checked="Tab_Checked"/>
+                    <!-- acces rapide -->
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <TextBlock x:Name="DocTitle" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,12,0"/>
+                        <Button Style="{StaticResource RSmall}" Tag="&#xE897;" Click="HelpContext_Click" ToolTip="Aide sur ce que vous faites (F1)"/>
+                        <Button Style="{StaticResource RSmall}" Tag="&#xE74E;" Command="ApplicationCommands.Save" ToolTip="Enregistrer (Ctrl+S)"/>
+                        <Button Style="{StaticResource RSmall}" Tag="&#xE7A7;" Command="ApplicationCommands.Undo" ToolTip="Annuler (Ctrl+Z)"/>
+                        <Button Style="{StaticResource RSmall}" Tag="&#xE7A6;" Command="ApplicationCommands.Redo" ToolTip="Rétablir (Ctrl+Y)"/>
+                    </StackPanel>
+                </DockPanel>
+
+                <!-- contenu des onglets -->
+                <Grid Height="100" Margin="6,4,6,4">
+                    <!-- Accueil -->
+                    <StackPanel x:Name="PanelHome" Orientation="Horizontal">
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Historique">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xE7A7;" Content="Annuler" Command="ApplicationCommands.Undo"/>
+                                <Button Style="{StaticResource RBig}" Tag="&#xE7A6;" Content="Rétablir" Command="ApplicationCommands.Redo"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Police">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <ComboBox x:Name="FontBox" IsEditable="True" Width="170" ToolTip="Police"
+                                              SelectionChanged="FontBox_SelectionChanged" KeyDown="FontBox_KeyDown"/>
+                                    <ComboBox x:Name="SizeBox" IsEditable="True" Width="58" Margin="4,0,0,0" ToolTip="Taille (pt)"
+                                              SelectionChanged="SizeBox_SelectionChanged" KeyDown="SizeBox_KeyDown"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource RSmall}" Click="Bold_Click" ToolTip="Gras (Ctrl+B)"><TextBlock Text="G" FontWeight="Bold" FontSize="14" Width="14" TextAlignment="Center"/></Button>
+                                    <Button Style="{StaticResource RSmall}" Click="Italic_Click" ToolTip="Italique (Ctrl+I)"><TextBlock Text="I" FontStyle="Italic" FontSize="14" Width="14" TextAlignment="Center" FontFamily="Georgia"/></Button>
+                                    <Button Style="{StaticResource RSmall}" Click="Underline_Click" ToolTip="Souligné (Ctrl+U)"><TextBlock Text="S" TextDecorations="Underline" FontSize="14" Width="14" TextAlignment="Center"/></Button>
+                                    <Button Style="{StaticResource RSmall}" Click="Color_Click" ToolTip="Couleur du texte">
+                                        <StackPanel>
+                                            <TextBlock Text="A" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center"/>
+                                            <Border x:Name="ColorSwatch" Width="16" Height="3" Background="Black"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Paragraphe">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource RSmall}" Tag="&#xE8E4;" Click="Align_Click" CommandParameter="left" ToolTip="Aligner à gauche" x:Name="AlignLeft"/>
+                                <Button Style="{StaticResource RSmall}" Tag="&#xE8E3;" Click="Align_Click" CommandParameter="center" ToolTip="Centrer"/>
+                                <Button Style="{StaticResource RSmall}" Tag="&#xE8E2;" Click="Align_Click" CommandParameter="right" ToolTip="Aligner à droite"/>
+                                <Button Style="{StaticResource RSmall}" Click="Align_Click" CommandParameter="justify" ToolTip="Justifier"><TextBlock Text="☰" FontSize="14"/></Button>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Objets">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xE8C8;" Content="Dupliquer" Click="Duplicate_Click" ToolTip="Dupliquer l'objet sélectionné"/>
+                                <StackPanel>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE70E;" Content="Premier plan" Click="BringFront_Click"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE70D;" Content="Arrière-plan" Click="SendBack_Click"/>
+                                    <Button Style="{StaticResource RSmall}" Tag="&#xE74D;" Content="Supprimer" Command="ApplicationCommands.Delete"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                    </StackPanel>
+
+                    <!-- Insertion -->
+                    <StackPanel x:Name="PanelInsert" Orientation="Horizontal" Visibility="Collapsed">
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Pages">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xE710;" Content="Page" Click="AddPage_Click" ToolTip="Ajouter une page vierge après la page active"/>
+                                <Button Style="{StaticResource RBig}" Tag="&#xE8C8;" Content="Dupliquer&#x0a;la page" Click="DuplicatePage_Click"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Texte">
+                            <ToggleButton x:Name="DrawTextTool" Style="{StaticResource RBig}" Tag="&#xE8D2;" Content="Zone de&#x0a;texte" Click="DrawTool_Click" CommandParameter="text"
+                                          ToolTip="Tracer une zone de texte sur la page"/>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Illustrations">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xEB9F;" Content="Image" Click="AddImage_Click" ToolTip="Insérer une image depuis un fichier"/>
+                                <Button x:Name="ShapesButton" Style="{StaticResource RBig}" Tag="&#xE790;" Content="Formes ▾" Click="ShapesButton_Click" ToolTip="Dessiner une forme : rectangle arrondi, ellipse, flèche, étoile, bulle…"/>
+                                <ToggleButton x:Name="DrawLineTool" Style="{StaticResource RBig}" Tag="&#xE70F;" Content="Ligne" Click="DrawTool_Click" CommandParameter="line" ToolTip="Tracer une ligne"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                    </StackPanel>
+
+                    <!-- Dessin -->
+                    <StackPanel x:Name="PanelDraw" Orientation="Horizontal" Visibility="Collapsed">
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Outils">
+                            <StackPanel Orientation="Horizontal">
+                                <ToggleButton x:Name="SelectTool" Style="{StaticResource RBig}" Tag="&#xE8B0;" Content="Sélection" Click="DrawTool_Click" CommandParameter="" IsChecked="True"
+                                              ToolTip="Sélectionner et déplacer les objets (Échap)"/>
+                                <ToggleButton Style="{StaticResource RBig}" Tag="&#xEE56;" Content="Crayon" Click="DrawTool_Click" CommandParameter="freehand"
+                                              ToolTip="Dessin à main levée : le trait est lissé automatiquement ; l'outil reste actif (Échap pour terminer)"/>
+                                <ToggleButton Style="{StaticResource RBig}" Tag="&#xE879;" Content="Forme&#x0a;libre" Click="DrawTool_Click" CommandParameter="polygon"
+                                              ToolTip="Un clic par sommet ; double-clic ou Entrée pour terminer ; clic sur le premier point pour fermer ; Maj : angles de 45° ; Retour arrière : retirer le dernier point"/>
+                                <ToggleButton Style="{StaticResource RBig}" Tag="&#xE738;" Content="Ligne" Click="DrawTool_Click" CommandParameter="line" ToolTip="Tracer une ligne (Maj : 45°)"/>
+                                <ToggleButton Style="{StaticResource RBig}" Tag="&#xEBE7;" Content="Flèche" Click="DrawTool_Click" CommandParameter="arrow" ToolTip="Tracer une flèche (Maj : 45°)"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Formes">
+                            <WrapPanel x:Name="ShapeGallery" Orientation="Horizontal" Width="190" VerticalAlignment="Center"/>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Trait">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Click="PenColor_Click" ToolTip="Couleur du crayon, des lignes et des flèches">
+                                    <Button.Tag>&#xE790;</Button.Tag>
+                                    <StackPanel><TextBlock Text="Couleur" HorizontalAlignment="Center"/><Border x:Name="PenSwatch" Height="4" Width="40" Margin="0,2,0,0" Background="#1f2a44"/></StackPanel>
+                                </Button>
+                                <StackPanel VerticalAlignment="Center" Margin="4,0">
+                                    <TextBlock Text="Épaisseur (pt)" FontSize="11" Foreground="{StaticResource Muted}"/>
+                                    <ComboBox x:Name="PenWidthBox" Width="78" IsEditable="True" SelectionChanged="PenWidth_SelectionChanged" KeyDown="PenWidth_KeyDown"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                    </StackPanel>
+
+                    <!-- Affichage -->
+                    <StackPanel x:Name="PanelView" Orientation="Horizontal" Visibility="Collapsed">
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Zoom">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xE71F;" Content="Zoom −" Click="ZoomOut_Click"/>
+                                <StackPanel VerticalAlignment="Center" Margin="4,0">
+                                    <TextBlock x:Name="ZoomText" Text="100 %" HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold"/>
+                                    <Button Style="{StaticResource RSmall}" Content="100 %" Click="Zoom100_Click" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                                <Button Style="{StaticResource RBig}" Tag="&#xE8A3;" Content="Zoom +" Click="ZoomIn_Click"/>
+                                <Button Style="{StaticResource RBig}" Tag="&#xE9A6;" Content="Ajuster" Click="ZoomFit_Click" ToolTip="Ajuster à la largeur"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Disposition">
+                            <StackPanel Orientation="Horizontal">
+                                <ToggleButton x:Name="GuidesToggle" Style="{StaticResource RBig}" Tag="&#xE80A;" Content="Repères" IsChecked="True" Click="GuidesToggle_Click"
+                                              ToolTip="Afficher les repères de marge et les contours des zones de texte"/>
+                                <ToggleButton x:Name="SnapToggle" Style="{StaticResource RBig}" Tag="&#xE7C9;" Content="Magnétisme" IsChecked="True" Click="SnapToggle_Click"
+                                              ToolTip="Aligner automatiquement sur la page, les marges et les autres objets (Alt pour l'ignorer)"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                    </StackPanel>
+
+                    <!-- Format de la forme (contextuel) -->
+                    <StackPanel x:Name="PanelShape" Orientation="Horizontal" Visibility="Collapsed">
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Remplissage et contour">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Click="FillColor_Click" ToolTip="Couleur de remplissage">
+                                    <Button.Tag>&#xE771;</Button.Tag>
+                                    <StackPanel><TextBlock Text="Remplissage" HorizontalAlignment="Center"/><Border x:Name="FillSwatch" Height="4" Width="40" Margin="0,2,0,0"/></StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource RBig}" Click="LineColor_Click" ToolTip="Couleur du contour">
+                                    <Button.Tag>&#xE76D;</Button.Tag>
+                                    <StackPanel><TextBlock Text="Contour" HorizontalAlignment="Center"/><Border x:Name="LineSwatch" Height="4" Width="40" Margin="0,2,0,0"/></StackPanel>
+                                </Button>
+                                <StackPanel VerticalAlignment="Center" Margin="4,0">
+                                    <TextBlock Text="Épaisseur" FontSize="11" Foreground="{StaticResource Muted}"/>
+                                    <ComboBox x:Name="LineWeightBox" Width="78" IsEditable="True" SelectionChanged="LineWeight_SelectionChanged" KeyDown="LineWeight_KeyDown"/>
+                                    <CheckBox x:Name="DashCheck" Content="Tirets" Margin="0,4,0,0" Click="Dash_Click"/>
+                                </StackPanel>
+                                <StackPanel x:Name="ArrowOptions" VerticalAlignment="Center" Margin="4,0">
+                                    <TextBlock Text="Flèches" FontSize="11" Foreground="{StaticResource Muted}"/>
+                                    <CheckBox x:Name="ArrowStartCheck" Content="◂ Début" Margin="0,2,0,0" Click="Arrow_Click"/>
+                                    <CheckBox x:Name="ArrowEndCheck" Content="Fin ▸" Margin="0,4,0,0" Click="Arrow_Click"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Forme">
+                            <StackPanel VerticalAlignment="Center">
+                                <ComboBox x:Name="GeometryBox" Width="190" SelectionChanged="GeometryBox_SelectionChanged" ToolTip="Forme de l'objet ou du cadre de la zone de texte"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <TextBlock Text="Arrondi" VerticalAlignment="Center" FontSize="12" Margin="0,0,6,0"/>
+                                    <Slider x:Name="RadiusSlider" Width="132" Minimum="0" Maximum="50" ValueChanged="RadiusSlider_ValueChanged" IsMoveToPointEnabled="True"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Effets">
+                            <ToggleButton x:Name="ShapeShadowToggle" Style="{StaticResource RBig}" Tag="&#xE81E;" Content="Ombre" Click="ShadowToggle_Click"/>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Rotation">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xE7AD;" Content="⟲ 90°" Click="RotateLeft_Click"/>
+                                <Button Style="{StaticResource RBig}" Tag="&#xE7AD;" Content="⟳ 90°" Click="RotateRight_Click"/>
+                                <StackPanel VerticalAlignment="Center" Margin="4,0">
+                                    <TextBlock Text="Angle (°)" FontSize="11" Foreground="{StaticResource Muted}"/>
+                                    <TextBox x:Name="RotationBox" Width="60" KeyDown="RotationBox_KeyDown" LostFocus="RotationBox_LostFocus"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Organiser">
+                            <StackPanel>
+                                <Button Style="{StaticResource RSmall}" Tag="&#xE70E;" Content="Premier plan" Click="BringFront_Click"/>
+                                <Button Style="{StaticResource RSmall}" Tag="&#xE70D;" Content="Arrière-plan" Click="SendBack_Click"/>
+                                <Button Style="{StaticResource RSmall}" Tag="&#xE74D;" Content="Supprimer" Command="ApplicationCommands.Delete"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                    </StackPanel>
+
+                    <!-- Outils image (contextuel) -->
+                    <StackPanel x:Name="PanelPicture" Orientation="Horizontal" Visibility="Collapsed">
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Modifier">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xE70F;" Content="Modifier&#x0a;l'image…" Click="EditImage_Click" ToolTip="Recadrage, couleurs, luminosité, miroir, ombre, reflet, forme"/>
+                                <Button Style="{StaticResource RBig}" Tag="&#xE7A8;" Content="Recadrer…" Click="CropImage_Click"/>
+                                <Button Style="{StaticResource RBig}" Tag="&#xEB9F;" Content="Remplacer…" Click="ReplaceImage_Click"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Couleur">
+                            <WrapPanel Orientation="Vertical" Height="68">
+                                <Button Style="{StaticResource RSmall}" Content="Origine" Click="Recolor_Click" CommandParameter=""/>
+                                <Button Style="{StaticResource RSmall}" Content="Niveaux de gris" Click="Recolor_Click" CommandParameter="gray"/>
+                                <Button Style="{StaticResource RSmall}" Content="Noir et blanc" Click="Recolor_Click" CommandParameter="bw"/>
+                                <Button Style="{StaticResource RSmall}" Content="Sépia" Click="Recolor_Click" CommandParameter="sepia"/>
+                                <Button Style="{StaticResource RSmall}" Content="Filigrane" Click="Recolor_Click" CommandParameter="washout"/>
+                            </WrapPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Miroir">
+                            <StackPanel>
+                                <Button Style="{StaticResource RSmall}" Content="⇋ Horizontal" Click="FlipH_Click"/>
+                                <Button Style="{StaticResource RSmall}" Content="⇵ Vertical" Click="FlipV_Click"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Effets">
+                            <StackPanel Orientation="Horizontal">
+                                <ToggleButton x:Name="PicShadowToggle" Style="{StaticResource RBig}" Tag="&#xE81E;" Content="Ombre" Click="ShadowToggle_Click"/>
+                                <ToggleButton x:Name="PicReflectionToggle" Style="{StaticResource RBig}" Tag="&#xE7B3;" Content="Reflet" Click="ReflectionToggle_Click"/>
+                                <Button Style="{StaticResource RBig}" Tag="&#xE777;" Content="Réinitialiser" Click="ResetImage_Click" ToolTip="Retirer toutes les retouches de l'image"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Style="{StaticResource RGroup}" Header="Rotation">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource RBig}" Tag="&#xE7AD;" Content="⟲ 90°" Click="RotateLeft_Click"/>
+                                <Button Style="{StaticResource RBig}" Tag="&#xE7AD;" Content="⟳ 90°" Click="RotateRight_Click"/>
+                            </StackPanel>
+                        </HeaderedContentControl>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Bandeau de mise a jour -->
+        <Border x:Name="UpdateBanner" DockPanel.Dock="Top" Background="{StaticResource SoftBadge}" BorderBrush="{StaticResource SelectedBorder}" BorderThickness="0,0,0,1" Padding="14,7" Visibility="Collapsed">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <ProgressBar x:Name="UpdateProgress" Width="160" Height="10" Margin="0,0,10,0" Visibility="Collapsed" Maximum="1"/>
+                    <Button x:Name="UpdateNowButton" Style="{StaticResource PillButton}" Content="Mettre à jour maintenant" Padding="16,5" Margin="0,0,8,0" Click="UpdateNow_Click"/>
+                    <Button x:Name="UpdateLaterButton" Content="Plus tard" Padding="12,4" Margin="0,0,6,0" Click="UpdateLater_Click"/>
+                    <Button x:Name="UpdateSkipButton" Content="Ignorer cette version" Padding="12,4" Click="UpdateSkip_Click"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="&#xE896;" FontFamily="{StaticResource Icons}" FontSize="16" Foreground="{StaticResource IconBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="UpdateText" VerticalAlignment="Center" FontWeight="Bold" Foreground="{StaticResource SelectedText}"/>
+                    <TextBlock x:Name="UpdateNotes" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" MaxWidth="600"/>
+                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0"><Hyperlink Click="UpdateHelp_Click" Foreground="{StaticResource SelectedText}">En savoir plus</Hyperlink></TextBlock>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Barre d'etat -->
+        <Border DockPanel.Dock="Bottom" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="12,3">
+            <DockPanel>
+                <!-- zoom (comme la maquette) -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="FontWarning" Foreground="#C0392B" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                    <TextBlock x:Name="ZoomStatus" Text="100 %" Width="46" TextAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,8,0"/>
+                    <Button Style="{StaticResource RSmall}" Tag="&#xE738;" Click="ZoomOut_Click" ToolTip="Zoom arrière"/>
+                    <Slider x:Name="ZoomSlider" Width="130" Minimum="25" Maximum="400" Value="100" VerticalAlignment="Center" ValueChanged="ZoomSlider_ValueChanged" IsMoveToPointEnabled="True" ToolTip="Zoom"/>
+                    <Button Style="{StaticResource RSmall}" Tag="&#xE710;" Click="ZoomIn_Click" ToolTip="Zoom avant"/>
+                    <Button Style="{StaticResource RSmall}" Tag="&#xE9A6;" Click="ZoomFit_Click" ToolTip="Ajuster à la largeur"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="PageIndicator" Foreground="{StaticResource Ink}" FontWeight="SemiBold" Margin="0,0,16,0"/>
+                    <TextBlock x:Name="StatusText" Foreground="{StaticResource Muted}" Text="Ouvrez un fichier .opub (Fichier ▸ Ouvrir)."/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="160"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="270"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Pages -->
+            <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="8,8,8,4">
+                        <DockPanel Margin="2,0,0,6">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource RSmall}" Tag="&#xE897;" Click="PagesHelp_Click" ToolTip="Aide sur les pages" Padding="3,1"/>
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="PAGES" Margin="0" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <WrapPanel x:Name="PageButtons">
+                            <Button Style="{StaticResource RSmall}" Tag="&#xE710;" Click="AddPage_Click" ToolTip="Ajouter une page vierge après la page active"/>
+                            <Button Style="{StaticResource RSmall}" Tag="&#xE8C8;" Click="DuplicatePage_Click" ToolTip="Dupliquer la page active (base du numéro suivant)"/>
+                            <Button Style="{StaticResource RSmall}" Tag="&#xE74A;" Click="MovePageUp_Click" ToolTip="Déplacer la page active vers le haut"/>
+                            <Button Style="{StaticResource RSmall}" Tag="&#xE74B;" Click="MovePageDown_Click" ToolTip="Déplacer la page active vers le bas"/>
+                            <Button Style="{StaticResource RSmall}" Tag="&#xE74D;" Click="DeletePage_Click" ToolTip="Supprimer la page active"/>
+                        </WrapPanel>
+                    </StackPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="Thumbnails" Margin="10,4,10,10"/>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- Zone d'edition -->
+            <ScrollViewer Grid.Column="1" x:Name="Scroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                          Background="{StaticResource WorkspaceBrush}" PreviewMouseWheel="Scroller_PreviewMouseWheel" Focusable="False" ScrollChanged="Scroller_ScrollChanged">
+                <StackPanel x:Name="PagesPanel" HorizontalAlignment="Center" Margin="30,10,30,40"/>
+            </ScrollViewer>
+
+            <!-- Proprietes -->
+            <Border Grid.Column="2" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="1,0,0,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="14,4,14,14">
+                        <TextBlock x:Name="SelTitle" Text="Aucune sélection" FontFamily="{StaticResource TitleFont}" FontSize="17" FontWeight="ExtraBold" Margin="0,12,0,0"/>
+                        <TextBlock x:Name="SelInfo" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                   Text="Cliquez sur un objet pour le sélectionner. Double-cliquez dans un texte pour l'écrire directement sur la page, sur une image pour la retoucher."/>
+                        <TextBlock x:Name="FormatHint" Foreground="{StaticResource Muted}" TextWrapping="Wrap" FontSize="12" Margin="0,6,0,0"/>
+                        <TextBlock Margin="0,8,0,0" FontSize="12.5">
+                            <Hyperlink Click="HelpLink_Click" Foreground="{StaticResource SelectedText}" TextDecorations="{x:Null}" FontWeight="SemiBold">
+                                <Run x:Name="HelpLinkText" Text="En savoir plus ›"/>
+                            </Hyperlink>
+                        </TextBlock>
+
+                        <StackPanel x:Name="GeometryPanel" Visibility="Collapsed">
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="POSITION ET TAILLE (cm)"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="Auto"/><ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition/><RowDefinition Height="6"/><RowDefinition/></Grid.RowDefinitions>
+                                <TextBlock Text="X" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBox x:Name="BoxX" Grid.Column="1" Tag="X" KeyDown="GeoBox_KeyDown" LostFocus="GeoBox_LostFocus"/>
+                                <TextBlock Text="Y" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBox x:Name="BoxY" Grid.Column="4" Tag="Y" KeyDown="GeoBox_KeyDown" LostFocus="GeoBox_LostFocus"/>
+                                <TextBlock Text="L" Grid.Row="2" VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="Largeur"/>
+                                <TextBox x:Name="BoxW" Grid.Row="2" Grid.Column="1" Tag="W" KeyDown="GeoBox_KeyDown" LostFocus="GeoBox_LostFocus"/>
+                                <TextBlock Text="H" Grid.Row="2" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="Hauteur"/>
+                                <TextBox x:Name="BoxH" Grid.Row="2" Grid.Column="4" Tag="H" KeyDown="GeoBox_KeyDown" LostFocus="GeoBox_LostFocus"/>
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel x:Name="TextPanel" Visibility="Collapsed">
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="TEXTE"/>
+                            <Button Style="{StaticResource SideButton}" Click="EditInPlace_Click">✎ Écrire sur la page</Button>
+                            <Button Style="{StaticResource SideButton}" Click="EditText_Click">🗒 Éditeur de texte…</Button>
+                            <TextBlock x:Name="TextInfo" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        </StackPanel>
+
+                        <StackPanel x:Name="ImagePanel" Visibility="Collapsed">
+                            <TextBlock Style="{StaticResource PanelTitle}" Text="IMAGE"/>
+                            <Button Style="{StaticResource SideButton}" Click="EditImage_Click">🎨 Modifier l'image…</Button>
+                            <Button Style="{StaticResource SideButton}" Click="ReplaceImage_Click">🖼 Remplacer l'image…</Button>
+                            <TextBlock x:Name="ImageInfo" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        </StackPanel>
+
+                        <TextBlock Style="{StaticResource PanelTitle}" Text="RACCOURCIS"/>
+                        <TextBlock Foreground="{StaticResource Muted}" TextWrapping="Wrap" FontSize="12"
+                                   Text="Double-clic sur un texte : écrire sur la page (Échap pour terminer) · Poignée verte : rotation (Maj : pas de 15°) · Flèches : déplacer de 1 pt (Maj : 10 pt) · Maj + glisser : horizontal/vertical, ou proportions sur un coin · Alt : sans magnétisme · Ctrl + molette : zoom"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>
