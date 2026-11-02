@@ -86,7 +86,10 @@ zone de texte ou une image.</p>
         ("fichier", "Le menu Fichier", f"""
 <p>Le bouton <strong>Fichier</strong> donne accès à : Ouvrir ({k('Ctrl', 'O')}), Enregistrer ({k('Ctrl', 'S')}),
 Enregistrer sous ({k('Ctrl', 'Maj', 'S')}), Imprimer / créer un PDF ({k('Ctrl', 'P')}), Exporter les pages en PNG,
-Rechercher des mises à jour, l'aide en ligne et À propos.</p>"""),
+Rechercher des mises à jour, l'aide en ligne et À propos (version, type d'installation, état des mises à jour).</p>
+<p>Sous « Ouvrir… », la section <strong>Documents récents</strong> liste les derniers documents ouverts ou
+enregistrés (nom et dossier) : un clic les rouvre, {k('Ctrl', 'Maj', '1')} à {k('Ctrl', 'Maj', '9')} aussi.
+Un document déplacé ou supprimé disparaît de la liste ; « Effacer la liste » la vide.</p>"""),
         ("accueil", "Onglet Accueil", """
 <ul><li><strong>Historique</strong> : Annuler et Rétablir.</li>
 <li><strong>Police</strong> : police, taille, gras, italique, souligné, couleur du texte.</li>
@@ -267,6 +270,7 @@ fichier avant de l'installer, et refuse toute version modifiée.</p>"""),
     ("raccourcis.html", "Raccourcis clavier", "Tous les raccourcis d'OpenPub.", "⌨️", [
         ("general", "Général", table([
             ("Ouvrir / Enregistrer / Enregistrer sous", f"{k('Ctrl', 'O')} · {k('Ctrl', 'S')} · {k('Ctrl', 'Maj', 'S')}"),
+            ("Rouvrir un document récent (n° du menu Fichier)", f"{k('Ctrl', 'Maj', '1')} … {k('Ctrl', 'Maj', '9')}"),
             ("Imprimer / créer un PDF", k('Ctrl', 'P')),
             ("Annuler / Rétablir", f"{k('Ctrl', 'Z')} · {k('Ctrl', 'Y')}"),
             ("Aide sur ce que vous faites", k('F1')),

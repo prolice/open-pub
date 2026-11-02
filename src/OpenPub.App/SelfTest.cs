@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
@@ -145,9 +145,24 @@ public static class SelfTest
                 w.Close();
                 return 0;
             }
+            case "about":
+            {
+                var about = new AboutWindow(() => { }) { Owner = w, Left = -6000, Top = 0, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual };
+                about.Show();
+                Pump();
+                Application.Current.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                // sans la marge transparente reservee a l'ombre
+                ((FrameworkElement)about.Content).Margin = new Thickness(0);
+                Capture(about, png);
+                about.Close();
+                w.Close();
+                return 0;
+            }
             case "file-menu" or "shapes-menu":
             {
                 if (tab == "shapes-menu") ((System.Windows.Controls.RadioButton)w.FindName("TabInsert")).IsChecked = true;
+                // documents recents fictifs : jamais les vrais fichiers de l'utilisateur dans une capture
+                w.RecentOverride = new[] { @"C:\Users\Moi\Documents\Journal\journal-octobre.opub", @"C:\Users\Moi\Documents\Journal\journal-septembre.opub" };
                 Pump();
                 typeof(MainWindow).GetMethod(tab == "file-menu" ? "FileButton_Click" : "ShapesButton_Click", BindingFlags.NonPublic | BindingFlags.Instance)!
                     .Invoke(w, new object[] { w, new RoutedEventArgs() });

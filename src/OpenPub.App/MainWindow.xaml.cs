@@ -78,9 +78,16 @@ public partial class MainWindow : Window
         SizeBox.ItemsSource = new[] { 6, 7, 8, 9, 9.5, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 48, 60, 72 };
         _session.History.Changed += (_, _) => CommandManager.InvalidateRequerySuggested();
         BuildPages();
+        if (TrackRecent) RecentFiles.Add(path);
         Dispatcher.BeginInvoke(() => ZoomFit_Click(this, new RoutedEventArgs()), System.Windows.Threading.DispatcherPriority.Loaded);
         UpdateUi();
     }
+
+    /// <summary>Memorise les documents ouverts / enregistres dans la liste des recents (desactive pour les tests).</summary>
+    public bool TrackRecent { get; set; }
+
+    /// <summary>Liste des recents imposee (captures de la documentation : jamais les vrais fichiers de l'utilisateur).</summary>
+    internal IReadOnlyList<string>? RecentOverride { get; set; }
 
     /// <summary>Fermeture sans confirmation (tests automatiques).</summary>
     public bool SkipConfirm { get; set; }
@@ -112,6 +119,7 @@ public partial class MainWindow : Window
         try
         {
             _session.Save(path);
+            if (TrackRecent) RecentFiles.Add(path);
             StatusText.Text = $"Enregistré : {path}";
             return true;
         }
@@ -437,6 +445,7 @@ public partial class MainWindow : Window
         }
         bool has = _session is not null;
         Add("Ouvrir…", "Ctrl+O", () => ApplicationCommands.Open.Execute(null, this), glyph: "\uE8E5");
+        AddRecent(menu);
         Add("Enregistrer", "Ctrl+S", () => SaveDocument(false), has, glyph: "\uE74E");
         Add("Enregistrer sous…", "Ctrl+Maj+S", () => SaveDocument(true), has, glyph: "\uE792");
         menu.Items.Add(new Separator());
@@ -451,13 +460,76 @@ public partial class MainWindow : Window
         var auto = new MenuItem { Header = "Rechercher automatiquement au démarrage", IsCheckable = true, IsChecked = Update.UpdateService.AutoCheck };
         auto.Click += (_, _) => Update.UpdateService.AutoCheck = auto.IsChecked;
         menu.Items.Add(auto);
-        Add($"À propos d'OpenPub {Update.UpdateService.CurrentVersion}", "", () => MessageBox.Show(this,
-            $"OpenPub {Update.UpdateService.CurrentVersion}\nÉditeur de mise en page.\n\nMises à jour : {Update.UpdateService.FeedUrl ?? "non configurées"}",
-            "À propos", MessageBoxButton.OK, MessageBoxImage.Information));
+        Add("À propos d'OpenPub", "", ShowAbout, glyph: "\uE946");
         menu.Items.Add(new Separator());
         Add("Quitter", "Alt+F4", Close, glyph: "\uE7E8");
         menu.IsOpen = true;
     }
+
+    /// <summary>Section « Documents récents » du menu Fichier : nom du document et dossier, clic pour rouvrir.</summary>
+    void AddRecent(ContextMenu menu)
+    {
+        var recent = RecentOverride ?? (TrackRecent ? RecentFiles.List() : Array.Empty<string>());
+        if (recent.Count == 0) return;
+        menu.Items.Add(new Separator());
+        menu.Items.Add(new MenuItem
+        {
+            Header = new TextBlock { Text = "DOCUMENTS RÉCENTS", FontSize = 10.5, FontWeight = FontWeights.Bold, Foreground = (Brush)FindResource("Muted") },
+            IsHitTestVisible = false, Focusable = false, Padding = new Thickness(10, 4, 10, 2),
+        });
+        var current = _session?.Package.FilePath;
+        int n = 0;
+        foreach (var file in recent)
+        {
+            n++;
+            bool isCurrent = current is not null && string.Equals(Path.GetFullPath(current), file, StringComparison.OrdinalIgnoreCase);
+            var head = new StackPanel();
+            head.Children.Add(new TextBlock
+            {
+                Text = Path.GetFileName(file), FontWeight = isCurrent ? FontWeights.Bold : FontWeights.Medium,
+                MaxWidth = 340, TextTrimming = TextTrimming.CharacterEllipsis,
+            });
+            head.Children.Add(new TextBlock
+            {
+                Text = Path.GetDirectoryName(file), FontSize = 11, Foreground = (Brush)FindResource("Muted"),
+                MaxWidth = 340, TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(0, 1, 0, 0),
+            });
+            var it = new MenuItem
+            {
+                Header = head, ToolTip = file, Padding = new Thickness(10, 5, 10, 5),
+                InputGestureText = isCurrent ? "ouvert" : n <= 9 ? $"Ctrl+Maj+{n}" : "",
+                Icon = new Border
+                {
+                    Width = 20, Height = 20, CornerRadius = new CornerRadius(6), Background = (Brush)FindResource("SoftBadge"),
+                    Child = new TextBlock
+                    {
+                        Text = n.ToString(CultureInfo.InvariantCulture), FontSize = 11, FontWeight = FontWeights.Bold,
+                        Foreground = (Brush)FindResource("SelectedText"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+                    },
+                },
+            };
+            it.Click += (_, _) => OpenRecent(file);
+            menu.Items.Add(it);
+        }
+        var clear = new MenuItem { Header = "Effacer la liste", Foreground = (Brush)FindResource("Muted"), FontSize = 12, Padding = new Thickness(10, 5, 10, 5) };
+        clear.Click += (_, _) => { RecentFiles.Clear(); StatusText.Text = "Liste des documents récents effacée."; };
+        menu.Items.Add(clear);
+        menu.Items.Add(new Separator());
+    }
+
+    void OpenRecent(string file)
+    {
+        if (!File.Exists(file))
+        {
+            MessageBox.Show(this, $"Ce document n'existe plus (déplacé ou supprimé) :\n{file}", "OpenPub", MessageBoxButton.OK, MessageBoxImage.Warning);
+            RecentFiles.Remove(file);
+            return;
+        }
+        if (_session?.Package.FilePath is { } cur && string.Equals(Path.GetFullPath(cur), file, StringComparison.OrdinalIgnoreCase)) return;
+        OpenFile(file);
+    }
+
+    void ShowAbout() => new AboutWindow(() => _ = CheckForUpdates(manual: true)) { Owner = this }.ShowDialog();
 
     void Zoom100_Click(object sender, RoutedEventArgs e) => SetZoom(1);
 
@@ -938,6 +1010,14 @@ public partial class MainWindow : Window
         {
             Help.HelpService.Open(CurrentHelpTopic());
             e.Handled = true;
+            return;
+        }
+        // Ctrl+Maj+1..9 : rouvrir un document recent (meme numero que dans le menu Fichier)
+        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key is >= Key.D1 and <= Key.D9 && TrackRecent)
+        {
+            var recent = RecentFiles.List();
+            int i = e.Key - Key.D1;
+            if (i < recent.Count) { e.Handled = true; OpenRecent(recent[i]); }
             return;
         }
         if (_session is null || Keyboard.FocusedElement is TextBox || Keyboard.FocusedElement is ComboBox) return;

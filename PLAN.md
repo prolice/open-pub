@@ -293,6 +293,14 @@ Vérifications : 29 tests unitaires et un test de bout en bout de l'interface (`
   - Régénère la page et l'aide à partir des fichiers de la **dernière release** (installeur, exécutable pour les captures, `latest.json` déjà signé), sans reconstruire l'application, puis envoie sur Azure.
 - Logique commune : `tools/build-site.py` (également utilisée par `tools/publish-update.sh`, qui reste disponible en local). Un verrou commun empêche deux envois simultanés vers le portail.
 
+## 6 undecies. Version 1.5.2 : documents récents et fenêtre « À propos »
+
+- **Documents récents** dans le menu Fichier, sous « Ouvrir… » : les 8 derniers documents ouverts ou enregistrés (numéro, nom, dossier ; chemin complet en infobulle ; document ouvert en gras).
+  - Clic ou **Ctrl+Maj+1…9** pour rouvrir ; document disparu retiré de la liste ; « Effacer la liste ».
+  - Stockés dans `%APPDATA%\OpenPub\settings.json` (`AppSettings.cs`, partagé avec les réglages de mise à jour).
+  - Jamais alimentés par les tests et captures (`MainWindow.TrackRecent`, fichiers temporaires ignorés) ; la capture `file-menu` montre des noms fictifs.
+- **Fenêtre « À propos »** (`AboutWindow.cs`) aux couleurs de la charte, à la place de la boîte de message : bandeau en dégradé avec logo et pastille de version, tableau d'informations (version, installation, mises à jour, environnement, site), crédits, boutons Aide en ligne / Mises à jour / Fermer. Scène de capture `about`.
+
 ## 7. Prochaines étapes proposées
 1. ✅ ~~Extraction via Publisher~~ : impossible depuis la perte de licence ; acquis partiels conservés.
 2. ✅ Lecteur natif prototype sur la newsletter : texte → zones, polices, images d'origine, aperçu fidèle.

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Reflection;
@@ -45,33 +45,13 @@ public static class UpdateService
 
     // ---------------------------------------------------------------- reglages (version ignoree, verification automatique)
 
-    sealed class Settings
-    {
-        public bool AutoCheck { get; set; } = true;
-        public string? SkippedVersion { get; set; }
-    }
-
-    static string SettingsPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OpenPub", "settings.json");
-
-    static Settings LoadSettings()
-    {
-        try { return JsonSerializer.Deserialize<Settings>(File.ReadAllText(SettingsPath)) ?? new Settings(); }
-        catch { return new Settings(); }
-    }
-
-    static void SaveSettings(Settings s)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath)!);
-        File.WriteAllText(SettingsPath, JsonSerializer.Serialize(s));
-    }
-
     public static bool AutoCheck
     {
-        get => LoadSettings().AutoCheck;
-        set { var s = LoadSettings(); s.AutoCheck = value; SaveSettings(s); }
+        get => AppSettings.Load().AutoCheck;
+        set => AppSettings.Update(s => s.AutoCheck = value);
     }
 
-    public static void SkipVersion(string version) { var s = LoadSettings(); s.SkippedVersion = version; SaveSettings(s); }
+    public static void SkipVersion(string version) => AppSettings.Update(s => s.SkippedVersion = version);
 
     // ---------------------------------------------------------------- verification
 
@@ -95,7 +75,7 @@ public static class UpdateService
         if (!UpdateSigner.Verify(m, key))
             return new CheckResult(null, false, "Mise à jour refusée : signature invalide.");
         bool newer = m.ParsedVersion > CurrentVersion;
-        if (newer && honorSkip && LoadSettings().SkippedVersion == m.Version) newer = false;
+        if (newer && honorSkip && AppSettings.Load().SkippedVersion == m.Version) newer = false;
         return new CheckResult(m, newer, newer ? $"OpenPub {m.Version} est disponible." : $"OpenPub est à jour (version {CurrentVersion}).");
     }
 
