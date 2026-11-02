@@ -88,7 +88,7 @@
         },
         {
           "titre": "Sélection multiple",
-          "texte": "Ctrl ou Maj + clic, rectangle de sélection, Ctrl+A : déplacer, tourner ou supprimer plusieurs objets d'un coup.",
+          "texte": "Ctrl ou Maj + clic, rectangle de sélection, Ctrl+A : déplacer, redimensionner, mettre en forme ou supprimer plusieurs objets d'un coup.",
           "depuis": "2.0.0"
         },
         {
@@ -97,8 +97,8 @@
           "depuis": "2.0.0"
         },
         {
-          "titre": "Grouper et dissocier",
-          "texte": "Un groupe se déplace et pivote comme un seul objet (Ctrl+Maj+G).",
+          "titre": "Grouper, verrouiller, ordonner",
+          "texte": "Un groupe se sélectionne, se déplace et se redimensionne comme un seul objet (Ctrl+G, Ctrl+Maj+G) ; position verrouillable, avancer ou reculer d'un plan.",
           "depuis": "2.0.0"
         },
         {
@@ -182,6 +182,16 @@
           "titre": "Rechercher et remplacer",
           "texte": "Ctrl+F et Ctrl+H dans tous les articles du document, casse et mot entier, remplacement annulable en une étape.",
           "depuis": "2.0.0"
+        },
+        {
+          "titre": "Typographie française automatique",
+          "texte": "Pendant la frappe : guillemets « », apostrophe typographique, espace insécable avant les deux-points, points-virgules, points d'exclamation et d'interrogation.",
+          "depuis": "2.0.0"
+        },
+        {
+          "titre": "Symboles, date et statistiques",
+          "texte": "Insertion de caractères spéciaux et de la date du jour, nombre de mots et de caractères du document ou de la zone.",
+          "depuis": "2.0.0"
         }
       ]
     },
@@ -209,7 +219,7 @@
         },
         {
           "titre": "Enregistrement automatique et récupération",
-          "texte": "Copie de secours régulière, jamais à la place de votre fichier, proposée au redémarrage après un incident.",
+          "texte": "Copie de secours régulière, jamais à la place de votre fichier, proposée au redémarrage après un incident ; version précédente gardée en .bak et alerte si le fichier a changé ailleurs.",
           "depuis": "2.0.0"
         }
       ],

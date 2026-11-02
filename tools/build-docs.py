@@ -65,10 +65,11 @@ son bouton <strong>?</strong>, et le panneau de droite propose un lien « En sav
         ("sommaire", "Sommaire", """
 <div class="cards">
 <a class="card" href="interface.html"><b>Interface et ruban</b><span>Fichier, onglets, panneaux, barre d'état</span></a>
-<a class="card" href="texte.html"><b>Texte</b><span>Écrire sur la page, mise en forme, zones liées</span></a>
+<a class="card" href="texte.html"><b>Texte</b><span>Écrire, paragraphes, listes, zones liées, colonnes</span></a>
 <a class="card" href="images.html"><b>Images</b><span>Insérer, recadrer, couleurs, ombre, reflet</span></a>
 <a class="card" href="formes.html"><b>Formes et dessin</b><span>Formes, crayon, forme libre, flèches</span></a>
-<a class="card" href="disposition.html"><b>Disposition</b><span>Déplacer, rotation, magnétisme, plans</span></a>
+<a class="card" href="disposition.html"><b>Disposition</b><span>Plusieurs objets, grouper, aligner, magnétisme</span></a>
+<a class="card" href="revision.html"><b>Révision</b><span>Orthographe, rechercher et remplacer, typographie</span></a>
 <a class="card" href="pages.html"><b>Pages</b><span>Ajouter, dupliquer, réordonner</span></a>
 <a class="card" href="impression.html"><b>Impression et PDF</b><span>Imprimer, créer un PDF, exporter en images</span></a>
 <a class="card" href="mises-a-jour.html"><b>Mises à jour</b><span>Automatiques et sécurisées</span></a>
@@ -89,24 +90,44 @@ Enregistrer sous ({k('Ctrl', 'Maj', 'S')}), Imprimer / créer un PDF ({k('Ctrl',
 Rechercher des mises à jour, l'aide en ligne et À propos (version, type d'installation, état des mises à jour).</p>
 <p>Sous « Ouvrir… », la section <strong>Documents récents</strong> liste les derniers documents ouverts ou
 enregistrés (nom et dossier) : un clic les rouvre, {k('Ctrl', 'Maj', '1')} à {k('Ctrl', 'Maj', '9')} aussi.
-Un document déplacé ou supprimé disparaît de la liste ; « Effacer la liste » la vide.</p>"""),
+Un document déplacé ou supprimé disparaît de la liste ; « Effacer la liste » la vide.</p>
+<p>Deux options du menu protègent votre travail : la <strong>copie de secours automatique</strong> (voir
+<a href="#recuperation">Récupérer un document</a>) et <strong>Garder la version précédente (.bak)</strong>, qui conserve
+à côté du fichier la version d'avant chaque enregistrement (« numero.opub.bak », à renommer en .opub pour l'ouvrir).</p>"""),
         ("accueil", "Onglet Accueil", """
 <ul><li><strong>Historique</strong> : Annuler et Rétablir.</li>
 <li><strong>Police</strong> : police, taille, gras, italique, souligné, couleur du texte.</li>
-<li><strong>Paragraphe</strong> : aligner à gauche, centrer, aligner à droite, justifier.</li>
-<li><strong>Objets</strong> : dupliquer, premier plan, arrière-plan, supprimer.</li></ul>
+<li><strong>Police</strong> (suite) : barré, exposant, indice, majuscules, espacement des caractères, surlignage,
+reproduire la mise en forme (pinceau).</li>
+<li><strong>Paragraphe</strong> : puces, numérotation, retraits, interligne, alignements, lettrine et boîte
+<strong>¶…</strong> (voir <a href="texte.html#paragraphe">Paragraphes</a>).</li>
+<li><strong>Objets</strong> : dupliquer, premier plan, arrière-plan, supprimer, grouper, dissocier, aligner, avancer,
+reculer, verrouiller (voir <a href="disposition.html#plusieurs">Plusieurs objets</a>).</li></ul>
 <p>Quand une zone de texte est simplement sélectionnée, la police et le paragraphe s'appliquent à tout son texte ;
 pendant l'écriture sur la page, ils s'appliquent à la sélection (voir <a href="texte.html#mise-en-forme">Mise en forme</a>).</p>"""),
         ("insertion", "Onglet Insertion", f"""
 <p>Pages (ajouter, dupliquer), zone de texte à tracer, image depuis un fichier, galerie de formes, ligne.</p>
 {shot("onglet-insertion", "Onglet Insertion du ruban")}"""),
+        ("revision", "Onglet Révision", """
+<p>Orthographe de tout le document, soulignement des fautes, typographie française automatique, rechercher et
+remplacer, statistiques. Voir <a href="revision.html">Révision et orthographe</a>.</p>"""),
         ("affichage", "Onglet Affichage", """
 <p>Zoom (−, +, 100 %, ajuster à la largeur), affichage des <strong>repères</strong> et <strong>magnétisme</strong>
 (voir <a href="disposition.html#magnetisme">Magnétisme et repères</a>).</p>"""),
         ("panneaux", "Panneaux et barre d'état", f"""
 <ul><li><strong>Pages</strong> (à gauche) : miniatures, la page active est encadrée en violet. Voir <a href="pages.html">Pages</a>.</li>
 <li><strong>Propriétés</strong> (à droite) : position et taille en centimètres, informations sur le texte ou l'image, lien d'aide.</li>
-<li><strong>Barre d'état</strong> : page active (« Page 1 sur 4 ») et curseur de zoom. {k('Ctrl')} + molette zoome aussi.</li></ul>"""),
+<li><strong>Barre d'état</strong> : page active (« Page 1 sur 4 ») et curseur de zoom. {k('Ctrl')} + molette zoome aussi.</li></ul>
+<p>Un <strong>clic droit</strong> sur la page ouvre un menu adapté : couper, copier, coller, grouper, verrouiller…
+sur un objet ; suggestions d'orthographe pendant l'écriture.</p>"""),
+        ("recuperation", "Récupérer un document après un incident", """
+<p>Toutes les 5 minutes, si le document a des modifications non enregistrées, OpenPub en range une
+<strong>copie de secours</strong> à part (jamais à la place de votre fichier). Si OpenPub ou l'ordinateur s'arrête
+brutalement, le démarrage suivant propose de <strong>récupérer</strong> cette copie : le document retrouve ses
+dernières modifications, il ne reste qu'à l'enregistrer. La copie disparaît dès que le document est enregistré ou
+fermé normalement.</p>
+<p>Si le fichier a été modifié par un autre programme pendant que vous travailliez (synchronisation OneDrive, autre
+PC), OpenPub le signale et demande confirmation avant de le remplacer.</p>"""),
     ]),
 
     ("texte.html", "Texte", "Créer des zones de texte, écrire et mettre en forme.", "✍️", [
@@ -125,16 +146,52 @@ automatiquement dans les zones liées et contourne les images. Appuyez sur {k('�
         ("mise-en-forme", "Mise en forme", f"""
 <p>Pendant l'écriture, l'onglet <strong>Accueil</strong> applique police, taille, couleur et alignement au texte
 sélectionné (ou au mot sous le curseur). {k('Ctrl', 'B')} gras, {k('Ctrl', 'I')} italique, {k('Ctrl', 'U')} souligné.</p>
-{tip("Sélectionnez simplement la zone (un clic, sans écrire) pour changer la police ou l'alignement de <em>tout</em> son texte en une fois.")}"""),
+<p>Le groupe <strong>Police</strong> propose aussi le barré, l'exposant (x²), l'indice (x₂), <strong>Aa ▾</strong>
+(tout en majuscules, petites majuscules), l'<strong>espacement des caractères</strong> (très serré à très large) et le
+<strong>surlignage</strong>. Le <strong>pinceau</strong> reproduit la mise en forme : placez le curseur dans le texte
+modèle, cliquez le pinceau, puis sélectionnez le texte à mettre en forme ({k('Échap')} pour annuler).</p>
+{tip("Sélectionnez simplement la zone (un clic, sans écrire) pour changer la police ou l'alignement de <em>tout</em> son texte en une fois. Avec plusieurs zones sélectionnées, la mise en forme s'applique à toutes.")}"""),
+        ("paragraphe", "Paragraphes : interligne, espacements, retraits", f"""
+<p>Le bouton <strong>↕≡ ▾</strong> règle l'interligne (1 à 3) et ajoute un espace avant ou après le paragraphe ;
+<strong>⇤</strong> et <strong>⇥</strong> diminuent ou augmentent le retrait gauche. La boîte <strong>¶…</strong>
+regroupe tous les réglages : alignement, retraits gauche, droit et de première ligne (ou retrait suspendu),
+espacement avant et après en points, interligne multiple, lettrine et tabulations.</p>
+<p>La <strong>lettrine</strong> (bouton <strong>A≡ ▾</strong>) agrandit la première lettre du paragraphe sur 2 à
+5 lignes.</p>"""),
+        ("listes", "Puces et numérotation", f"""
+<p><strong>•≡ ▾</strong> choisit une puce (•, ◦, ▪, –, ✓, ➢, ★), <strong>1≡ ▾</strong> une numérotation (1. 2. 3.,
+a), A., i., I.…). La puce se place dans la marge, le texte reste aligné. En début d'élément, {k('Tab')} passe au
+niveau inférieur et {k('Maj', 'Tab')} remonte d'un niveau ; {k('Entrée')} sur un élément vide termine la liste.
+« Recommencer la numérotation à 1 » repart de 1 à partir du paragraphe choisi.</p>"""),
+        ("tabulations", "Tabulations", """
+<p>La touche Tab avance jusqu'au taquet suivant, tous les 1,27 cm par défaut. Dans la boîte <strong>¶…</strong>,
+ajoutez des taquets à une position précise : <strong>gauche</strong>, <strong>centré</strong>,
+<strong>droite</strong> (pour aligner des prix ou des heures) ou <strong>décimal</strong> (les virgules
+s'alignent), avec des <strong>points de suite</strong> si besoin (« Menu ........ 12,50 »).</p>"""),
         ("zones-liees", "Zones liées (colonnes)", """
 <p>Un article peut s'étaler sur plusieurs zones reliées (par exemple trois colonnes). Le texte passe d'une zone à la
 suivante quand la précédente est pleine. Quand une zone liée est sélectionnée, les autres zones de la chaîne sont
-entourées de pointillés, et le panneau de droite indique « zone 1 sur 3 (texte lié) ».</p>"""),
+entourées de pointillés, et le panneau de droite indique « zone 1 sur 3 (texte lié) ».</p>
+<p>Pour lier deux zones : sélectionnez la zone où le texte commence, <strong>Format de la forme ▸ Créer un lien</strong>,
+puis cliquez sur une <strong>zone vide</strong> de la même page (ou cliquez directement sur l'indicateur
+<strong>A…</strong> d'une zone qui déborde). <strong>Rompre le lien</strong> arrête le texte à la zone sélectionnée ;
+<strong>Zone précédente</strong> et <strong>Zone suivante</strong> parcourent la chaîne.</p>"""),
         ("habillage", "Habillage et réduction automatique", """
 <p>Le texte contourne les images, les légendes et les encadrés posés dessus. Si le texte ne tient pas dans ses zones,
 OpenPub le <strong>réduit automatiquement</strong> pour qu'il tienne (comme l'option « Réduire le texte en cas de
 débordement » de Publisher) ; le panneau de droite affiche alors « texte réduit à 92 % pour tenir ». Si le texte
-déborde malgré tout, un petit indicateur rouge <strong>A…</strong> apparaît en bas de la zone.</p>"""),
+déborde malgré tout, un petit indicateur rouge <strong>A…</strong> apparaît en bas de la zone.</p>
+<p>Pour chaque objet, <strong>Format ▸ Habillage ▾</strong> choisit comment le texte le contourne :
+<strong>automatique</strong> (comportement de Publisher), <strong>aucun</strong> (le texte passe dessous),
+<strong>carré</strong>, <strong>serré</strong> (le texte suit le contour d'un disque ou d'une forme libre) ou
+<strong>haut et bas</strong> (jamais de texte à côté), ainsi que la <strong>distance</strong> entre l'objet et le
+texte.</p>"""),
+        ("zone-options", "Colonnes, marges et ajustement d'une zone", """
+<p>Le groupe <strong>Format de la forme ▸ Zone de texte</strong> règle la zone sélectionnée :
+<strong>Colonnes ▾</strong> (1 à 4 colonnes dans la même zone, espacement réglable), <strong>Marges ▾</strong>
+(marges intérieures), position du texte <strong>en haut</strong>, <strong>au milieu</strong> ou
+<strong>en bas</strong>, et <strong>Ajustement ▾</strong> : réduire le texte en cas de débordement (par défaut),
+<strong>agrandir la zone</strong> pour contenir tout le texte, ou ne rien faire.</p>"""),
         ("cadre", "Cadre arrondi ou en forme", """
 <p>Sélectionnez la zone, puis onglet <strong>Format de la forme</strong> ▸ <strong>Forme</strong> ▸ par exemple
 <em>Rectangle à coins arrondis</em>. Le curseur <strong>Arrondi</strong> règle le rayon ; <strong>Remplissage</strong>,
@@ -223,9 +280,48 @@ degrés). Le texte d'une zone tournée reste modifiable.</p>"""),
 (pointillés bleus) et les bords des autres objets ; des lignes magenta montrent l'alignement. Maintenez {k('Alt')}
 pour placer librement. Onglet <strong>Affichage</strong> : activer ou masquer <strong>Repères</strong> et
 <strong>Magnétisme</strong>.</p>"""),
+        ("plusieurs", "Plusieurs objets à la fois", f"""
+<ul><li>{k('Ctrl')} ou {k('Maj')} + clic ajoute ou retire un objet de la sélection ; glisser dans un espace vide
+trace un <strong>rectangle de sélection</strong> (les objets entièrement dedans sont choisis) ; {k('Ctrl', 'A')}
+sélectionne tous les objets de la page.</li>
+<li>Les objets sélectionnés se déplacent, se redimensionnent (poignées de la sélection), se suppriment et se mettent
+en forme ensemble.</li>
+<li>{k('Ctrl', 'C')}, {k('Ctrl', 'X')}, {k('Ctrl', 'V')} copient, coupent et collent les objets, y compris vers une
+autre page ou un autre document OpenPub ; une image ou un texte copiés dans une autre application se collent aussi.</li>
+<li><strong>Aligner ▾</strong> aligne les objets à gauche, au centre, à droite, en haut, au milieu ou en bas, et les
+<strong>répartit</strong> régulièrement (3 objets au moins). Un seul objet s'aligne sur les marges de la page.</li></ul>"""),
+        ("grouper", "Grouper, ordonner, verrouiller", f"""
+<p><strong>Grouper</strong> ({k('Ctrl', 'G')}) réunit les objets sélectionnés : un clic sélectionne alors tout le
+groupe, un double-clic un de ses objets. <strong>Dissocier</strong> ({k('Ctrl', 'Maj', 'G')}) les sépare.
+<strong>Avancer</strong> et <strong>Reculer</strong> déplacent l'objet d'un plan (au-dessus ou au-dessous de l'objet
+qu'il chevauche) ; <strong>Premier plan</strong> et <strong>Arrière-plan</strong> le mettent tout devant ou tout
+derrière. <strong>Verrouiller</strong> empêche de déplacer ou redimensionner un bandeau par erreur (cadenas gris).</p>"""),
         ("plans", "Premier plan, dupliquer, supprimer", f"""
 <p>Onglet <strong>Accueil</strong> ▸ <strong>Objets</strong> : premier plan, arrière-plan, dupliquer, supprimer
 ({k('Suppr')}). Tout s'annule avec {k('Ctrl', 'Z')}.</p>"""),
+    ]),
+
+    ("revision.html", "Révision et orthographe", "Orthographe, rechercher et remplacer, typographie.", "🔎", [
+        ("orthographe", "Orthographe", f"""
+<p>Les mots inconnus du dictionnaire sont <strong>soulignés en rouge</strong> pendant l'écriture (à l'écran seulement,
+jamais à l'impression). Un <strong>clic droit</strong> sur le mot propose des corrections, <strong>Ignorer tout</strong>
+ou <strong>Ajouter au dictionnaire</strong>. <strong>Révision ▸ Orthographe</strong> ({k('F7')}) parcourt tout le
+document, faute par faute.</p>
+{shot("onglet-revision", "Onglet Révision du ruban")}
+<p>OpenPub utilise le dictionnaire français de <strong>Windows</strong> (rien à installer) ; les mots ajoutés le sont
+dans votre dictionnaire personnel Windows. La case <strong>Souligner les fautes</strong> désactive le soulignement.</p>"""),
+        ("rechercher", "Rechercher et remplacer", f"""
+<p>{k('Ctrl', 'F')} recherche dans tous les textes du document, {k('Ctrl', 'H')} remplace. Sans « Respecter la casse
+et les accents », « ete » trouve aussi « Été ». « Mot entier » ignore les mots qui contiennent le texte cherché.
+<strong>Remplacer tout</strong> s'annule en une seule fois avec {k('Ctrl', 'Z')}.</p>"""),
+        ("typographie", "Typographie française automatique", """
+<p>Pendant la frappe, OpenPub transforme les guillemets droits en « guillemets français », l'apostrophe droite en
+apostrophe typographique (’) et met une espace insécable avant : ; ! ? (le signe ne se retrouve jamais seul en début
+de ligne). La case <strong>Typographie française</strong> de l'onglet Révision désactive ces corrections.</p>"""),
+        ("symboles", "Symboles, date et statistiques", """
+<p><strong>Insertion ▸ Symbole ▾</strong> insère un caractère spécial (espace insécable, tirets, €, °, œ, É, ✓…) et
+<strong>Date ▾</strong> la date du jour, à la position du curseur. <strong>Révision ▸ Statistiques</strong> compte
+pages, zones, mots et caractères du document et de la zone sélectionnée.</p>"""),
     ]),
 
     ("pages.html", "Pages", "Ajouter, dupliquer, réordonner et supprimer des pages.", "📄", [
@@ -284,6 +380,14 @@ fichier avant de l'installer, et refuse toute version modifiée.</p>"""),
             ("Redimensionner en gardant les proportions", f"{k('Maj')} + coin"),
             ("Tourner par pas de 15°", f"{k('Maj')} + poignée verte"),
             ("Placer sans magnétisme", f"{k('Alt')} + glisser"),
+            ("Ajouter à la sélection", f"{k('Ctrl')} ou {k('Maj')} + clic"),
+            ("Tous les objets de la page", k('Ctrl', 'A')),
+            ("Copier / couper / coller des objets", f"{k('Ctrl', 'C')} · {k('Ctrl', 'X')} · {k('Ctrl', 'V')}"),
+            ("Grouper / dissocier", f"{k('Ctrl', 'G')} · {k('Ctrl', 'Maj', 'G')}"),
+        ])),
+        ("revision", "Révision", table([
+            ("Vérifier l'orthographe", k('F7')),
+            ("Rechercher / remplacer", f"{k('Ctrl', 'F')} · {k('Ctrl', 'H')}"),
         ])),
         ("ecriture", "Écriture sur la page", table([
             ("Écrire dans un texte / terminer", f"Double-clic · {k('Échap')}"),
@@ -296,6 +400,8 @@ fichier avant de l'installer, et refuse toute version modifiée.</p>"""),
             ("Début / fin du texte", f"{k('Ctrl', 'Origine')} · {k('Ctrl', 'Fin')}"),
             ("Effacer le mot précédent", k('Ctrl', 'Retour arrière')),
             ("Sélectionner un mot / un paragraphe", "Double-clic · triple-clic"),
+            ("Liste : niveau inférieur / supérieur (en début d'élément)", f"{k('Tab')} · {k('Maj', 'Tab')}"),
+            ("Barré, exposant, majuscules…", "Onglet Accueil ▸ Police"),
         ])),
         ("dessin", "Dessin", table([
             ("Carré, cercle, ligne à 45°", f"{k('Maj')} pendant le tracé"),
@@ -319,7 +425,8 @@ OpenPub enregistre ensuite dans son propre format, ouvert et documenté.</p>""")
 ou retirez des lignes vides pour retrouver la taille d'origine.</p>"""),
         ("sauvegarde", "Comment sauvegarder mes documents ?", """
 <p>Un fichier .opub contient tout (textes, images, polices) : copiez-le simplement sur une clé USB ou un espace en
-ligne. Gardez une copie de chaque numéro publié.</p>"""),
+ligne. Gardez une copie de chaque numéro publié. OpenPub garde aussi la version précédente (« .bak ») et une copie de
+secours pendant le travail (voir <a href="interface.html#recuperation">Récupérer un document</a>).</p>"""),
         ("annuler", "J'ai fait une erreur", f"""<p>{k('Ctrl', 'Z')} annule (plusieurs fois si besoin), {k('Ctrl', 'Y')} rétablit.</p>"""),
     ]),
 ]

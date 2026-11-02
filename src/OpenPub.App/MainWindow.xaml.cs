@@ -36,6 +36,7 @@ public partial class MainWindow : Window
         AddHelpGroup(PanelHome, Help.HelpService.HomeTab, "Aide sur l'onglet Accueil");
         AddHelpGroup(PanelInsert, Help.HelpService.InsertTab, "Aide sur l'onglet Insertion");
         AddHelpGroup(PanelDraw, Help.HelpService.FreeDrawing, "Aide sur le dessin");
+        AddHelpGroup(PanelReview, Help.HelpService.Review, "Aide sur la révision : orthographe, rechercher, typographie");
         AddHelpGroup(PanelView, Help.HelpService.Snapping, "Aide sur l'affichage, les repères et le magnétisme");
         AddHelpGroup(PanelShape, Help.HelpService.ShapeFormat, "Aide sur le format des formes");
         AddHelpGroup(PanelPicture, Help.HelpService.PictureTools, "Aide sur les outils image");
@@ -315,6 +316,7 @@ public partial class MainWindow : Window
         if (TabInsert.IsChecked == true) return Help.HelpService.InsertTab;
         if (TabDraw.IsChecked == true) return Help.HelpService.FreeDrawing;
         if (TabView.IsChecked == true) return Help.HelpService.ViewTab;
+        if (TabReview.IsChecked == true) return Help.HelpService.Review;
         return Help.HelpService.Home;
     }
 
@@ -1100,7 +1102,7 @@ public partial class MainWindow : Window
         }
         if (_session is null || Keyboard.FocusedElement is TextBox || Keyboard.FocusedElement is ComboBox) return;
         if (_session.TextEdit is not null) return;          // la page gere le clavier pendant l'edition du texte
-        if (e.Key == Key.Escape && _session?.LinkSource is not null) { CancelLink(); e.Handled = true; return; }
+        if (e.Key == Key.Escape && _session.LinkSource is not null) { CancelLink(); e.Handled = true; return; }
         if (e.Key == Key.Escape && _painterFont is not null) { EndPainter(); StatusText.Text = ""; e.Handled = true; return; }
         if (e.Key == Key.Escape) { SetDrawTool(null); _session.Select(null); e.Handled = true; return; }
         if (Sel is null || SelPage is not { } page) return;

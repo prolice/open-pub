@@ -41,7 +41,7 @@ MB = 1048576
 DOC_SCENES = {
     "accueil": "TabHome", "onglet-accueil": "TabHome", "onglet-insertion": "TabInsert", "onglet-dessin": "TabDraw",
     "dessin-crayon": "draw-tool", "onglet-forme": "shape", "onglet-image": "picture",
-    "texte-edition": "text-edit", "editeur-image": "image-editor",
+    "texte-edition": "text-edit", "editeur-image": "image-editor", "onglet-revision": "TabReview",
 }
 
 SWA_CONFIG = {

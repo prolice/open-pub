@@ -312,6 +312,48 @@ Vérifications : 29 tests unitaires et un test de bout en bout de l'interface (`
 - **Contenu** : `tools/site-template/fonctionnalites.json`. Un élément porte `depuis` (première version qui le livre) : il n'est affiché que si la version publiée est au moins celle-là (badge « Nouveau » pour la version courante). Les lots 1 à 5 de la section 8 y sont décrits avec `"depuis": "2.0.0"` : ils apparaîtront seuls avec la 2.0.0 ; retirer ou repousser un élément non livré. `--apercu-a-venir` les montre pour relecture (jamais pour publier).
 - Cache (`staticwebapp.config.json`) : `latest.json` jamais en cache, MSI et polices immuables, `/`, `index.html` et `fonctionnalites.html` revalidés (ils citent le MSI courant).
 
+## 6 terdecies. Version 2.0.0 : lots 1 à 5 du plan d'alignement (2026-11-02)
+
+La 2.0.0 livre d'un coup les lots 0 à 5 de la section 8 (tout l'usage mensuel de la newsletter). Les lots 6 à 12
+deviennent les versions 2.1 et suivantes.
+
+- **Lot 0** : `MainWindow` découpé en classes partielles par domaine (`MainWindow.Objects.cs`, `.Paragraph.cs`,
+  `.TextFrame.cs`, `.Review.cs`, `.Recovery.cs`) ; sélection multiple dans `EditorSession` (`Selection`, `SelectMany`,
+  `ToggleSelect` ; `Selected` reste l'objet principal) ; commandes `GroupCommand` / `UngroupCommand` avec `CanExecute`.
+  Coût de l'annulation mesuré sur la newsletter : **2,9 ms par action** (instantané de 91 Ko), rien à optimiser.
+- **Lot 1, objets** (`Core/Editing/ShapeOps.cs`, `PageView`) : Ctrl/Maj + clic, rectangle de sélection, Ctrl+A ;
+  déplacement et mise à l'échelle de l'ensemble (magnétisme sur la boîte commune) ; grouper (Ctrl+G) / dissocier
+  (Ctrl+Maj+G), un clic sélectionne le groupe, un double-clic un membre ; aligner et répartir (sur la sélection ou les
+  marges) ; avancer / reculer d'un plan ; verrouiller la position (`Shape.Locked`) ; presse-papiers `OpenPub.Shapes.v1`
+  (objets, histoires des chaînes incomplètes, images en base64) entre pages et documents, collage d'images et de texte
+  externes ; menu contextuel de la page.
+  - Non fait : rotation d'une sélection multiple d'un bloc (chaque objet tourne sur lui-même).
+- **Lot 2, paragraphes et caractères** (`TextLayoutEngine`) : `Paragraph.List` (puces, numérotation 1/a/A/i/I,
+  niveaux, Tab / Maj+Tab, Entrée sur un élément vide), `Paragraph.Tabs` (gauche, centre, droite, décimal, points de
+  suite), `Paragraph.DropCap` ; `FontSpec.Strike/Script/Caps/Highlight/Tracking`. Les morceaux posés sont découpés
+  par apparence (casse, exposant) sans changer les positions source ; `LaidLine.Marks` porte ce qui est dessiné hors du
+  texte éditable (puce, points de suite, lettrine) ; `LaidPiece.Dy/Tracking/Advance()` pour le rendu et le curseur.
+  Boîte `ParagraphWindow`, pinceau de reproduction de la mise en forme.
+- **Lot 3, zones de texte** (`PageLayouter`) : créer / rompre un lien (même page), depuis l'indicateur A… aussi ;
+  `Shape.Columns` enfin utilisé (sous-zones enchaînées) ; `Shape.AutoFit` (réduire, agrandir la zone — calculé dans
+  `EditorSession.Layout` —, aucun) ; `Shape.Wrap` (automatique, aucun, carré, serré par bandes de 4 pt sur une ellipse
+  ou un tracé, haut et bas) et `WrapDistance`.
+  - Non fait : liens entre pages (la mise en page reste page par page).
+- **Lot 4, révision** : correcteur de Windows par COM (`Editing/SpellService.cs`, spellcheck.h ; aucun dictionnaire
+  embarqué), soulignement à l'écran seulement, suggestions au clic droit, F7 (`SpellingWindow`) ; rechercher /
+  remplacer (`Core/Editing/TextSearch.cs`, `FindReplaceWindow`) ; typographie française à la frappe
+  (`FrenchTypography`) ; symboles, date, statistiques ; onglet Révision ; diagnostic `OpenPub.exe --spell "texte"`.
+- **Lot 5, sûreté** : `Core/Io/RecoveryStore.cs` (copies dans `%LOCALAPPDATA%\OpenPub\Recovery`, toutes les
+  5 minutes, proposées au démarrage, supprimées à l'enregistrement ou à la fermeture normale) ; `OpubPackage.SaveCopy`,
+  `Retarget`, `Save(keepBackup)` (« .bak ») ; alerte si le fichier a changé sur le disque depuis l'ouverture.
+- **Vérifications** : 68 tests unitaires (dont 31 nouveaux : objets, listes, tabulations, lettrine, styles,
+  colonnes, habillage, recherche, typographie, récupération) et **115 vérifications** de bout en bout. L'auto-test se
+  termine désormais franchement en cas d'exception (une fenêtre restée ouverte bloquait le processus).
+- **Aide en ligne** : nouvelle page `revision.html` et sections `texte.html#paragraphe|listes|tabulations|zone-options`,
+  `disposition.html#plusieurs|grouper`, `interface.html#recuperation` ; raccourcis mis à jour ; capture de l'onglet
+  Révision (`onglet-revision`).
+- **Portail** : la page Fonctionnalités affiche les éléments `"depuis": "2.0.0"` dès la publication (section 6 duodecies).
+
 ## 7. Prochaines étapes proposées
 1. ✅ ~~Extraction via Publisher~~ : impossible depuis la perte de licence ; acquis partiels conservés.
 2. ✅ Lecteur natif prototype sur la newsletter : texte → zones, polices, images d'origine, aperçu fidèle.
