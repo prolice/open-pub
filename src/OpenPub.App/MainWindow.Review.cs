@@ -342,6 +342,17 @@ public partial class MainWindow
                     Item(menu, "Modifier le texte", () => { _session.BeginTextEdit(view.Page, t); view.Focus(); });
                     Item(menu, "Créer un lien vers une autre zone…", () => StartLink(view.Page, t));
                 }
+                // reduction automatique du texte (optionnelle, inactive par defaut sur les nouvelles zones)
+                var heads = _session.Selection.Where(x => x.IsText || x.Paragraphs is { Count: > 0 })
+                    .Select(x => x.IsText ? StoryHead(x) : x).OfType<Shape>().Distinct().ToList();
+                if (heads.Count > 0)
+                {
+                    bool on = heads.All(h => h.ShrinksText);
+                    var page = view.Page;
+                    var it = Item(menu, "Réduire le texte pour qu'il tienne dans la zone",
+                        () => { _session.Change(page, () => { foreach (var h in heads) h.AutoFit = on ? "none" : "shrink"; }); RefreshProperties(); }, on);
+                    it.ToolTip = "Diminue automatiquement la taille du texte quand il déborde de la zone.";
+                }
                 if (_session.Selected is { IsImage: true }) { menu.Items.Add(new Separator()); Item(menu, "Modifier l'image…", () => EditImage(false)); }
             }
             menu.Items.Add(new Separator());

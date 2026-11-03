@@ -152,7 +152,7 @@ public partial class MainWindow
         if (Sel is not { IsText: true } s || SelPage is not { } page || StoryHead(s) is not { } head) return;
         var menu = NewMenu(sender);
         void Set(string? v) => ChangeSel(_ => { head.AutoFit = v; }, x => x == s);
-        Item(menu, "Réduire le texte en cas de débordement", () => Set(null), head.AutoFit is null or "shrink");
+        Item(menu, "Réduire le texte en cas de débordement", () => Set("shrink"), head.ShrinksText);
         var grow = Item(menu, "Agrandir la zone pour contenir le texte", () => Set("grow"), head.AutoFit == "grow");
         grow.IsEnabled = head.Chain is null;
         Item(menu, "Ne pas ajuster (indicateur de débordement)", () => Set("none"), head.AutoFit == "none");

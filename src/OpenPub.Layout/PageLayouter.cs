@@ -28,7 +28,7 @@ public sealed class PageLayouter
             var frames = head.Chain is null ? new List<Shape> { head } : page.ChainFrames(head.Chain);
             // une zone a plusieurs colonnes devient autant de sous-zones enchainees
             var geoms = frames.SelectMany(f => Columns(f, obstacles)).ToList();
-            bool shrink = head.AutoFit is null or "shrink";
+            bool shrink = head.ShrinksText;
             var layout = _engine.Layout(geoms, head.Paragraphs ?? new List<Paragraph>(), shrink, fields);
             chains.Add(layout);
             foreach (var fl in layout.Frames)

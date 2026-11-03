@@ -187,9 +187,11 @@ puis cliquez sur une <strong>zone vide</strong> de la même page (ou cliquez dir
 <strong>Zone précédente</strong> et <strong>Zone suivante</strong> parcourent la chaîne.</p>"""),
         ("habillage", "Habillage et réduction automatique", """
 <p>Le texte contourne les images, les légendes et les encadrés posés dessus. Si le texte ne tient pas dans ses zones,
-OpenPub le <strong>réduit automatiquement</strong> pour qu'il tienne (comme l'option « Réduire le texte en cas de
-débordement » de Publisher) ; le panneau de droite affiche alors « texte réduit à 92 % pour tenir ». Si le texte
-déborde malgré tout, un petit indicateur rouge <strong>A…</strong> apparaît en bas de la zone.</p>
+un petit indicateur rouge <strong>A…</strong> apparaît en bas de la zone. La <strong>réduction automatique</strong>
+est optionnelle : clic droit sur la zone ▸ <strong>Réduire le texte pour qu'il tienne dans la zone</strong> (ou
+<strong>Ajustement ▾</strong>, voir ci-dessous). OpenPub diminue alors la taille du texte pour qu'il tienne ; le
+panneau de droite affiche « texte réduit à 92 % pour tenir ». Elle est inactive sur les nouvelles zones ; les zones
+des documents existants gardent leur réglage.</p>
 <p>Pour chaque objet, <strong>Format ▸ Habillage ▾</strong> choisit comment le texte le contourne :
 <strong>automatique</strong> (comportement de Publisher), <strong>aucun</strong> (le texte passe dessous),
 <strong>carré</strong>, <strong>serré</strong> (le texte suit le contour d'un disque ou d'une forme libre) ou
@@ -199,8 +201,8 @@ texte.</p>"""),
 <p>Le groupe <strong>Format de la forme ▸ Zone de texte</strong> règle la zone sélectionnée :
 <strong>Colonnes ▾</strong> (1 à 4 colonnes dans la même zone, espacement réglable), <strong>Marges ▾</strong>
 (marges intérieures), position du texte <strong>en haut</strong>, <strong>au milieu</strong> ou
-<strong>en bas</strong>, et <strong>Ajustement ▾</strong> : réduire le texte en cas de débordement (par défaut),
-<strong>agrandir la zone</strong> pour contenir tout le texte, ou ne rien faire.</p>"""),
+<strong>en bas</strong>, et <strong>Ajustement ▾</strong> : ne rien faire (par défaut pour les nouvelles
+zones), réduire le texte en cas de débordement, ou <strong>agrandir la zone</strong> pour contenir tout le texte.</p>"""),
         ("cadre", "Cadre arrondi ou en forme", """
 <p>Sélectionnez la zone, puis onglet <strong>Format de la forme</strong> ▸ <strong>Forme</strong> ▸ par exemple
 <em>Rectangle à coins arrondis</em>. Le curseur <strong>Arrondi</strong> règle le rayon ; <strong>Remplissage</strong>,

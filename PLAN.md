@@ -922,3 +922,14 @@ forme ») étaient coupés et inaccessibles.
   du document est tronqué (`MaxWidth` 220, points de suspension).
 - Pas de réduction automatique des groupes façon Office (trop coûteux pour le gain) ; à reconsidérer si besoin.
 - Vérifié par `--screenshot` à 800×600 et 1000×700.
+
+## 13. Version 2.1.2 (2026-11-03) : réduction automatique du texte optionnelle
+
+- Les nouvelles zones de texte et formes (dessin, insertion, texte collé, colonnes des modèles) reçoivent
+  `AutoFit = Shape.NewAutoFit` (`"none"`) : la réduction en cas de débordement est **inactive par défaut**.
+- `AutoFit = null` reste « réduire » (`Shape.ShrinksText`) pour ne pas changer la mise en page des documents
+  existants (dont la newsletter) ; pas de changement de format, la 2.1 comprend déjà `"none"` et `"shrink"`.
+- Menu contextuel d'une zone (ou d'une forme avec texte, sélection multiple comprise) : case « Réduire le texte pour
+  qu'il tienne dans la zone » (annulable). Le menu **Ajustement ▾** écrit désormais `"shrink"` explicitement.
+- Les grands titres des modèles gardent `"shrink"` (voulu). Aide (`habillage`, `zone-options`) mise à jour.
+- Test unitaire `Reduction_inactive_par_defaut_sur_les_nouvelles_zones` ; `--selftest` 217/217.

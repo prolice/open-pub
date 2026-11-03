@@ -752,6 +752,7 @@ public partial class MainWindow : Window
             s = new Shape
             {
                 Kind = ShapeKind.Text, X = r.X, Y = r.Y, W = r.Width, H = r.Height, Padding = new[] { 2.85, 2.85, 2.85, 2.85 },
+                AutoFit = Shape.NewAutoFit,
                 Paragraphs = new List<Paragraph> { new() { Align = "left", Runs = { new Run { Text = "", Font = new FontSpec { Family = "Cavolini", Size = 12, Color = "#000000", Lang = "fr" } } } } },
             };
         }
@@ -762,6 +763,7 @@ public partial class MainWindow : Window
             {
                 Kind = tool == ShapeGeometry.Ellipse ? ShapeKind.Ellipse : ShapeKind.Rect, Geometry = tool, X = r.X, Y = r.Y, W = r.Width, H = r.Height,
                 Fill = new Fill { Color = "#5b9bd5" }, Line = new LineStyle { Color = "#2e5f8a", Weight = 1 },
+                AutoFit = Shape.NewAutoFit,
             };
         }
         _session.Change(page, () => { page.Shapes.Add(s); Renumber(page); });
@@ -1195,7 +1197,7 @@ public partial class MainWindow : Window
         var s = new Shape
         {
             Kind = ShapeKind.Text, X = page.Width / 2 - 100, Y = page.Height / 2 - 40, W = 200, H = 80,
-            Padding = new[] { 2.85, 2.85, 2.85, 2.85 },
+            Padding = new[] { 2.85, 2.85, 2.85, 2.85 }, AutoFit = Shape.NewAutoFit,
             Paragraphs = new List<Paragraph>
             {
                 new() { Align = "left", Runs = { new Run { Text = "Votre texte ici", Font = new FontSpec { Family = "Cavolini", Size = 12, Color = "#000000", Lang = "fr" } } } },

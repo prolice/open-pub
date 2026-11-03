@@ -269,8 +269,17 @@ public sealed partial class Shape
     public int Columns { get; set; } = 1;
     public double ColumnGap { get; set; }
     public string? VAlign { get; set; }             // top | middle | bottom
-    /// <summary>Ajustement du texte de la zone (tete de chaine) : null ou "shrink" (reduire en cas de debordement), "none", "grow" (agrandir la zone).</summary>
+    /// <summary>Ajustement du texte de la zone (tete de chaine) : null ou "shrink" (reduire en cas de debordement), "none", "grow" (agrandir la zone).
+    /// null reste « reduire » pour ne pas changer la mise en page des documents existants ; les zones creees depuis la 2.1.2
+    /// recoivent <see cref="NewAutoFit"/> (inactif), valeur que la 2.1 comprend deja.</summary>
     public string? AutoFit { get; set; }
+
+    /// <summary>Ajustement donne aux nouvelles zones de texte et formes : aucun (la reduction automatique est optionnelle).</summary>
+    public const string NewAutoFit = "none";
+
+    /// <summary>Le texte est reduit en cas de debordement (tete de chaine).</summary>
+    [JsonIgnore]
+    public bool ShrinksText => AutoFit is null or "shrink";
     /// <summary>Habillage du texte autour de cet objet : null (automatique), "none", "square", "tight", "topbottom".</summary>
     public string? Wrap { get; set; }
     /// <summary>Distance entre l'objet et le texte qui l'habille (points) ; null = 0,1 cm.</summary>

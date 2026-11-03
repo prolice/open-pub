@@ -67,14 +67,14 @@ public static class Templates
         p1.Shapes.Add(Text(36, 86, 523, 26, P(F("Arial", 11, "#dbeaff"), "left", "Numéro 1 · " + DateTime.Today.ToString("MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")))));
         p1.Shapes.Add(Text(36, 140, 523, 36, P(F("Georgia", 20, "#111c43", bold: true), "left", "À la une : le titre de votre article")));
         p1.Shapes.Add(PhotoSlot(36, 184, 523, 200));
-        var left = Text(36, 396, 254, 400, Lorem(F("Arial", 10.5), 26), autofit: null);
-        var right = Text(305, 396, 254, 400, new List<Paragraph>(), autofit: null);
+        var left = Text(36, 396, 254, 400, Lorem(F("Arial", 10.5), 26), autofit: Shape.NewAutoFit);
+        var right = Text(305, 396, 254, 400, new List<Paragraph>(), autofit: Shape.NewAutoFit);
         left.Chain = right.Chain = "c1"; left.ChainIndex = 0; right.ChainIndex = 1;
         p1.Shapes.Add(left); p1.Shapes.Add(right);
         Renumber(p1);
         var p2 = d.Pages[1];
         p2.Shapes.Add(Text(36, 36, 330, 36, P(F("Georgia", 18, "#4e32cf", bold: true), "left", "Deuxième article")));
-        p2.Shapes.Add(Text(36, 78, 330, 330, Lorem(F("Arial", 10.5), 6), autofit: null));
+        p2.Shapes.Add(Text(36, 78, 330, 330, Lorem(F("Arial", 10.5), 6), autofit: Shape.NewAutoFit));
         p2.Shapes.Add(PhotoSlot(36, 420, 330, 220));
         p2.Shapes.Add(Text(386, 36, 173, 600, P(F("Arial", 10.5), "left", "Agenda", "", "Lundi : …", "Mercredi : …", "Samedi : …"), "#f3e8ff"));
         p2.Shapes[^1].Paragraphs![0].Runs[0].Font!.Bold = true;

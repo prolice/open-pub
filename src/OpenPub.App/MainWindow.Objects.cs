@@ -359,7 +359,7 @@ public partial class MainWindow
         var s = new Shape
         {
             Kind = ShapeKind.Text, X = page.Width / 2 - 120, Y = page.Height / 2 - 60, W = 240, H = Math.Min(400, 30 + 16 * lines.Length),
-            Padding = new[] { 2.85, 2.85, 2.85, 2.85 },
+            Padding = new[] { 2.85, 2.85, 2.85, 2.85 }, AutoFit = Shape.NewAutoFit,
             Paragraphs = lines.Select(l => new Paragraph { Align = "left", Runs = { new Run { Text = l, Font = font.Clone() } } }).ToList(),
         };
         _session.Change(page, () => { page.Shapes.Add(s); Renumber(page); });

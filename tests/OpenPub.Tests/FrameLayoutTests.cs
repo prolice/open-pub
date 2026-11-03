@@ -87,4 +87,15 @@ public class FrameLayoutTests
         Assert.Equal(1, chains[0].Scale);
         Assert.True(chains[0].Overflow);
     }
+
+    [Fact]
+    public void Reduction_inactive_par_defaut_sur_les_nouvelles_zones()
+    {
+        // null (documents existants) garde la reduction ; les nouvelles zones recoivent NewAutoFit = inactif
+        Assert.True(new Shape { Kind = ShapeKind.Text }.ShrinksText);
+        Assert.False(new Shape { Kind = ShapeKind.Text, AutoFit = Shape.NewAutoFit }.ShrinksText);
+        var doc = OpenPub.Core.Editing.Templates.BuiltIn.First(t => t.Name.Contains("ettre")).Build();
+        var corps = doc.Pages[0].Shapes.Where(s => s.IsText && s.Paragraphs is { Count: > 20 });
+        Assert.All(corps, s => Assert.False(s.ShrinksText));
+    }
 }
