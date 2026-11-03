@@ -399,6 +399,30 @@
             </Setter>
         </Style>
 
+        <!-- Fleche de defilement du ruban (ecrans etroits) -->
+        <Style x:Key="RibbonArrow" TargetType="RepeatButton">
+            <Setter Property="Width" Value="22"/>
+            <Setter Property="FontFamily" Value="{StaticResource Icons}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#2B3A5C"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Delay" Value="250"/>
+            <Setter Property="Interval" Value="40"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border x:Name="bg" Background="#F2FFFFFF" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bg" Property="Background" Value="{StaticResource Hover}"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Groupe du ruban : contenu, libelle en bas, separateur a droite -->
         <Style x:Key="RGroup" TargetType="HeaderedContentControl">
             <Setter Property="Template">

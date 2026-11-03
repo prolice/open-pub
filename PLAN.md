@@ -406,7 +406,8 @@ Lots 9 (formes, effets, WordArt) et 10 (PDF, impression) : réalisés en parall�
 4. ✅ Solution .NET et éditeur WPF (phases 1–2).
 5. ✅ Pages, édition sur la page, repères et magnétisme, installeur.
 6. ✅ Mises à jour automatiques, texte incliné, aide en ligne, pipelines de publication.
-7. Suite : **plan d'alignement sur Publisher**, section 8.
+7. ✅ Plan d'alignement sur Publisher (section 8) : livré en 2.0.0 et 2.1.0.
+8. Suite : **reste à faire après la 2.1.0**, section 11.
 
 ---
 
@@ -764,3 +765,160 @@ ignore et garde `Fill.Color`, toujours renseignée (première couleur d'un dégr
   - Le site d'aide est régénéré par `publish-portal.yml` à chaque modification de `build-docs.py` : les nouvelles
     sections seront en ligne avant la version qui les apporte (captures de la version publiée) ; à pousser avec la
     version, ou à accepter.
+
+---
+
+## 11. Reste à faire après la 2.1.0 (plan différentiel, établi le 2026-11-02)
+
+Point de reprise : la 2.1.0 est publiée (lots 0 à 12 livrés, voir les sections 6 terdecies, 6 quattuordecies, 9 et 10).
+Cette section ne liste que ce qui **manque** par rapport au plan de la section 8 et à Publisher. Le format `.pub` reste
+exclu. Estimations en jours pour une personne, tests et aide compris, comme en 8.15.
+
+### 11.1 Règles communes à chaque lot (rappel)
+
+- Une version par lot (prochaine : **2.2.0**), publiée par `release-app.yml` (étiquette `vX.Y.Z`, sans `[skip ci]`
+  dans le commit étiqueté).
+- Tests unitaires sur la logique pure (Core/Layout), vérifications ajoutées à `--selftest` (sur une page vierge ou le
+  document de démonstration, jamais de capture de la newsletter), sections d'aide dans `tools/build-docs.py` avec les
+  constantes `HelpService` vérifiées par `--help-topics`, éléments `"depuis": "X.Y.Z"` dans
+  `tools/site-template/fonctionnalites.json`, section de ce journal.
+- Toute donnée nouvelle qu'une 2.1 perdrait ou afficherait mal : étendre `PubFormat.Required` (passer à `openpub/3` si
+  nécessaire ; la 2.1 refusera alors d'enregistrer, ce qui protège le document).
+- Les modifications de `build-docs.py` poussées sans `[skip ci]` publient l'aide tout de suite : les pousser avec la
+  version ou mettre `[skip ci]`.
+
+### 11.2 Lot 13 — Zones de texte liées entre pages (prioritaire pour la newsletter) — ≈ 9 jours
+
+Aujourd'hui une chaîne (`Shape.Chain`) ne vit que sur une page : `PageLayouter.LayoutPage` appelle
+`page.ChainFrames(head.Chain)` et le cache de mise en page est par page (`EditorSession`, `FitGrowingFrames`).
+
+- **Modèle** : chaîne document entier (`PubDocument.ChainFrames(chain)` dans l'ordre page puis `ChainIndex`) ; la tête
+  reste seule propriétaire des `Paragraphs`. Liaison et déliaison vers un cadre d'une autre page (mode lien actuel de
+  `MainWindow.TextFrame.cs` étendu : changer de page pendant le mode lien).
+- **Mise en page** : calculer une chaîne multipage une fois pour tout le document (texte coulé de page en page, chaque
+  cadre avec les exclusions de sa propre page), puis répartir les lignes dans le cache de chaque page. Invalidation :
+  modifier une page invalide aussi les pages suivantes de ses chaînes. Réduction sur débordement (`shrink`) : décider si
+  elle s'applique à toute la chaîne (comme Publisher) ; garder l'ajustement automatique `grow` réservé aux cadres seuls.
+- **Édition** : `InPlaceTextEditor` doit suivre le curseur d'une page à l'autre (faire défiler la vue, changer la page
+  active) ; sélection, Ctrl+A, orthographe, rechercher/remplacer et publipostage sur toute la chaîne.
+- **Mentions** « Suite page N » / « Suite de la page N » : nouveaux champs `Run.Field` (`next-page`, `prev-page`)
+  calculés à la mise en page, insérables depuis le menu de la zone.
+- **Compatibilité** : une 2.1 ouvrirait les cadres suiveurs vides sur les autres pages ; à couvrir par `PubFormat`.
+- **Tests** : coulée sur trois pages, insertion et suppression qui font changer le texte de page, cache invalidé,
+  annulation, export PDF et HTML.
+- **Risque** : performance de la frappe sur une longue chaîne (mettre en page seulement à partir du cadre modifié).
+
+### 11.3 Lot 14 — Objets — ≈ 5 jours
+
+- Rotation d'une sélection multiple et d'un groupe d'un seul bloc (autour du centre commun : nouvelle position du
+  centre de chaque objet + ajout de l'angle ; objets à `Path` absolu transformés point par point ; poignée de rotation
+  sur le cadre de sélection dans `PageView`).
+- Poignées jaunes (`Shape.Adjust`) en sélection multiple (appliquer le même réglage aux formes du même type).
+- Clic sur la pointe d'une légende sortie de son cadre (test de la géométrie réelle, pas seulement du rectangle).
+- Flèches du clavier sur un sommet en mode « Modifier les points » (pas de 1 pt, 10 pt avec Maj).
+
+### 11.4 Lot 15 — Tableaux — ≈ 6 jours (dont 2 après le lot 13)
+
+- Sélection d'une plage de cellules à la souris (glisser, Maj+clic), mise en forme, bordures, fusion et fractionnement
+  de la plage (`TableOps` : fusion rectangulaire quelconque, aujourd'hui droite / dessous / ligne).
+- Soulignement orthographique dans les cellules : les zones fantômes sont dessinées avec `marks = false` ; passer les
+  marques de l'orthographe sans les décorations de paragraphe inutiles.
+- Texte vertical dans une cellule (voir 11.9, même moteur).
+- Tableau qui continue sur la page suivante (ligne d'en-tête répétée) : dépend du lot 13.
+
+### 11.5 Lot 16 — Styles et thèmes — ≈ 5 jours
+
+- **Style suivant** (`TextStyle.Next` : Titre puis Normal après Entrée).
+- **Retouches locales préservées** : en modifiant un style, ne réappliquer une propriété que là où elle valait encore
+  l'ancienne valeur du style (comparaison avant/après dans `StyleOps`), au lieu d'écraser.
+- **Jeux de couleurs symboliques** : couleurs du type `scheme:accent1` résolues au rendu, pour que changer de jeu ne
+  soit plus un remplacement de valeurs ; WordArt et BorderArt recolorés. Nouvelle donnée → `PubFormat`.
+
+### 11.6 Lot 17 — WordArt et remplissages — ≈ 7 jours
+
+- WordArt sur plusieurs lignes et modification du texte directement sur la page (aujourd'hui : une ligne, fenêtre).
+- Déformations « enveloppe » qui étirent les lettres : transformer chaque contour de glyphe point par point dans
+  `Core/Geometry/TextOnPath` (aujourd'hui les glyphes sont seulement placés, tournés et étirés en largeur).
+- Textures fournies : petite bibliothèque libre de droits (générée par programme : papier, toile, bois) au lieu de
+  l'image en mosaïque.
+
+### 11.7 Lot 18 — Sorties — ≈ 11 jours
+
+- **PDF en livret** (imposition) en réutilisant `Core/Output/PrintLayout` : deux pages par feuille, ordre du livret,
+  dans `PdfExporter` (aujourd'hui le livret n'existe qu'à l'impression). 2 j.
+- **Publipostage direct** vers PDF ou imprimante, sans passer par un document fusionné. 1,5 j.
+- **PDF balisé / accessible** : arbre de structure, ordre de lecture, `Shape.AltText` en `/Alt`, langue ; PDFsharp ne
+  le fait pas, à écrire à la main (risque élevé : prototype de 2 jours d'abord). 4 j.
+- **Ligatures** dessinées comme ligatures (identifiants de glyphe) et **opacité de groupe** par groupe de transparence
+  (XObject) dans `Output/DrawingToPdf.cs`. 2 j.
+- **CMJN réel** (moteur de couleurs Windows pour les couleurs, `ColorConvertedBitmap` pour les images, transparence) :
+  seulement si l'imprimeur le demande ; sinon garder la conversion par le profil incorporé. 1,5 j hors CMJN.
+- **Validation PDF/X-4** : faire passer un PDF au contrôle de l'imprimeur (pas d'outil local), corriger selon son
+  rapport.
+
+### 11.8 Lot 19 — Sûreté et numérotation — ≈ 2,5 jours
+
+- Copie de secours même pendant la frappe : instantané du modèle pris sur le fil WPF, écriture en arrière-plan
+  (aujourd'hui elle est reportée de 5 minutes si l'édition est en cours).
+- Sections de numérotation complètes : style et premier numéro par section (aujourd'hui : redémarrage par page).
+
+### 11.9 Lot 20 — Fonctions de Publisher hors plan (à confirmer avant de les engager) — ≈ 20 jours
+
+| Fonction | Jours | Remarque |
+|---|---|---|
+| Texte vertical dans une zone et une cellule | 3 | moteur de lignes tourné de 90°, curseur et sélection |
+| Ancrage d'un objet au texte (suit le paragraphe) | 4 | position relative recalculée à la mise en page |
+| Notes de bas de page | 3 | appel numéroté + zone en bas de cadre |
+| Table des matières | 2 | à partir des styles de titre, avec numéros de page |
+| Index | 3 | marques d'entrée + génération |
+| Publication vers Word (.docx) | 3 | OpenXML, texte et images, mise en page approximative |
+| Envoi par e-mail | 1 | `.eml` avec la page HTML autonome |
+| Correction automatique personnalisable | 1 | liste de remplacements dans `AppSettings` |
+| Dictionnaire des synonymes | — | pas d'API Windows : il faudrait un dictionnaire libre embarqué |
+
+### 11.10 Vérifications manuelles restantes (pas de code)
+
+- Relire les PDF d'exemple (`demo.pdf`, `demo-imprimeur.pdf`, `demo-fond-perdu.pdf`, à régénérer avec
+  `--pdf` sur `tools/site-template/demo/document.json`).
+- Imprimer sur une vraie imprimante : livret recto verso bord court, recto verso manuel, « versos dans l'ordre
+  inverse ».
+- À la souris : poignées jaunes, déplacement des sommets, bordures de tableau, repères tirés depuis la règle.
+- Portail : règle de cache `"route": "/"` sur Azure, estimation « environ 150 Mo d'espace disque », affichage sur
+  téléphone.
+- Ruban « Format de la forme » : tient tout juste en 1402 px ; à revoir si un bouton s'ajoute (groupes repliables).
+- Mettre à jour tous les PC en 2.1 rapidement : une 2.0.0 qui enregistre un document 2.1 en perd les nouveautés.
+
+### 11.11 Dette technique connue
+
+- `--selftest` : échecs intermittents de copier/coller quand un autre processus tient le presse-papiers Windows
+  (réessayer, ou isoler ces vérifications).
+- Le site d'aide est régénéré par `publish-portal.yml` à chaque poussée de `build-docs.py` (voir 11.1).
+
+### 11.12 Ordre proposé
+
+| Ordre | Lot | Version | Jours |
+|---|---|---|---|
+| 1 | 13 — Zones liées entre pages | 2.2 | 9 |
+| 2 | 14 — Objets | 2.2 | 5 |
+| 3 | 15 — Tableaux | 2.3 | 6 |
+| 4 | 19 — Sûreté et numérotation | 2.3 | 2,5 |
+| 5 | 16 — Styles et thèmes | 2.4 | 5 |
+| 6 | 17 — WordArt et remplissages | 2.5 | 7 |
+| 7 | 18 — Sorties | 2.6 | 11 |
+| 8 | 20 — Hors plan (à confirmer) | — | ≈ 20 |
+| | **Total** | | **≈ 45,5 jours** sans le lot 20, ≈ 65 avec |
+
+---
+
+## 12. Version 2.1.1 (2026-11-03) : ruban sur les petits écrans
+
+Sur un écran de faible résolution, les derniers groupes du ruban (ex. « Rotation » et « Organiser » de « Format de la
+forme ») étaient coupés et inaccessibles.
+
+- Le contenu des onglets est dans un `ScrollViewer` horizontal (`RibbonScroller`, barre masquée) : flèches ‹ › aux
+  bords (`RepeatButton`, style `RibbonArrow` dans `App.xaml`) visibles seulement s'il reste du contenu de ce côté,
+  molette = défilement horizontal (sauf liste déroulante ouverte). Retour au début à chaque changement d'onglet.
+- La ligne d'onglets défile aussi (`TabScroller`) ; l'onglet coché est ramené dans la vue (`BringIntoView`), le titre
+  du document est tronqué (`MaxWidth` 220, points de suspension).
+- Pas de réduction automatique des groupes façon Office (trop coûteux pour le gain) ; à reconsidérer si besoin.
+- Vérifié par `--screenshot` à 800×600 et 1000×700.

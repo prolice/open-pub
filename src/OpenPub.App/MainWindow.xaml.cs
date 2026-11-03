@@ -460,6 +460,35 @@ public partial class MainWindow : Window
         PanelDraw.Visibility = TabDraw.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelShape.Visibility = TabShape.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PanelPicture.Visibility = TabPicture.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        RibbonScroller?.ScrollToHorizontalOffset(0);
+        if (sender is FrameworkElement tab) tab.BringIntoView();
+    }
+
+    // Petits ecrans : le ruban et la ligne d'onglets defilent horizontalement.
+    void RibbonScroller_PreviewMouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+    {
+        if (sender is not ScrollViewer sv || sv.ScrollableWidth <= 0) return;
+        // ne pas voler la molette aux listes deroulantes ouvertes ou aux zones de saisie
+        if (e.OriginalSource is DependencyObject d && FindParent<ComboBox>(d) is { IsDropDownOpen: true }) return;
+        sv.ScrollToHorizontalOffset(sv.HorizontalOffset - e.Delta / 2.0);
+        e.Handled = true;
+    }
+
+    void RibbonScroller_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        var sv = RibbonScroller;
+        RibbonLeft.Visibility = sv.HorizontalOffset > 0.5 ? Visibility.Visible : Visibility.Collapsed;
+        RibbonRight.Visibility = sv.HorizontalOffset < sv.ScrollableWidth - 0.5 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    void RibbonLeft_Click(object sender, RoutedEventArgs e) => RibbonScroller.ScrollToHorizontalOffset(RibbonScroller.HorizontalOffset - 60);
+    void RibbonRight_Click(object sender, RoutedEventArgs e) => RibbonScroller.ScrollToHorizontalOffset(RibbonScroller.HorizontalOffset + 60);
+
+    static T? FindParent<T>(DependencyObject? d) where T : DependencyObject
+    {
+        while (d is not null && d is not T)
+            d = d is Visual or System.Windows.Media.Media3D.Visual3D ? System.Windows.Media.VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d);
+        return d as T;
     }
 
     /// <summary>Dernier menu deroulant ouvert (captures de la documentation et tests).</summary>

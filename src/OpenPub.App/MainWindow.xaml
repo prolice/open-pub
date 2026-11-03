@@ -32,34 +32,43 @@
         <Border DockPanel.Dock="Top" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
             <StackPanel>
                 <!-- ligne des onglets -->
-                <DockPanel Margin="6,6,6,0" LastChildFill="False">
+                <DockPanel Margin="6,6,6,0">
                     <!-- marque -->
                     <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="4,0,14,0" VerticalAlignment="Center">
                         <Image Source="Assets/openpub-64.png" Width="30" Height="30" RenderOptions.BitmapScalingMode="HighQuality"/>
                         <TextBlock Text="OpenPub" FontFamily="{StaticResource TitleFont}" FontWeight="ExtraBold" FontSize="19" Margin="7,0,0,1" VerticalAlignment="Center"/>
                     </StackPanel>
                     <Button x:Name="FileButton" DockPanel.Dock="Left" Style="{StaticResource PillButton}" Content="Fichier" Click="FileButton_Click" Margin="0,0,10,0" Padding="18,6"/>
-                    <RadioButton x:Name="TabHome" Style="{StaticResource RibbonTab}" Content="Accueil" IsChecked="True" Checked="Tab_Checked"/>
-                    <RadioButton x:Name="TabInsert" Style="{StaticResource RibbonTab}" Content="Insertion" Checked="Tab_Checked"/>
-                    <RadioButton x:Name="TabDraw" Style="{StaticResource RibbonTab}" Content="Dessin" Checked="Tab_Checked"/>
-                    <RadioButton x:Name="TabDesign" Style="{StaticResource RibbonTab}" Content="Création de page" Checked="Tab_Checked"/>
-                    <RadioButton x:Name="TabReview" Style="{StaticResource RibbonTab}" Content="Révision" Checked="Tab_Checked"/>
-                    <RadioButton x:Name="TabView" Style="{StaticResource RibbonTab}" Content="Affichage" Checked="Tab_Checked"/>
-                    <RadioButton x:Name="TabShape" Style="{StaticResource RibbonTab}" Content="Format de la forme" Tag="#9935F4" Foreground="#7B2BC7" Visibility="Collapsed" Checked="Tab_Checked"/>
-                    <RadioButton x:Name="TabPicture" Style="{StaticResource RibbonTab}" Content="Outils image" Tag="#06C7C0" Foreground="#05807C" Visibility="Collapsed" Checked="Tab_Checked"/>
-                    <RadioButton x:Name="TabTable" Style="{StaticResource RibbonTab}" Content="Outils de tableau" Tag="#087AFF" Foreground="#0661C9" Visibility="Collapsed" Checked="Tab_Checked"/>
                     <!-- acces rapide -->
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <TextBlock x:Name="DocTitle" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Margin="0,0,12,0"/>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,0">
+                        <TextBlock x:Name="DocTitle" VerticalAlignment="Center" MaxWidth="220" TextTrimming="CharacterEllipsis" Foreground="{StaticResource Muted}" Margin="0,0,12,0"/>
                         <Button Style="{StaticResource RSmall}" Tag="&#xE897;" Click="HelpContext_Click" ToolTip="Aide sur ce que vous faites (F1)"/>
                         <Button Style="{StaticResource RSmall}" Tag="&#xE74E;" Command="ApplicationCommands.Save" ToolTip="Enregistrer (Ctrl+S)"/>
                         <Button Style="{StaticResource RSmall}" Tag="&#xE7A7;" Command="ApplicationCommands.Undo" ToolTip="Annuler (Ctrl+Z)"/>
                         <Button Style="{StaticResource RSmall}" Tag="&#xE7A6;" Command="ApplicationCommands.Redo" ToolTip="Rétablir (Ctrl+Y)"/>
                     </StackPanel>
+                    <!-- onglets : defilement horizontal si la fenetre est etroite -->
+                    <ScrollViewer x:Name="TabScroller" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Focusable="False" PreviewMouseWheel="RibbonScroller_PreviewMouseWheel">
+                        <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="TabHome" Style="{StaticResource RibbonTab}" Content="Accueil" IsChecked="True" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabInsert" Style="{StaticResource RibbonTab}" Content="Insertion" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabDraw" Style="{StaticResource RibbonTab}" Content="Dessin" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabDesign" Style="{StaticResource RibbonTab}" Content="Création de page" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabReview" Style="{StaticResource RibbonTab}" Content="Révision" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabView" Style="{StaticResource RibbonTab}" Content="Affichage" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabShape" Style="{StaticResource RibbonTab}" Content="Format de la forme" Tag="#9935F4" Foreground="#7B2BC7" Visibility="Collapsed" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabPicture" Style="{StaticResource RibbonTab}" Content="Outils image" Tag="#06C7C0" Foreground="#05807C" Visibility="Collapsed" Checked="Tab_Checked"/>
+                        <RadioButton x:Name="TabTable" Style="{StaticResource RibbonTab}" Content="Outils de tableau" Tag="#087AFF" Foreground="#0661C9" Visibility="Collapsed" Checked="Tab_Checked"/>
+                        </StackPanel>
+                    </ScrollViewer>
                 </DockPanel>
 
-                <!-- contenu des onglets -->
+                <!-- contenu des onglets : sur un petit ecran, le ruban defile horizontalement
+                     (molette, fleches aux bords) au lieu de couper les derniers groupes -->
                 <Grid Height="100" Margin="6,4,6,4">
+                <ScrollViewer x:Name="RibbonScroller" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Focusable="False"
+                              PreviewMouseWheel="RibbonScroller_PreviewMouseWheel" ScrollChanged="RibbonScroller_ScrollChanged">
+                <Grid>
                     <!-- Accueil -->
                     <StackPanel x:Name="PanelHome" Orientation="Horizontal">
                         <HeaderedContentControl Style="{StaticResource RGroup}" Header="Historique">
@@ -497,6 +506,12 @@
                             </StackPanel>
                         </HeaderedContentControl>
                     </StackPanel>
+                </Grid>
+                </ScrollViewer>
+                <RepeatButton x:Name="RibbonLeft" Style="{StaticResource RibbonArrow}" HorizontalAlignment="Left" Content="&#xE76B;"
+                              Click="RibbonLeft_Click" Visibility="Collapsed" ToolTip="Faire défiler le ruban vers la gauche"/>
+                <RepeatButton x:Name="RibbonRight" Style="{StaticResource RibbonArrow}" HorizontalAlignment="Right" Content="&#xE76C;"
+                              Click="RibbonRight_Click" Visibility="Collapsed" ToolTip="Faire défiler le ruban vers la droite"/>
                 </Grid>
             </StackPanel>
         </Border>
