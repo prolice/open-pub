@@ -933,3 +933,19 @@ forme ») étaient coupés et inaccessibles.
   qu'il tienne dans la zone » (annulable). Le menu **Ajustement ▾** écrit désormais `"shrink"` explicitement.
 - Les grands titres des modèles gardent `"shrink"` (voulu). Aide (`habillage`, `zone-options`) mise à jour.
 - Test unitaire `Reduction_inactive_par_defaut_sur_les_nouvelles_zones` ; `--selftest` 217/217.
+
+## 14. Version 2.1.3 (2026-11-04) : signalement automatique des erreurs
+
+- `App/Diagnostics/CrashReporter` (mode fenêtre seulement) : `DispatcherUnhandledException` (l'application reste
+  ouverte, message « Continuer ? »), `AppDomain.UnhandledException` (fatale : écrite sur disque, envoyée au démarrage
+  suivant), `TaskScheduler.UnobservedTaskException`, plus les échecs d'ouverture/enregistrement (sauf erreurs du poste :
+  accès refusé, fichier introuvable…). Une même erreur n'est signalée/affichée qu'une fois par session.
+- `Core/Diagnostics/CrashReport` : signature = SHA-256 (type + 5 premières méthodes OpenPub de la pile, sans lignes),
+  anonymisation `Scrub` (dossier utilisateur, réseau, e-mails, noms de documents/images, texte cité, chemins des
+  sources). File `%LOCALAPPDATA%\OpenPub\Crashes` (20 max). Envoi seulement depuis une version installée
+  (ou `OPENPUB_CRASH_REPORTS=1`) ; option « Signaler automatiquement les erreurs » (menu Fichier).
+- Relais `tools/site-api` (fonction gérée SWA, Node 22, sans dépendance) : `POST /api/crash` valide, ré-anonymise,
+  cherche l'issue `[crash <signature>]` (label `crash`) : commente l'ouverte (30 max), rouvre une fermée
+  (`regression`), sinon crée (`fatale` si besoin). Jeton fine-grained « Issues : RW » limité au dépôt, dans la
+  variable d'environnement `GITHUB_TOKEN` de la Static Web App (jamais dans l'exe : dépôt public).
+- Tests : `CrashReportTests` (C#), `node --test` dans `tools/site-api`.
