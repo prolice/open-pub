@@ -46,6 +46,8 @@ DOC_SCENES = {
 }
 
 SWA_CONFIG = {
+    # fonction geree /api/crash (tools/site-api) : relais des rapports d'erreur vers les issues GitHub
+    "platform": {"apiRuntime": "node:22"},
     "mimeTypes": {".msi": "application/x-msi", ".json": "application/json", ".woff2": "font/woff2"},
     "routes": [
         {"route": "/latest.json", "headers": {"Cache-Control": "no-cache, no-store, must-revalidate"}},

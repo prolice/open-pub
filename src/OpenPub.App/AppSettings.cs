@@ -23,6 +23,8 @@ public static class AppSettings
         public bool AutoSave { get; set; } = true;
         /// <summary>Garder la version precedente a l'enregistrement (« nom.opub.bak »).</summary>
         public bool KeepBackup { get; set; } = true;
+        /// <summary>Envoi automatique des rapports d'erreur anonymes (issue GitHub via le relais du site).</summary>
+        public bool CrashReports { get; set; } = true;
     }
 
     static string SettingsPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "OpenPub", "settings.json");

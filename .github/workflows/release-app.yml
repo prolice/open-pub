@@ -149,6 +149,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: portail
     steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: tools/site-api
+
       - uses: actions/download-artifact@v8
         with:
           name: openpub-${{ needs.build.outputs.version }}
@@ -171,3 +175,4 @@ jobs:
           app_location: artefact/work/site
           output_location: ''
           skip_app_build: true
+          api_location: tools/site-api   # fonction /api/crash (sans dependance)

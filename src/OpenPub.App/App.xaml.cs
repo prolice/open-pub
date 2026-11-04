@@ -190,6 +190,7 @@ public partial class App : Application
             return;
         }
 
+        Diagnostics.CrashReporter.Install(this);   // mode fenetre seulement : pas de rapports depuis la ligne de commande
         var win = new MainWindow { TrackRecent = true, EnableRecovery = true };
         MainWindow = win;
         win.Show();

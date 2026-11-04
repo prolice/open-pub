@@ -36,6 +36,8 @@
        La cle privee correspondante est dans %APPDATA%\OpenPub\update-signing-key.pem (hors du depot). -->
   <ItemGroup>
     <AssemblyMetadata Include="UpdateFeed" Value="https://calm-pebble-0080d6003.5.azurestaticapps.net/latest.json" />
+    <!-- Rapports d'erreur : relais du site (fonction Azure) qui detient le jeton GitHub et ouvre les issues -->
+    <AssemblyMetadata Include="CrashReportUrl" Value="https://calm-pebble-0080d6003.5.azurestaticapps.net/api/crash" />
     <AssemblyMetadata Include="HelpBase" Value="https://calm-pebble-0080d6003.5.azurestaticapps.net/aide/" />
     <AssemblyMetadata Include="UpdatePublicKey" Value="MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAvMdZ8Q9PoOtbEsf2ZvCg40BhKiFlYkt5h3rmR37JME9A7tmOxQrb8Gi+A7TbcBV8f9GGBt0Q8vNDLwsZf+Gg0hkDUe3KlVoZdvdsiCGwuUMCnUUxSYFSYCtwR0sYlQFpiC3z7e6OVlIDdLBmYJSWKjWAj4s/ESM98fshdKq+ZkBkvvzpn9tRu2/6TC6VVWwK8FwPUtkcP/1kykrnkHcrvgGfCdVNfbqdrznV4Re/nSlKHhWPzUvMw9KuZtsWIYSMCNJuJfXhacT17EpE/tA5qu0ZRVAslvdR0uSD1Nj1jMYHtLI4BPwNklFpqnya+NycvC8yPwaRpvHPGjU1QVdXL8Hqs5NPztQHrlerkPczBy32CcNpXWyVaf0yUQGuM8T3VgwpORlA6+Zimhz38deT4778h2gCFQ5kyMUmnlULe+aeyq1QAlw1cb+Oex31DLmJxHFK/TeDuhWwHW4C9UIvZi5SJYWrZx3qXIMywY1Nc/3AVl5m2iic1dbdnEvloPxlAgMBAAE=" />
   </ItemGroup>

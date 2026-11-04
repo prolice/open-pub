@@ -69,6 +69,7 @@ public partial class MainWindow : Window
         try { pkg = OpubPackage.Open(path, FontEmbedder.DefaultSearchDirs); }
         catch (Exception ex)
         {
+            Diagnostics.CrashReporter.Report(ex, "ouverture");
             MessageBox.Show(this, $"Impossible d'ouvrir le fichier :\n{ex.Message}", "OpenPub", MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
@@ -171,6 +172,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            Diagnostics.CrashReporter.Report(ex, "enregistrement");
             MessageBox.Show(this, $"Échec de l'enregistrement :\n{ex.Message}", "OpenPub", MessageBoxButton.OK, MessageBoxImage.Error);
             return false;
         }
@@ -575,6 +577,9 @@ public partial class MainWindow : Window
         var backup = new MenuItem { Header = "Garder la version précédente (.bak) à l'enregistrement", IsCheckable = true, IsChecked = prefs.KeepBackup };
         backup.Click += (_, _) => AppSettings.Update(x => x.KeepBackup = backup.IsChecked);
         menu.Items.Add(backup);
+        var crash = new MenuItem { Header = "Signaler automatiquement les erreurs (rapport anonyme)", IsCheckable = true, IsChecked = prefs.CrashReports };
+        crash.Click += (_, _) => AppSettings.Update(x => x.CrashReports = crash.IsChecked);
+        menu.Items.Add(crash);
         Add("À propos d'OpenPub", "", ShowAbout, glyph: "\uE946");
         menu.Items.Add(new Separator());
         Add("Quitter", "Alt+F4", Close, glyph: "\uE7E8");

@@ -50,7 +50,7 @@ fi
 if [ "$DEPLOY" = "--deploy" ]; then
   echo "== 4. Envoi sur Azure Static Web Apps ($SWA_NAME)"
   TOKEN=$(tools/az.sh staticwebapp secrets list -n "$SWA_NAME" -g "$SWA_RG" --query properties.apiKey -o tsv)
-  npx -y @azure/static-web-apps-cli@2.0.2 deploy work/site --env production --deployment-token "$TOKEN" --no-use-keychain
+  npx -y @azure/static-web-apps-cli@2.0.2 deploy work/site --api-location tools/site-api --api-language node --api-version 22 --env production --deployment-token "$TOKEN" --no-use-keychain
   HOST=$(tools/az.sh staticwebapp show -n "$SWA_NAME" -g "$SWA_RG" --query defaultHostname -o tsv)
   echo "Publie : https://$HOST/latest.json"
 else

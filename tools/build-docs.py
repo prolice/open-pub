@@ -96,7 +96,11 @@ enregistrés (nom et dossier) : un clic les rouvre, {k('Ctrl', 'Maj', '1')} à {
 Un document déplacé ou supprimé disparaît de la liste ; « Effacer la liste » la vide.</p>
 <p>Deux options du menu protègent votre travail : la <strong>copie de secours automatique</strong> (voir
 <a href="#recuperation">Récupérer un document</a>) et <strong>Garder la version précédente (.bak)</strong>, qui conserve
-à côté du fichier la version d'avant chaque enregistrement (« numero.opub.bak », à renommer en .opub pour l'ouvrir).</p>"""),
+à côté du fichier la version d'avant chaque enregistrement (« numero.opub.bak », à renommer en .opub pour l'ouvrir).</p>
+<p><strong>Signaler automatiquement les erreurs</strong> : si OpenPub rencontre une erreur inattendue, un rapport
+<em>anonyme</em> (type d'erreur, version, système — jamais le contenu du document, les noms de fichiers ni votre nom)
+est envoyé aux développeurs pour qu'elle soit corrigée. Sans connexion, il part au démarrage suivant. Décochez
+l'option pour ne rien envoyer.</p>"""),
         ("accueil", "Onglet Accueil", """
 <ul><li><strong>Historique</strong> : Annuler et Rétablir.</li>
 <li><strong>Police</strong> : police, taille, gras, italique, souligné, couleur du texte.</li>

@@ -13,6 +13,7 @@ on:
       - 'tools/site-template/**'
       - 'tools/build-docs.py'
       - 'tools/build-site.py'
+      - 'tools/site-api/**'
       - 'assets/openpub-design/**'
       - '.github/workflows/publish-portal.yml'
   workflow_dispatch:
@@ -91,6 +92,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: portail
     steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: tools/site-api
+
       - uses: actions/download-artifact@v8
         with:
           name: portail
@@ -104,3 +109,4 @@ jobs:
           app_location: site
           output_location: ''
           skip_app_build: true
+          api_location: tools/site-api   # fonction /api/crash (sans dependance)
