@@ -959,3 +959,10 @@ forme ») étaient coupés et inaccessibles.
 - L'ancienne adresse `calm-pebble-0080d6003.5.azurestaticapps.net` (nom d'hôte Azure par défaut, non supprimable)
   sert exactement le même site : les versions ≤ 2.1.3 installées y lisent toujours `latest.json`, reçoivent la 2.1.4,
   puis n'utilisent plus que le nouveau domaine. Ne pas retirer le domaine personnalisé ensuite.
+
+## 16. Version 2.1.5 (2026-11-11) : choix des pages
+
+- Impression, export PDF et export en images : choisir « Pages : » laissait « Toutes les pages » (ou « Page active »)
+  coché à côté, et c'est ce choix qui l'emportait. « Pages : » est dans une autre ligne que les deux autres boutons :
+  WPF en faisait un groupe à part. Les trois boutons ont maintenant un nom de groupe commun (`PageChooser`) ; l'autotest
+  coche « Pages : » et vérifie qu'il reste seul coché. Défaut signalé sur OpenWrite, qui reprend ce code.
