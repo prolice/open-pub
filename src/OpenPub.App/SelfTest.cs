@@ -1044,6 +1044,19 @@ public static partial class SelfTest
             pw.Close();
             var ew = new Output.PdfExportWindow(n, 1) { Owner = w, Left = -4000, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual };
             ew.Show();
+            Pump();
+            // choix « Pages : » : un seul bouton coche (les trois boutons sont dans des lignes differentes)
+            var radios = new List<System.Windows.Controls.RadioButton>();
+            void Walk(DependencyObject d)
+            {
+                if (d is System.Windows.Controls.RadioButton rb) radios.Add(rb);
+                for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(d); i++) Walk(System.Windows.Media.VisualTreeHelper.GetChild(d, i));
+            }
+            Walk(ew);
+            var rangeRadio = radios.FirstOrDefault(r => r.Content as string == "Pages :");
+            if (rangeRadio is not null) rangeRadio.IsChecked = true;
+            Pump();
+            Check(rangeRadio is not null && radios.Count(r => r.IsChecked == true) == 1, $"export PDF : « Pages : » seul coche ({radios.Count(r => r.IsChecked == true)} bouton(s) coche(s))");
             Capture(ew, Path.Combine(outDir, "export-pdf.png"));
             ew.Close();
 
