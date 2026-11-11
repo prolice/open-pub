@@ -7,7 +7,7 @@
 | Élément | État |
 |---|---|
 | Application | Version **1.5.1** en ligne (ruban, édition sur la page, dessin, retouche d'images, aide contextuelle F1, mises à jour automatiques signées) |
-| Portail | https://calm-pebble-0080d6003.5.azurestaticapps.net : page de téléchargement + aide en ligne (`/aide/`), Azure Static Web Apps, offre gratuite |
+| Portail | https://open-pub.prolice.net : page de téléchargement + aide en ligne (`/aide/`), Azure Static Web Apps, offre gratuite |
 | Dépôt | https://github.com/prolice/open-pub (public, branche `main`) |
 | Pipeline « Publier une version de l'app » | En place, **validée en mode essai** sur GitHub |
 | Pipeline « Publier le portail » | En place, **pas encore testée** : attend une première release GitHub |
@@ -66,5 +66,5 @@ D=/mnt/c/Users/prolice/AppData/Local/Microsoft/dotnet/dotnet.exe
 $D test tests/OpenPub.Tests -nologo -v q                     # 37 tests unitaires
 $D 'C:\dev\open-pub\src\OpenPub.App\bin\Debug\net10.0-windows\OpenPub.dll' --selftest \
    'C:\dev\open-pub\converted\newsletter-natif\document.json' 'C:\dev\open-pub\work\selftest'   # 49 vérifications (conversion locale requise)
-curl -s https://calm-pebble-0080d6003.5.azurestaticapps.net/latest.json | grep version   # version en ligne
+curl -s https://open-pub.prolice.net/latest.json | grep version   # version en ligne
 ```

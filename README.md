@@ -4,7 +4,7 @@
 
 Éditeur de mise en page pour Windows (C# / .NET 10 / WPF), conçu pour remplacer Microsoft Publisher après son retrait : bulletins, affiches, cartes, invitations.
 
-- **Téléchargement et aide en ligne** : https://calm-pebble-0080d6003.5.azurestaticapps.net (installeur MSI par utilisateur, sans droits administrateur ; mises à jour automatiques signées).
+- **Téléchargement et aide en ligne** : https://open-pub.prolice.net (installeur MSI par utilisateur, sans droits administrateur ; mises à jour automatiques signées).
 - **Fonctions** : écriture directement sur la page, zones de texte liées en colonnes, habillage des images, césure française, réduction automatique du texte ; formes, crayon à main levée, forme libre, flèches ; rotation ; magnétisme et repères ; retouche d'images (recadrage, gris, sépia, filigrane, luminosité, contraste, miroir, ombre, reflet) ; impression et PDF ; aide contextuelle (F1).
 
 ## Structure

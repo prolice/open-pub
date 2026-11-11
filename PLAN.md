@@ -231,7 +231,7 @@ Vérifications : 29 tests unitaires et un test de bout en bout de l'interface (`
 
 ## 6 quinquies. Mises à jour automatiques (version 1.2, coût Azure : 0 €)
 
-- **Hébergement** : Azure Static Web Apps, **offre Free** (gratuite en permanence) : `openpub-updates` dans le groupe `rg-openpub-updates` (Europe de l'Ouest). Adresse : https://calm-pebble-0080d6003.5.azurestaticapps.net (contient `latest.json`, l'installeur MSI et une page de téléchargement).
+- **Hébergement** : Azure Static Web Apps, **offre Free** (gratuite en permanence) : `openpub-updates` dans le groupe `rg-openpub-updates` (Europe de l'Ouest). Adresse : https://open-pub.prolice.net (contient `latest.json`, l'installeur MSI et une page de téléchargement).
 - **Dans l'application** : vérification discrète 3 s après le démarrage (désactivable dans Fichier). Un bandeau propose « Mettre à jour maintenant / Plus tard / Ignorer cette version ». OpenPub télécharge alors le MSI, vérifie sa **signature RSA-3072** et son **empreinte SHA-256**, propose d'enregistrer le document, installe en mode passif (par utilisateur, sans droits administrateur) puis se relance sur le document ouvert. Menu Fichier : « Rechercher des mises à jour… ».
 - **Sécurité** : `latest.json` est signé avec une clé privée qui reste sur le poste de publication (`%APPDATA%\OpenPub\update-signing-key.pem`, **à sauvegarder et ne jamais partager**). L'application embarque la clé publique. Un `latest.json` modifié (version, adresse ou empreinte) est refusé : vérifié par 7 tests unitaires et hors ligne avec `OpenPub.exe --verify-update`.
 - **Publier une version** : `tools/publish-update.sh X.Y.Z "Nouveautés" --deploy` enchaîne le numéro de version, les tests, l'exécutable autonome, le MSI, la signature, l'envoi sur Azure (outil officiel `@azure/static-web-apps-cli` via npx, jeton lu par `az`). Sans `--deploy` : préparation locale dans `work/site`.
@@ -949,3 +949,13 @@ forme ») étaient coupés et inaccessibles.
   (`regression`), sinon crée (`fatale` si besoin). Jeton fine-grained « Issues : RW » limité au dépôt, dans la
   variable d'environnement `GITHUB_TOKEN` de la Static Web App (jamais dans l'exe : dépôt public).
 - Tests : `CrashReportTests` (C#), `node --test` dans `tools/site-api`.
+
+## 15. Version 2.1.4 (2026-11-11) : nouvelle adresse du portail
+
+- Le portail (téléchargement, aide en ligne, `latest.json`, relais `/api/crash`) a le domaine personnalisé
+  **https://open-pub.prolice.net** (même Static Web App `openpub-updates`). Toutes les références passent sur cette
+  adresse : `AssemblyMetadata` `UpdateFeed` / `HelpBase` / `CrashReportUrl` (csproj), adresse de secours de
+  `HelpService.UrlOf`, autotest, README/REPRISE, message final de `publish-update.sh`.
+- L'ancienne adresse `calm-pebble-0080d6003.5.azurestaticapps.net` (nom d'hôte Azure par défaut, non supprimable)
+  sert exactement le même site : les versions ≤ 2.1.3 installées y lisent toujours `latest.json`, reçoivent la 2.1.4,
+  puis n'utilisent plus que le nouveau domaine. Ne pas retirer le domaine personnalisé ensuite.

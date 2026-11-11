@@ -666,7 +666,7 @@ public static partial class SelfTest
         setTool.Invoke(w, new object?[] { "polygon" });
         Check(topic() == Help.HelpService.FreeDrawing, "outil forme libre -> aide du dessin libre");
         setTool.Invoke(w, new object?[] { null });
-        Check(Help.HelpService.UrlOf(Help.HelpService.TextWrite) == "https://calm-pebble-0080d6003.5.azurestaticapps.net/aide/texte.html#ecrire", "adresse des pages d'aide");
+        Check(Help.HelpService.UrlOf(Help.HelpService.TextWrite) == "https://open-pub.prolice.net/aide/texte.html#ecrire", "adresse des pages d'aide");
 
         Console.WriteLine("Creation de page : pages maitres, numeros, arriere-plan, double page, reperes, mise en page");
         {

@@ -91,7 +91,7 @@ public static class HelpService
     public static string? BaseUrl => Assembly.GetExecutingAssembly().GetCustomAttributes<AssemblyMetadataAttribute>()
         .FirstOrDefault(a => a.Key == "HelpBase")?.Value;
 
-    public static string UrlOf(string topic) => (BaseUrl ?? "https://calm-pebble-0080d6003.5.azurestaticapps.net/aide/").TrimEnd('/') + "/" + topic;
+    public static string UrlOf(string topic) => (BaseUrl ?? "https://open-pub.prolice.net/aide/").TrimEnd('/') + "/" + topic;
 
     /// <summary>Ouvre une page d'aide dans le navigateur par defaut.</summary>
     public static void Open(string topic)
